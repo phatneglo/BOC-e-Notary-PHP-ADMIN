@@ -1,213 +1,285 @@
 <?php
 // app/api/services/NotificationService.php
 namespace PHPMaker2024\eNotary;
-@session_start();
 
-/**
- * Notification Service Class
- * Defines notification API endpoints functionality
- */
 class NotificationService {
     /**
-     * Get recent notifications for the current user
+     * Get notifications for a user
      * @param int $userId User ID
-     * @return array Notification data
+     * @param array $params Query parameters
+     * @return array Response data
      */
-    public function getRecentNotifications($userId) {
-        $notifications = NotificationManager::getUserNotifications($userId);
-        
-        return [
-            'success' => true,
-            'data' => $notifications,
-            'unread_count' => NotificationManager::getUnreadCount($userId)
-        ];
-    }
-
-    /**
-     * Mark a notification as read
-     * @param array $data Request data
-     * @param int $userId User ID
-     * @return array Response
-     */
-    public function markAsRead($data, $userId) {
-        $notificationId = $data['id'] ?? null;
-        
-        if (!$notificationId) {
-            return [
-                'success' => false,
-                'message' => 'Notification ID required'
-            ];
-        }
-
-        $success = NotificationManager::markAsRead($notificationId, $userId);
-        
-        return [
-            'success' => $success
-        ];
-    }
-
-    /**
-     * Get unread notification count
-     * @param int $userId User ID
-     * @return array Response
-     */
-    public function getUnreadCount($userId) {
-        $count = NotificationManager::getUnreadCount($userId);
-        
-        return [
-            'success' => true,
-            'count' => $count
-        ];
-    }
-
-    /**
-     * Mark all notifications as read
-     * @param int $userId User ID
-     * @return array Response
-     */
-    public function markAllAsRead($userId) {
-        $success = NotificationManager::markAllAsRead($userId);
-        
-        return [
-            'success' => $success
-        ];
-    }
-
-    /**
-     * Send test notifications
-     * @param int $userId User ID
-     * @param string $userLevel User level
-     * @return array Response
-     */
-    public function sendTestNotifications($userId, $userLevel) {
+    public function getUserNotifications($userId, $params = []) {
         try {
-            // Test System Notification
-            $systemResult = NotificationManager::sendSystem(
-                "🔧 Test System Notification",
-                "This is a test system-wide notification sent at " . date('Y-m-d H:i:s'),
-                "/test-system",
-                "UAC"
-            );
-
-            // Test Personal Notification
-            $personalResult = NotificationManager::sendToUser(
-                $userId,
-                "👤 Test Personal Notification",
-                "This is a test personal notification for user #" . $userId,
-                "/test-personal",
-                "UAC"
-            );
-
-            // Test User Level Notification
-            $userLevelResult = NotificationManager::sendToUserLevel(
-                $userLevel,
-                "👥 Test User Level Notification",
-                "This is a test notification for user level #" . $userLevel,
-                "/test-user-level",
-                "UAC"
-            );
-
+            // Pagination parameters
+            $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
+            $perPage = isset($params['per_page']) ? min(max(1, (int)$params['per_page']), 100) : 20;
+            $offset = ($page - 1) * $perPage;
+            
+            // Filter parameters
+            $isRead = isset($params['is_read']) ? $params['is_read'] === 'true' : null;
+            $type = isset($params['type']) ? trim($params['type']) : null;
+            
+            // Build WHERE clause
+            $where = "user_id = " . QuotedValue($userId, DataType::NUMBER);
+            
+            if ($isRead !== null) {
+                $where .= " AND is_read = " . QuotedValue($isRead, DataType::BOOLEAN);
+            }
+            
+            if ($type) {
+                $where .= " AND type = " . QuotedValue($type, DataType::STRING);
+            }
+            
+            // Query notifications
+            $sql = "SELECT
+                    id,
+                    timestamp,
+                    type,
+                    target,
+                    subject,
+                    body,
+                    link,
+                    is_read,
+                    created_at
+                FROM
+                    notifications
+                WHERE
+                    " . $where . "
+                ORDER BY
+                    timestamp DESC
+                LIMIT " . $perPage . " OFFSET " . $offset;
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            // Get total count
+            $sqlCount = "SELECT COUNT(*) AS total FROM notifications WHERE " . $where;
+            $resultCount = ExecuteRows($sqlCount, "DB");
+            $total = $resultCount[0]['total'] ?? 0;
+            
+            // Calculate pagination metadata
+            $totalPages = ceil($total / $perPage);
+            
+            // Return success response
             return [
                 'success' => true,
-                'results' => [
-                    'system' => $systemResult,
-                    'personal' => $personalResult,
-                    'userLevel' => $userLevelResult
-                ],
-                'user_info' => [
-                    'user_id' => $userId,
-                    'user_level' => $userLevel
+                'data' => $result,
+                'meta' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => $totalPages
                 ]
             ];
-
         } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
             return [
                 'success' => false,
-                'message' => 'Error sending test notifications',
-                'error' => $e->getMessage()
+                'message' => 'Failed to get notifications: ' . $e->getMessage()
             ];
         }
     }
-
+    
     /**
-     * Send notification
-     * @param array $data Request data
-     * @return array Response
+     * Mark a notification as read
+     * @param string $notificationId Notification ID
+     * @return array Response data
      */
-    public function sendNotification($data) {
+    public function markNotificationAsRead($notificationId) {
         try {
-            // Validate required fields
-            $requiredFields = ['type', 'subject', 'body'];
-            foreach ($requiredFields as $field) {
-                if (empty($data[$field])) {
-                    return [
-                        'success' => false,
-                        'message' => "Missing required field: {$field}"
-                    ];
-                }
-            }
-
-            // Validate notification type
-            $validTypes = ['system', 'personal', 'userLevel'];
-            if (!in_array($data['type'], $validTypes)) {
+            // Validate notification ID
+            if (empty($notificationId)) {
                 return [
                     'success' => false,
-                    'message' => "Invalid notification type. Must be one of: " . implode(', ', $validTypes)
+                    'message' => 'Notification ID is required'
                 ];
             }
-
-            // If not system notification, target is required
-            if ($data['type'] !== 'system' && empty($data['target'])) {
+            
+            // Get current user ID
+            $userId = Authentication::getUserId();
+            
+            // Check if notification exists and belongs to the user
+            $sql = "SELECT id, user_id FROM notifications 
+                    WHERE id = " . QuotedValue($notificationId, DataType::STRING);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
                 return [
                     'success' => false,
-                    'message' => "Target is required for {$data['type']} notifications"
+                    'message' => 'Notification not found'
                 ];
             }
-
-            // Send notification based on type
-            $result = false;
-            switch ($data['type']) {
-                case 'system':
-                    $result = NotificationManager::sendSystem(
-                        $data['subject'],
-                        $data['body'],
-                        $data['link'] ?? null,
-                        $data['from_system'] ?? null
-                    );
-                    break;
-
-                case 'personal':
-                    $result = NotificationManager::sendToUser(
-                        $data['target'],
-                        $data['subject'],
-                        $data['body'],
-                        $data['link'] ?? null,
-                        $data['from_system'] ?? null
-                    );
-                    break;
-
-                case 'userLevel':
-                    $result = NotificationManager::sendToUserLevel(
-                        $data['target'],
-                        $data['subject'],
-                        $data['body'],
-                        $data['link'] ?? null,
-                        $data['from_system'] ?? null
-                    );
-                    break;
+            
+            if ($result[0]['user_id'] != $userId) {
+                return [
+                    'success' => false,
+                    'message' => 'Notification does not belong to the current user'
+                ];
             }
-
+            
+            // Update notification as read
+            $sql = "UPDATE notifications SET
+                    is_read = true
+                    WHERE id = " . QuotedValue($notificationId, DataType::STRING);
+            
+            Execute($sql, "DB");
+            
+            // Return success response
             return [
-                'success' => $result,
-                'message' => $result ? 'Notification sent successfully' : 'Failed to send notification'
+                'success' => true,
+                'message' => 'Notification marked as read'
             ];
-
         } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
             return [
                 'success' => false,
-                'message' => 'Error sending notification',
-                'error' => $e->getMessage()
+                'message' => 'Failed to mark notification as read: ' . $e->getMessage()
             ];
+        }
+    }
+    
+    /**
+     * Mark all notifications as read for a user
+     * @param int $userId User ID
+     * @return array Response data
+     */
+    public function markAllNotificationsAsRead($userId) {
+        try {
+            // Update all notifications as read
+            $sql = "UPDATE notifications SET
+                    is_read = true
+                    WHERE user_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                    AND is_read = false";
+            
+            Execute($sql, "DB");
+            
+            // Return success response
+            return [
+                'success' => true,
+                'message' => 'All notifications marked as read'
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to mark all notifications as read: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Delete a notification
+     * @param string $notificationId Notification ID
+     * @return array Response data
+     */
+    public function deleteNotification($notificationId) {
+        try {
+            // Validate notification ID
+            if (empty($notificationId)) {
+                return [
+                    'success' => false,
+                    'message' => 'Notification ID is required'
+                ];
+            }
+            
+            // Get current user ID
+            $userId = Authentication::getUserId();
+            
+            // Check if notification exists and belongs to the user
+            $sql = "SELECT id, user_id FROM notifications 
+                    WHERE id = " . QuotedValue($notificationId, DataType::STRING);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Notification not found'
+                ];
+            }
+            
+            if ($result[0]['user_id'] != $userId) {
+                return [
+                    'success' => false,
+                    'message' => 'Notification does not belong to the current user'
+                ];
+            }
+            
+            // Delete notification
+            $sql = "DELETE FROM notifications 
+                    WHERE id = " . QuotedValue($notificationId, DataType::STRING);
+            
+            Execute($sql, "DB");
+            
+            // Return success response
+            return [
+                'success' => true,
+                'message' => 'Notification deleted successfully'
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to delete notification: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Create a notification for a user
+     * @param int $userId User ID
+     * @param string $type Notification type
+     * @param string $target Target entity reference
+     * @param string $subject Notification subject
+     * @param string $body Notification body
+     * @param string $link Action URL
+     * @return bool Success status
+     */
+    public function createNotification($userId, $type, $target, $subject, $body, $link = '') {
+        try {
+            $id = uniqid('notif_', true);
+            
+            $sql = "INSERT INTO notifications (
+                    id,
+                    timestamp,
+                    type,
+                    target,
+                    user_id,
+                    subject,
+                    body,
+                    link,
+                    is_read
+                ) VALUES (
+                    " . QuotedValue($id, DataType::STRING) . ",
+                    CURRENT_TIMESTAMP,
+                    " . QuotedValue($type, DataType::STRING) . ",
+                    " . QuotedValue($target, DataType::STRING) . ",
+                    " . QuotedValue($userId, DataType::NUMBER) . ",
+                    " . QuotedValue($subject, DataType::STRING) . ",
+                    " . QuotedValue($body, DataType::TEXT) . ",
+                    " . QuotedValue($link, DataType::STRING) . ",
+                    FALSE
+                )";
+            
+            Execute($sql, "DB");
+            
+            return true;
+        } catch (\Exception $e) {
+            LogError('Failed to create notification: ' . $e->getMessage());
+            return false;
         }
     }
 }

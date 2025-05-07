@@ -114,7 +114,7 @@ class RequestService {
                     $sql = "SELECT 
                             user_id 
                         FROM 
-                            \"DB\".users 
+                            users 
                         WHERE 
                             is_notary = true 
                             AND is_active = true 
@@ -241,7 +241,7 @@ class RequestService {
                 JOIN
                     documents d ON r.document_id = d.document_id
                 LEFT JOIN
-                    \"DB\".users u ON r.notary_id = u.user_id
+                    users u ON r.notary_id = u.user_id
                 LEFT JOIN
                     notarization_queue q ON r.request_id = q.request_id
                 WHERE
@@ -534,7 +534,7 @@ class RequestService {
                 FROM
                     document_activity_logs l
                 JOIN
-                    \"DB\".users u ON l.user_id = u.user_id
+                    users u ON l.user_id = u.user_id
                 WHERE
                     l.document_id = " . QuotedValue($documentId, DataType::NUMBER) . "
                 ORDER BY

@@ -33,7 +33,7 @@ class AuthService {
             
             // Check if username already exists
             $usernameExists = ExecuteScalar(
-                "SELECT COUNT(*) FROM \"DB\".users WHERE username = " . QuotedValue($userData['username'], DataType::STRING),
+                "SELECT COUNT(*) FROM users WHERE username = " . QuotedValue($userData['username'], DataType::STRING),
                 "DB"
             );
             
@@ -47,7 +47,7 @@ class AuthService {
             
             // Check if email already exists
             $emailExists = ExecuteScalar(
-                "SELECT COUNT(*) FROM \"DB\".users WHERE email = " . QuotedValue($userData['email'], DataType::STRING),
+                "SELECT COUNT(*) FROM users WHERE email = " . QuotedValue($userData['email'], DataType::STRING),
                 "DB"
             );
             
@@ -67,7 +67,7 @@ class AuthService {
             
             try {
                 // Insert user record
-                $sql = "INSERT INTO \"DB\".users (
+                $sql = "INSERT INTO users (
                     username, 
                     email, 
                     password_hash, 
@@ -194,7 +194,7 @@ class AuthService {
                 }
                 
                 // Update user profile
-                $sql = "UPDATE \"DB\".users SET
+                $sql = "UPDATE users SET
                     government_id_type = " . QuotedValue($profileData['government_id_type'], DataType::STRING) . ",
                     government_id_number = " . QuotedValue($profileData['government_id_number'], DataType::STRING) . ",
                     address = " . QuotedValue($profileData['address'], DataType::STRING) . ",
@@ -259,7 +259,7 @@ class AuthService {
             
             // Get user by username
             $sql = "SELECT user_id, username, email, password_hash, first_name, last_name, user_level_id, is_notary 
-                    FROM \"DB\".users 
+                    FROM users 
                     WHERE username = " . QuotedValue($credentials['username'], DataType::STRING) . "
                     AND is_active = true";
             
@@ -285,11 +285,11 @@ class AuthService {
             }
             
             // Generate tokens
-            $accessToken = $this->generateAccessToken($user);
+            $accessToken = CreateJwt($user);
             $refreshToken = $this->generateRefreshToken($user['user_id']);
             
             // Update last login timestamp
-            $sql = "UPDATE \"DB\".users SET last_login = CURRENT_TIMESTAMP WHERE user_id = " . QuotedValue($user['user_id'], DataType::NUMBER);
+            $sql = "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = " . QuotedValue($user['user_id'], DataType::NUMBER);
             Execute($sql, "DB");
             
             // Return success response with tokens
@@ -341,7 +341,7 @@ class AuthService {
             // Verify refresh token
             $sql = "SELECT rt.user_id, rt.token, rt.expires_at, u.username, u.email, u.first_name, u.last_name, u.user_level_id, u.is_notary 
                     FROM refresh_tokens rt
-                    JOIN \"DB\".users u ON rt.user_id = u.user_id
+                    JOIN users u ON rt.user_id = u.user_id
                     WHERE rt.token = " . QuotedValue($refreshToken, DataType::STRING) . "
                     AND rt.expires_at > CURRENT_TIMESTAMP";
             
@@ -449,7 +449,7 @@ class AuthService {
             }
             
             // Check if email exists
-            $sql = "SELECT user_id, username, email, first_name, last_name FROM \"DB\".users WHERE email = " . QuotedValue($email, DataType::STRING);
+            $sql = "SELECT user_id, username, email, first_name, last_name FROM users WHERE email = " . QuotedValue($email, DataType::STRING);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result)) {
@@ -563,7 +563,7 @@ class AuthService {
             try {
                 // Update user password
                 $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $sql = "UPDATE \"DB\".users SET 
+                $sql = "UPDATE users SET 
                         password_hash = " . QuotedValue($passwordHash, DataType::STRING) . "
                         WHERE user_id = " . QuotedValue($resetToken['user_id'], DataType::NUMBER);
                 
@@ -619,6 +619,7 @@ class AuthService {
         
         // Use JWT library to generate token (implementation depends on the JWT library used)
         // For demonstration, we'll return a placeholder
+        
         return 'jwt_token_placeholder.' . base64_encode(json_encode($payload));
     }
     

@@ -3,6 +3,18 @@
 namespace PHPMaker2024\eNotary;
 
 /**
+ * @api {get} /documents/summary Get document summary
+ * @apiName GetDocumentSummary
+ * @apiGroup Documents
+ */
+$app->get("/documents/summary", function ($request, $response, $args) {
+    $service = new DocumentService();
+    $userId = Authentication::getUserId();
+    return $response->withJson($service->getDocumentSummary($userId));
+})->add($jwtMiddleware);
+
+
+/**
  * @api {post} /documents Create document
  * @apiName CreateDocument
  * @apiGroup Documents
@@ -109,16 +121,6 @@ $app->delete("/documents/{document_id}", function ($request, $response, $args) {
     return $response->withJson($service->deleteDocument($documentId));
 })->add($jwtMiddleware);
 
-/**
- * @api {get} /documents/summary Get document summary
- * @apiName GetDocumentSummary
- * @apiGroup Documents
- */
-$app->get("/documents/summary", function ($request, $response, $args) {
-    $service = new DocumentService();
-    $userId = Authentication::getUserId();
-    return $response->withJson($service->getDocumentSummary($userId));
-})->add($jwtMiddleware);
 
 /**
  * @api {post} /documents/{document_id}/convert Convert document to PDF

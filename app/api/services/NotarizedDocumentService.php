@@ -47,7 +47,7 @@ class NotarizedDocumentService {
                 JOIN
                     documents d ON nd.document_id = d.document_id
                 JOIN
-                    \"DB\".users u ON nd.notary_id = u.user_id
+                    users u ON nd.notary_id = u.user_id
                 LEFT JOIN
                     document_verification dv ON nd.notarized_id = dv.notarized_id
                 WHERE
@@ -129,7 +129,7 @@ class NotarizedDocumentService {
                 JOIN
                     documents d ON nd.document_id = d.document_id
                 JOIN
-                    \"DB\".users u ON nd.notary_id = u.user_id
+                    users u ON nd.notary_id = u.user_id
                 LEFT JOIN
                     document_verification dv ON nd.notarized_id = dv.notarized_id
                 LEFT JOIN

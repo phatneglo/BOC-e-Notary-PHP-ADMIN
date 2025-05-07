@@ -2,13 +2,16 @@
 // app/api/routes/index.routes.php
 namespace PHPMaker2024\eNotary;
 
-/**
- * API Routes Index
- * Central file to include all route files
- */
-
-// Include all individual route files
-require_once __DIR__ . "/access.routes.php";
-require_once __DIR__ . "/notification.routes.php";
-require_once __DIR__ . "/permissions.routes.php";
-require_once __DIR__ . "/service.routes.php";
+// Load all route files
+require_once __DIR__ . '/auth.routes.php';
+require_once __DIR__ . '/user.routes.php';
+require_once __DIR__ . '/notary.routes.php';
+require_once __DIR__ . '/templates.routes.php';
+require_once __DIR__ . '/documents.routes.php';
+require_once __DIR__ . '/requests.routes.php';
+require_once __DIR__ . '/notarized.routes.php';
+require_once __DIR__ . '/payments.routes.php';
+require_once __DIR__ . '/verify.routes.php';
+require_once __DIR__ . '/notifications.routes.php';
+require_once __DIR__ . '/qrcode.routes.php';
+require_once __DIR__ . '/system.routes.php';

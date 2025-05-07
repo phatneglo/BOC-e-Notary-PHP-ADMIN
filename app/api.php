@@ -18,11 +18,14 @@ $jwtMiddleware = function (Request $request, RequestHandler $handler): Response 
     if (!$authHeader) {
         $authHeader = GetJwtToken();
     }
+
     $jwt = str_replace('Bearer ', '', $authHeader);
 
     // Decode the JWT
     $payload = DecodeJwt($jwt);
     
+    print_r($payload);
+    die();    
     // If the JWT is invalid, return a 401 Unauthorized response
     if (isset($payload['failureMessage']) || !isset($jwt) || empty($jwt)) {
         $response = new \Nyholm\Psr7\Response();

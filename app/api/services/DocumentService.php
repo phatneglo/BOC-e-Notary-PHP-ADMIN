@@ -699,7 +699,7 @@ class DocumentService {
                 FROM
                     notarization_requests r
                 LEFT JOIN
-                    \"DB\".users u ON r.notary_id = u.user_id
+                    users u ON r.notary_id = u.user_id
                 WHERE
                     r.document_id = " . QuotedValue($documentId, DataType::NUMBER);
             
@@ -1451,7 +1451,7 @@ class DocumentService {
                 FROM
                     document_activity_logs l
                 JOIN
-                    \"DB\".users u ON l.user_id = u.user_id
+                    users u ON l.user_id = u.user_id
                 WHERE
                     l.document_id = " . QuotedValue($documentId, DataType::NUMBER) . "
                 ORDER BY

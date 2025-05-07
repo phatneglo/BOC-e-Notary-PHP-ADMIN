@@ -11,7 +11,7 @@ class NotaryService {
     public function getNotaryProfile($userId) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -28,7 +28,7 @@ class NotaryService {
                     notary_commission_expiry,
                     (digital_seal IS NOT NULL) AS has_digital_seal
                 FROM
-                    \"DB\".users
+                    users
                 WHERE
                     user_id = " . QuotedValue($userId, DataType::NUMBER) . "
                     AND is_notary = true";
@@ -68,7 +68,7 @@ class NotaryService {
     public function updateNotaryProfile($userId, $profileData) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -127,7 +127,7 @@ class NotaryService {
                 }
                 
                 // Update notary profile
-                $sql = "UPDATE \"DB\".users SET
+                $sql = "UPDATE users SET
                         notary_commission_number = " . QuotedValue($profileData['notary_commission_number'], DataType::STRING) . ",
                         notary_commission_expiry = " . QuotedValue($profileData['notary_commission_expiry'], DataType::DATE);
                 
@@ -174,7 +174,7 @@ class NotaryService {
     public function getQueue($notaryId, $params = []) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -209,7 +209,7 @@ class NotaryService {
                 JOIN
                     documents d ON r.document_id = d.document_id
                 JOIN
-                    \"DB\".users u ON r.user_id = u.user_id
+                    users u ON r.user_id = u.user_id
                 WHERE
                     q.notary_id = " . QuotedValue($notaryId, DataType::NUMBER) . "
                     AND q.status IN ('queued', 'processing')
@@ -263,7 +263,7 @@ class NotaryService {
     public function acceptRequest($notaryId, $queueId) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -373,7 +373,7 @@ class NotaryService {
         try {
             // Verify user is a notary
             $sql = "SELECT is_notary, notary_commission_number, notary_commission_expiry 
-                    FROM \"DB\".users 
+                    FROM users 
                     WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             
             $result = ExecuteRows($sql, "DB");
@@ -610,7 +610,7 @@ class NotaryService {
     public function rejectRequest($notaryId, $requestId, $rejectionReason) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -741,7 +741,7 @@ class NotaryService {
     public function getProcessedRequests($notaryId, $params = []) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -819,7 +819,7 @@ class NotaryService {
                 JOIN
                     documents d ON r.document_id = d.document_id
                 JOIN
-                    \"DB\".users u ON r.user_id = u.user_id
+                    users u ON r.user_id = u.user_id
                 LEFT JOIN
                     notarized_documents nd ON r.request_id = nd.request_id
                 WHERE
@@ -877,7 +877,7 @@ class NotaryService {
     public function getPerformanceMetrics($notaryId, $params = []) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -1126,7 +1126,7 @@ class NotaryService {
     public function getDashboardStats($notaryId) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -1249,7 +1249,7 @@ class NotaryService {
     public function generateSummaryReport($notaryId, $params = []) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -1362,7 +1362,7 @@ class NotaryService {
     public function generateDetailedReport($notaryId, $params) {
         try {
             // Verify user is a notary
-            $sql = "SELECT is_notary FROM \"DB\".users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result) || !$result[0]['is_notary']) {
@@ -1463,7 +1463,7 @@ class NotaryService {
                 JOIN
                     document_templates t ON d.template_id = t.template_id
                 JOIN
-                    \"DB\".users u ON r.user_id = u.user_id
+                    users u ON r.user_id = u.user_id
                 LEFT JOIN
                     notarized_documents nd ON r.request_id = nd.request_id
                 WHERE

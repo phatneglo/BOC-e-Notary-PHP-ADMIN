@@ -10,6 +10,7 @@ class UserService {
      */
     public function getProfile($userId) {
         try {
+        
             $sql = "SELECT
                     u.user_id,
                     u.username,
@@ -25,10 +26,10 @@ class UserService {
                     u.is_notary,
                     u.department_id,
                     d.department_name,
-                    u.created_at,
+                    u.date_created,
                     u.last_login
                 FROM
-                    \"DB\".users u
+                    users u
                 LEFT JOIN
                     departments d ON u.department_id = d.department_id
                 WHERE
@@ -83,7 +84,7 @@ class UserService {
             }
             
             // Update user profile
-            $sql = "UPDATE \"DB\".users SET
+            $sql = "UPDATE users SET
                     first_name = " . QuotedValue($profileData['first_name'], DataType::STRING) . ",
                     middle_name = " . QuotedValue($profileData['middle_name'] ?? null, DataType::STRING) . ",
                     last_name = " . QuotedValue($profileData['last_name'], DataType::STRING) . ",
@@ -154,7 +155,7 @@ class UserService {
             $signatureFile->moveTo($uploadPath);
             
             // Update user record
-            $sql = "UPDATE \"DB\".users SET
+            $sql = "UPDATE users SET
                     digital_signature = " . QuotedValue($uploadPath, DataType::STRING) . "
                 WHERE
                     user_id = " . QuotedValue($userId, DataType::NUMBER);
@@ -226,7 +227,7 @@ class UserService {
             }
             
             // Get user's current password hash
-            $sql = "SELECT password_hash FROM \"DB\".users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
+            $sql = "SELECT password_hash FROM users WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result)) {
@@ -249,7 +250,7 @@ class UserService {
             
             // Update password
             $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $sql = "UPDATE \"DB\".users SET
+            $sql = "UPDATE users SET
                     password_hash = " . QuotedValue($newPasswordHash, DataType::STRING) . "
                 WHERE
                     user_id = " . QuotedValue($userId, DataType::NUMBER);
