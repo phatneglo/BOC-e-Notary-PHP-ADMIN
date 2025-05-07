@@ -1,0 +1,11 @@
+{
+    "name": "e-notary",
+    "version": "24.16.2",
+    "description": "e notary",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "private": true,
+    "dependencies": {},
+    "engines": {
+        "node": ">=18"
+    }
+}

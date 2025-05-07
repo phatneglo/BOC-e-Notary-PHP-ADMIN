@@ -1,0 +1,45 @@
+# PHPMaker temporary files
+/log/cache/
+/log/debug.log
+/log/error.log
+/log/*.log
+
+# Temporary uploads
+/temp_uploads/
+/files/temp/
+/files/upload/
+
+# Composer packages
+/vendor/
+
+# Environment-specific files
+.env
+.env.local
+*.env.php
+config.php.bak
+config.production.php
+
+# Cache files
+*.cache
+*.cached
+cache/
+
+# Sensitive files
+*.pem
+*.key
+
+# User-specific files
+debug.html
+
+# IDE and system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated PDF files
+/files/pdf/*
+!/files/pdf/.htaccess
+
+# Session files
+/session/

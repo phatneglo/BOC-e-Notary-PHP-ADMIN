@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="uac-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#003399"/>
+      <stop offset="100%" style="stop-color:#002266"/>
+    </linearGradient>
+    <radialGradient id="scan-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FF6600;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#FF6600;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Base Shield -->
+  <path fill="url(#uac-grad)" d="M256 0C390 0 480 32 480 32L448 432C448 432 390 512 256 512C122 512 64 432 64 432L32 32C32 32 122 0 256 0Z"/>
+  
+  <!-- Scanner Glow -->
+  <circle cx="256" cy="256" r="120" fill="url(#scan-glow)">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Scanning Line -->
+  <line x1="136" y1="256" x2="376" y2="256" stroke="#FF6600" stroke-width="4">
+    <animate attributeName="y1" values="136;376;136" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="136;376;136" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;1;0" dur="3s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- Fingerprint Pattern -->
+  <g fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+    <!-- Center whorl -->
+    <path d="M256 256 C256 256 280 256 280 236 C280 216 260 196 236 196 C212 196 192 216 192 236 C192 256 212 276 236 276">
+      <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" begin="0s" repeatCount="indefinite"/>
+    </path>
+    <!-- Outer loops -->
+    <path d="M256 256 C256 256 300 256 300 216 C300 176 260 156 236 156 C212 156 172 176 172 216 C172 256 212 296 236 296">
+      <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" begin="0.2s" repeatCount="indefinite"/>
+    </path>
+    <!-- More whorls -->
+    <path d="M256 256 C256 256 320 256 320 196 C320 136 260 116 236 116 C212 116 152 136 152 196 C152 256 212 316 236 316">
+      <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" begin="0.4s" repeatCount="indefinite"/>
+    </path>
+    <!-- Additional loops for detail -->
+    <path d="M216 176 C216 176 236 186 256 176 C276 166 276 146 256 136">
+      <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" begin="0.6s" repeatCount="indefinite"/>
+    </path>
+    <path d="M216 336 C216 336 236 346 256 336 C276 326 276 306 256 296">
+      <animate attributeName="stroke-dasharray" values="0,1000;1000,0" dur="3s" begin="0.8s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- Scanning Effect Dots -->
+  <g fill="#FF6600">
+    <circle cx="256" cy="136" r="4">
+      <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="256" cy="376" r="4">
+      <animate attributeName="opacity" values="0;1;0" dur="2s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

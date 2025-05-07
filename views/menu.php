@@ -1,0 +1,72 @@
+<?php
+
+namespace PHPMaker2024\eNotary;
+
+// Navbar menu
+$topMenu = new Menu("navbar", true, true);
+$topMenu->addMenuItem(72, "mci_SUPPORT", $Language->menuPhrase("72", "MenuText"), "", -1, "", true, false, true, "", "", true, false);
+$topMenu->addMenuItem(32, "mi_support_requests", $Language->menuPhrase("32", "MenuText"), "SupportRequestsList", 72, "", AllowListMenu('{eNotary}support_requests'), false, false, "fas fa-question-circle", "", true, false);
+$topMenu->addMenuItem(31, "mi_support_request_history", $Language->menuPhrase("31", "MenuText"), "SupportRequestHistoryList", 72, "", AllowListMenu('{eNotary}support_request_history'), false, false, "fas fa-history", "", true, false);
+$topMenu->addMenuItem(21, "mi_faq_categories", $Language->menuPhrase("21", "MenuText"), "FaqCategoriesList", 72, "", AllowListMenu('{eNotary}faq_categories'), false, false, "fas fa-folder", "", true, false);
+$topMenu->addMenuItem(22, "mi_faq_items", $Language->menuPhrase("22", "MenuText"), "FaqItemsList", 72, "", AllowListMenu('{eNotary}faq_items'), false, false, "fas fa-question", "", true, false);
+$topMenu->addMenuItem(73, "mci_USER_MANAGEMENT", $Language->menuPhrase("73", "MenuText"), "", -1, "", true, false, true, "", "", true, false);
+$topMenu->addMenuItem(7, "mi_users", $Language->menuPhrase("7", "MenuText"), "UsersList?cmd=resetall", 73, "", AllowListMenu('{eNotary}users'), false, false, "fas fa-users", "", true, false);
+$topMenu->addMenuItem(10, "mi_departments", $Language->menuPhrase("10", "MenuText"), "DepartmentsList", 73, "", AllowListMenu('{eNotary}departments'), false, false, "fas fa-building", "", true, false);
+$topMenu->addMenuItem(12, "mi_UserManagement", $Language->menuPhrase("12", "MenuText"), "UserManagement", 73, "", AllowListMenu('{eNotary}UserManagement.php'), false, false, "fas fa-user-shield", "", true, false);
+$topMenu->addMenuItem(13, "mi_UserAccess", $Language->menuPhrase("13", "MenuText"), "UserAccess", 73, "", AllowListMenu('{eNotary}UserAccess.php'), false, false, "fas fa-user-lock", "", true, false);
+$topMenu->addMenuItem(11, "mi_notifications", $Language->menuPhrase("11", "MenuText"), "NotificationsList", 73, "", AllowListMenu('{eNotary}notifications'), false, false, "fas fa-bell", "", true, false);
+$topMenu->addMenuItem(74, "mci_SYSTEM_ADMINISTRATION", $Language->menuPhrase("74", "MenuText"), "", -1, "", true, false, true, "", "", true, false);
+$topMenu->addMenuItem(3, "mi_systems", $Language->menuPhrase("3", "MenuText"), "SystemsList", 74, "", AllowListMenu('{eNotary}systems'), false, false, "fas fa-server", "", true, false);
+$topMenu->addMenuItem(6, "mi__user_levels", $Language->menuPhrase("6", "MenuText"), "UserLevelsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_levels'), false, false, "fas fa-layer-group", "", true, false);
+$topMenu->addMenuItem(4, "mi_user_level_assignments", $Language->menuPhrase("4", "MenuText"), "UserLevelAssignmentsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_level_assignments'), false, false, "fas fa-user-tag", "", true, false);
+$topMenu->addMenuItem(5, "mi_user_level_permissions", $Language->menuPhrase("5", "MenuText"), "UserLevelPermissionsList", 74, "", AllowListMenu('{eNotary}user_level_permissions'), false, false, "fas fa-shield-alt", "", true, false);
+$topMenu->addMenuItem(33, "mi_system_status", $Language->menuPhrase("33", "MenuText"), "SystemStatusList", 74, "", AllowListMenu('{eNotary}system_status'), false, false, "fas fa-heartbeat", "", true, false);
+$topMenu->addMenuItem(30, "mi_pdf_metadata", $Language->menuPhrase("30", "MenuText"), "PdfMetadataList", 74, "", AllowListMenu('{eNotary}pdf_metadata'), false, false, "fas fa-file-pdf", "", true, false);
+$topMenu->addMenuItem(14, "mi_psgc", $Language->menuPhrase("14", "MenuText"), "PsgcList", 74, "", AllowListMenu('{eNotary}psgc'), false, false, "fas fa-map-marker-alt", "", true, false);
+$topMenu->addMenuItem(8, "mi_aggregated_audit_logs", $Language->menuPhrase("8", "MenuText"), "AggregatedAuditLogsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}aggregated_audit_logs'), false, false, "fas fa-history", "", true, false);
+echo $topMenu->toScript();
+
+// Sidebar menu
+$sideMenu = new Menu("menu", true, false);
+$sideMenu->addMenuItem(9, "mi_MainDashboard", $Language->menuPhrase("9", "MenuText"), "MainDashboard", -1, "", AllowListMenu('{eNotary}MainDashboard.php'), false, false, "fas fa-tachometer-alt", "", false, true);
+$sideMenu->addMenuItem(69, "mci_DOCUMENT_MANAGEMENT", $Language->menuPhrase("69", "MenuText"), "", -1, "", true, true, true, "", "", false, true);
+$sideMenu->addMenuItem(34, "mi_template_categories", $Language->menuPhrase("34", "MenuText"), "TemplateCategoriesList", 69, "", AllowListMenu('{eNotary}template_categories'), false, false, "fas fa-folder", "", false, true);
+$sideMenu->addMenuItem(18, "mi_document_templates", $Language->menuPhrase("18", "MenuText"), "DocumentTemplatesList", 69, "", AllowListMenu('{eNotary}document_templates'), false, false, "fas fa-file-contract", "", false, true);
+$sideMenu->addMenuItem(35, "mi_template_fields", $Language->menuPhrase("35", "MenuText"), "TemplateFieldsList", 69, "", AllowListMenu('{eNotary}template_fields'), false, false, "fas fa-list", "", false, true);
+$sideMenu->addMenuItem(20, "mi_documents", $Language->menuPhrase("20", "MenuText"), "DocumentsList", 69, "", AllowListMenu('{eNotary}documents'), false, false, "fas fa-file", "", false, true);
+$sideMenu->addMenuItem(16, "mi_document_attachments", $Language->menuPhrase("16", "MenuText"), "DocumentAttachmentsList", 69, "", AllowListMenu('{eNotary}document_attachments'), false, false, "fas fa-paperclip", "", false, true);
+$sideMenu->addMenuItem(17, "mi_document_fields", $Language->menuPhrase("17", "MenuText"), "DocumentFieldsList", 69, "", AllowListMenu('{eNotary}document_fields'), false, false, "fas fa-edit", "", false, true);
+$sideMenu->addMenuItem(36, "mi_user_templates", $Language->menuPhrase("36", "MenuText"), "UserTemplatesList", 69, "", AllowListMenu('{eNotary}user_templates'), false, false, "fas fa-bookmark", "", false, true);
+$sideMenu->addMenuItem(15, "mi_document_activity_logs", $Language->menuPhrase("15", "MenuText"), "DocumentActivityLogsList", 69, "", AllowListMenu('{eNotary}document_activity_logs'), false, false, "fas fa-history", "", false, true);
+$sideMenu->addMenuItem(70, "mci_NOTARIZATION", $Language->menuPhrase("70", "MenuText"), "", -1, "", true, true, true, "", "", false, true);
+$sideMenu->addMenuItem(25, "mi_notarization_requests", $Language->menuPhrase("25", "MenuText"), "NotarizationRequestsList", 70, "", AllowListMenu('{eNotary}notarization_requests'), false, false, "fas fa-file-signature", "", false, true);
+$sideMenu->addMenuItem(24, "mi_notarization_queue", $Language->menuPhrase("24", "MenuText"), "NotarizationQueueList", 70, "", AllowListMenu('{eNotary}notarization_queue'), false, false, "fas fa-tasks", "", false, true);
+$sideMenu->addMenuItem(26, "mi_notarized_documents", $Language->menuPhrase("26", "MenuText"), "NotarizedDocumentsList", 70, "", AllowListMenu('{eNotary}notarized_documents'), false, false, "fas fa-file-contract", "", false, true);
+$sideMenu->addMenuItem(19, "mi_document_verification", $Language->menuPhrase("19", "MenuText"), "DocumentVerificationList", 70, "", AllowListMenu('{eNotary}document_verification'), false, false, "fas fa-check-circle", "", false, true);
+$sideMenu->addMenuItem(37, "mi_verification_attempts", $Language->menuPhrase("37", "MenuText"), "VerificationAttemptsList", 70, "", AllowListMenu('{eNotary}verification_attempts'), false, false, "fas fa-search", "", false, true);
+$sideMenu->addMenuItem(27, "mi_notary_qr_settings", $Language->menuPhrase("27", "MenuText"), "NotaryQrSettingsList", 70, "", AllowListMenu('{eNotary}notary_qr_settings'), false, false, "fas fa-qrcode", "", false, true);
+$sideMenu->addMenuItem(71, "mci_PAYMENTS", $Language->menuPhrase("71", "MenuText"), "", -1, "", true, true, true, "", "", false, true);
+$sideMenu->addMenuItem(28, "mi_payment_methods", $Language->menuPhrase("28", "MenuText"), "PaymentMethodsList", 71, "", AllowListMenu('{eNotary}payment_methods'), false, false, "fas fa-credit-card", "", false, true);
+$sideMenu->addMenuItem(29, "mi_payment_transactions", $Language->menuPhrase("29", "MenuText"), "PaymentTransactionsList", 71, "", AllowListMenu('{eNotary}payment_transactions'), false, false, "fas fa-exchange-alt", "", false, true);
+$sideMenu->addMenuItem(23, "mi_fee_schedules", $Language->menuPhrase("23", "MenuText"), "FeeSchedulesList", 71, "", AllowListMenu('{eNotary}fee_schedules'), false, false, "fas fa-tags", "", false, true);
+$sideMenu->addMenuItem(72, "mci_SUPPORT", $Language->menuPhrase("72", "MenuText"), "", -1, "", true, false, true, "", "", true, true);
+$sideMenu->addMenuItem(32, "mi_support_requests", $Language->menuPhrase("32", "MenuText"), "SupportRequestsList", 72, "", AllowListMenu('{eNotary}support_requests'), false, false, "fas fa-question-circle", "", true, true);
+$sideMenu->addMenuItem(31, "mi_support_request_history", $Language->menuPhrase("31", "MenuText"), "SupportRequestHistoryList", 72, "", AllowListMenu('{eNotary}support_request_history'), false, false, "fas fa-history", "", true, true);
+$sideMenu->addMenuItem(21, "mi_faq_categories", $Language->menuPhrase("21", "MenuText"), "FaqCategoriesList", 72, "", AllowListMenu('{eNotary}faq_categories'), false, false, "fas fa-folder", "", true, true);
+$sideMenu->addMenuItem(22, "mi_faq_items", $Language->menuPhrase("22", "MenuText"), "FaqItemsList", 72, "", AllowListMenu('{eNotary}faq_items'), false, false, "fas fa-question", "", true, true);
+$sideMenu->addMenuItem(73, "mci_USER_MANAGEMENT", $Language->menuPhrase("73", "MenuText"), "", -1, "", true, false, true, "", "", true, true);
+$sideMenu->addMenuItem(7, "mi_users", $Language->menuPhrase("7", "MenuText"), "UsersList?cmd=resetall", 73, "", AllowListMenu('{eNotary}users'), false, false, "fas fa-users", "", true, true);
+$sideMenu->addMenuItem(10, "mi_departments", $Language->menuPhrase("10", "MenuText"), "DepartmentsList", 73, "", AllowListMenu('{eNotary}departments'), false, false, "fas fa-building", "", true, true);
+$sideMenu->addMenuItem(12, "mi_UserManagement", $Language->menuPhrase("12", "MenuText"), "UserManagement", 73, "", AllowListMenu('{eNotary}UserManagement.php'), false, false, "fas fa-user-shield", "", true, true);
+$sideMenu->addMenuItem(13, "mi_UserAccess", $Language->menuPhrase("13", "MenuText"), "UserAccess", 73, "", AllowListMenu('{eNotary}UserAccess.php'), false, false, "fas fa-user-lock", "", true, true);
+$sideMenu->addMenuItem(11, "mi_notifications", $Language->menuPhrase("11", "MenuText"), "NotificationsList", 73, "", AllowListMenu('{eNotary}notifications'), false, false, "fas fa-bell", "", true, true);
+$sideMenu->addMenuItem(74, "mci_SYSTEM_ADMINISTRATION", $Language->menuPhrase("74", "MenuText"), "", -1, "", true, false, true, "", "", true, true);
+$sideMenu->addMenuItem(3, "mi_systems", $Language->menuPhrase("3", "MenuText"), "SystemsList", 74, "", AllowListMenu('{eNotary}systems'), false, false, "fas fa-server", "", true, true);
+$sideMenu->addMenuItem(6, "mi__user_levels", $Language->menuPhrase("6", "MenuText"), "UserLevelsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_levels'), false, false, "fas fa-layer-group", "", true, true);
+$sideMenu->addMenuItem(4, "mi_user_level_assignments", $Language->menuPhrase("4", "MenuText"), "UserLevelAssignmentsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_level_assignments'), false, false, "fas fa-user-tag", "", true, true);
+$sideMenu->addMenuItem(5, "mi_user_level_permissions", $Language->menuPhrase("5", "MenuText"), "UserLevelPermissionsList", 74, "", AllowListMenu('{eNotary}user_level_permissions'), false, false, "fas fa-shield-alt", "", true, true);
+$sideMenu->addMenuItem(33, "mi_system_status", $Language->menuPhrase("33", "MenuText"), "SystemStatusList", 74, "", AllowListMenu('{eNotary}system_status'), false, false, "fas fa-heartbeat", "", true, true);
+$sideMenu->addMenuItem(30, "mi_pdf_metadata", $Language->menuPhrase("30", "MenuText"), "PdfMetadataList", 74, "", AllowListMenu('{eNotary}pdf_metadata'), false, false, "fas fa-file-pdf", "", true, true);
+$sideMenu->addMenuItem(14, "mi_psgc", $Language->menuPhrase("14", "MenuText"), "PsgcList", 74, "", AllowListMenu('{eNotary}psgc'), false, false, "fas fa-map-marker-alt", "", true, true);
+$sideMenu->addMenuItem(8, "mi_aggregated_audit_logs", $Language->menuPhrase("8", "MenuText"), "AggregatedAuditLogsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}aggregated_audit_logs'), false, false, "fas fa-history", "", true, true);
+echo $sideMenu->toScript();
