@@ -76,7 +76,7 @@ class AuthService {
                     last_name, 
                     mobile_number, 
                     is_active, 
-                    created_at,
+                    date_created,
                     user_level_id
                 ) VALUES (
                     " . QuotedValue($userData['username'], DataType::STRING) . ",

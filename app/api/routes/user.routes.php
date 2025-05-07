@@ -9,8 +9,6 @@ namespace PHPMaker2024\eNotary;
  */
 $app->get("/users/profile", function ($request, $response, $args) {
     $service = new UserService();
-    print_r($request);
-    die();
     $userId = $request->getAttribute('user_id');
     return $response->withJson($service->getProfile($userId));
 })->add($jwtMiddleware);

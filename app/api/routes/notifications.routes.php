@@ -9,7 +9,7 @@ namespace PHPMaker2024\eNotary;
  */
 $app->get("/notifications", function ($request, $response, $args) {
     $service = new NotificationService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $params = $request->getQueryParams();
     return $response->withJson($service->getUserNotifications($userId, $params));
 })->add($jwtMiddleware);
@@ -20,7 +20,7 @@ $app->get("/notifications", function ($request, $response, $args) {
  */
 $app->put("/notifications/read-all", function ($request, $response, $args) {
     $service = new NotificationService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     return $response->withJson($service->markAllNotificationsAsRead($userId));
 })->add($jwtMiddleware);
 /**

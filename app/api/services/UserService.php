@@ -10,7 +10,7 @@ class UserService {
      */
     public function getProfile($userId) {
         try {
-        
+            
             $sql = "SELECT
                     u.user_id,
                     u.username,
@@ -281,62 +281,61 @@ class UserService {
      * @return array Response data
      */
     public function getUserActivity($userId, $params = []) {
-        try {
-            // Pagination parameters
-            $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
-            $perPage = isset($params['per_page']) ? min(max(1, (int)$params['per_page']), 100) : 20;
-            $offset = ($page - 1) * $perPage;
-            
-            // Query user activity logs
-            $sql = "SELECT
-                    a.activity_id,
-                    a.action,
-                    a.details,
-                    a.entity_type,
-                    a.entity_id,
-                    a.ip_address,
-                    a.created_at
-                FROM
-                    activity_logs a
-                WHERE
-                    a.user_id = " . QuotedValue($userId, DataType::NUMBER) . "
-                ORDER BY
-                    a.created_at DESC
-                LIMIT " . $perPage . " OFFSET " . $offset;
-            
-            $result = ExecuteRows($sql, "DB");
-            
-            // Get total count
-            $sqlCount = "SELECT COUNT(*) AS total FROM activity_logs WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
-            $resultCount = ExecuteRows($sqlCount, "DB");
-            $total = $resultCount[0]['total'] ?? 0;
-            
-            // Calculate pagination metadata
-            $totalPages = ceil($total / $perPage);
-            
-            // Return success response
-            return [
-                'success' => true,
-                'data' => $result,
-                'meta' => [
-                    'page' => $page,
-                    'per_page' => $perPage,
-                    'total' => $total,
-                    'total_pages' => $totalPages
-                ]
-            ];
-        } catch (\Exception $e) {
-            // Log error
-            LogError($e->getMessage());
-            
-            // Return error response
-            return [
-                'success' => false,
-                'message' => 'Failed to get user activity: ' . $e->getMessage()
-            ];
-        }
-    }
-    
+            try {
+                // Pagination parameters
+                $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
+                $perPage = isset($params['per_page']) ? min(max(1, (int)$params['per_page']), 100) : 20;
+                $offset = ($page - 1) * $perPage;
+                
+                // Query user activity logs from aggregated_audit_logs table
+                $sql = "SELECT
+                        a.aggregated_id AS activity_id,
+                        a.action,
+                        a.details,
+                        a.table AS entity_type,
+                        a.script AS entity_id,
+                        a.action_type AS ip_address,
+                        a.action_date AS created_at
+                    FROM
+                        aggregated_audit_logs a
+                    WHERE
+                        a.user = " . QuotedValue($userId, DataType::NUMBER) . "
+                    ORDER BY
+                        a.action_date DESC
+                    LIMIT " . $perPage . " OFFSET " . $offset;
+                
+                $result = ExecuteRows($sql, "DB");
+                
+                // Get total count
+                $sqlCount = "SELECT COUNT(*) AS total FROM aggregated_audit_logs WHERE user = " . QuotedValue($userId, DataType::NUMBER);
+                $resultCount = ExecuteRows($sqlCount, "DB");
+                $total = $resultCount[0]['total'] ?? 0;
+                
+                // Calculate pagination metadata
+                $totalPages = ceil($total / $perPage);
+                
+                // Return success response
+                return [
+                    'success' => true,
+                    'data' => $result,
+                    'meta' => [
+                        'page' => $page,
+                        'per_page' => $perPage,
+                        'total' => $total,
+                        'total_pages' => $totalPages
+                    ]
+                ];
+            } catch (\Exception $e) {
+                // Log error
+                LogError($e->getMessage());
+                
+                // Return error response
+                return [
+                    'success' => false,
+                    'message' => 'Failed to get user activity: ' . $e->getMessage()
+                ];
+            }
+        }    
     /**
      * Get user dashboard statistics
      * @param int $userId User ID
@@ -361,19 +360,19 @@ class UserService {
             
             // Get recent activity
             $sqlActivity = "SELECT
-                    d.document_id,
-                    d.document_title,
-                    a.action,
-                    a.created_at AS date
-                FROM
-                    activity_logs a
-                JOIN
-                    documents d ON a.entity_id = d.document_id AND a.entity_type = 'document'
-                WHERE
-                    a.user_id = " . QuotedValue($userId, DataType::NUMBER) . "
-                ORDER BY
-                    a.created_at DESC
-                LIMIT 5";
+                d.document_id,
+                d.document_title,
+                a.action,
+                a.action_date AS date
+            FROM
+                aggregated_audit_logs a
+            JOIN
+                documents d ON a.script LIKE CONCAT('%/documents/', d.document_id, '%') AND a.table = 'documents'
+            WHERE
+                a.user = " . QuotedValue($userId, DataType::NUMBER) . "
+            ORDER BY
+                a.action_date DESC
+            LIMIT 5";
             
             $recentActivity = ExecuteRows($sqlActivity, "DB");
             
