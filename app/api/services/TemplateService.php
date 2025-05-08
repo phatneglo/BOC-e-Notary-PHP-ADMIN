@@ -82,7 +82,9 @@ class TemplateService {
                     dt.is_active,
                     dt.template_type,
                     dt.fee_amount,
-                    dt.created_at
+                    dt.created_at,
+                    dt.is_system,
+                    dt.owner_id
                 FROM
                     document_templates dt
                 JOIN
@@ -151,7 +153,9 @@ class TemplateService {
                     dt.notary_required,
                     dt.header_text,
                     dt.footer_text,
-                    dt.created_at
+                    dt.created_at,
+                    dt.is_system,
+                    dt.owner_id
                 FROM
                     document_templates dt
                 JOIN
@@ -173,25 +177,28 @@ class TemplateService {
             
             // Get template fields
             $sql = "SELECT
-                    field_id,
-                    field_name,
-                    field_label,
-                    field_type,
-                    field_options,
-                    is_required,
-                    placeholder,
-                    default_value,
-                    field_order,
-                    validation_rules,
-                    help_text,
-                    field_width,
-                    section_name
+                    tf.field_id,
+                    tf.field_name,
+                    tf.field_label,
+                    tf.field_type,
+                    tf.field_options,
+                    tf.is_required,
+                    tf.placeholder,
+                    tf.default_value,
+                    tf.field_order,
+                    tf.validation_rules,
+                    tf.help_text,
+                    tf.field_width,
+                    tf.section_id,
+                    ts.section_name
                 FROM
-                    template_fields
+                    template_fields tf
+                LEFT JOIN
+                    template_sections ts ON tf.section_id = ts.section_id
                 WHERE
-                    template_id = " . QuotedValue($templateId, DataType::NUMBER) . "
+                    tf.template_id = " . QuotedValue($templateId, DataType::NUMBER) . "
                 ORDER BY
-                    field_order ASC";
+                    tf.field_order ASC";
             
             $fields = ExecuteRows($sql, "DB");
             
@@ -333,26 +340,140 @@ class TemplateService {
                 ];
             }
             
-            // Check if template exists for non-custom templates
-            if (!empty($templateData['template_id'])) {
-                $sql = "SELECT template_id FROM document_templates WHERE template_id = " . QuotedValue($templateData['template_id'], DataType::NUMBER);
-                $result = ExecuteRows($sql, "DB");
-                
-                if (empty($result)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Template not found',
-                        'errors' => ['template_id' => ['Template not found']]
-                    ];
-                }
-            }
+            // Determine is_custom value properly
+            $isCustom = isset($templateData['is_custom']) && ($templateData['is_custom'] === true || $templateData['is_custom'] === 'true' || $templateData['is_custom'] === '1' || $templateData['is_custom'] === 1);
             
             // Begin transaction
             Execute("BEGIN", "DB");
             
             try {
-                // Determine is_custom value properly
-                $isCustom = isset($templateData['is_custom']) && ($templateData['is_custom'] === true || $templateData['is_custom'] === 'true' || $templateData['is_custom'] === '1' || $templateData['is_custom'] === 1);
+                $templateId = null;
+                
+                if ($isCustom) {
+                    // For custom templates, create a new document_template record
+                    // Parse the custom_content to extract fields and sections
+                    $customContent = $templateData['custom_content'];
+                    $parsedContent = json_decode($customContent, true);
+                    
+                    // Insert the template into document_templates
+                    $sql = "INSERT INTO document_templates (
+                            template_name,
+                            template_code,
+                            category_id,
+                            description,
+                            html_content,
+                            is_active,
+                            template_type,
+                            fee_amount,
+                            notary_required,
+                            created_at,
+                            is_system,
+                            owner_id
+                        ) VALUES (
+                            " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
+                            " . QuotedValue('USR_' . substr(md5(uniqid()), 0, 8), DataType::STRING) . ",
+                            " . QuotedValue(1, DataType::NUMBER) . ", -- Default category (update if needed)
+                            " . QuotedValue($templateData['description'] ?? $templateData['custom_name'], DataType::STRING) . ",
+                            " . QuotedValue('', DataType::STRING) . ", -- Empty HTML content for custom templates
+                            TRUE,
+                            'custom',
+                            0.00,
+                            FALSE,
+                            CURRENT_TIMESTAMP,
+                            FALSE, -- Not a system template
+                            " . QuotedValue($userId, DataType::NUMBER) . "
+                        ) RETURNING template_id";
+                    
+                    $result = ExecuteRows($sql, "DB");
+                    
+                    if (empty($result) || !isset($result[0]['template_id'])) {
+                        throw new \Exception("Failed to create custom template");
+                    }
+                    
+                    $templateId = $result[0]['template_id'];
+                    
+                    // If we have sections in the parsed content, create them
+                    if (isset($parsedContent['sections']) && is_array($parsedContent['sections'])) {
+                        $sectionMap = []; // Map to store section_id for reference in fields
+                        
+                        foreach ($parsedContent['sections'] as $index => $section) {
+                            $sql = "INSERT INTO template_sections (
+                                    template_id,
+                                    section_name,
+                                    section_order
+                                ) VALUES (
+                                    " . QuotedValue($templateId, DataType::NUMBER) . ",
+                                    " . QuotedValue($section['name'], DataType::STRING) . ",
+                                    " . QuotedValue($index, DataType::NUMBER) . "
+                                ) RETURNING section_id";
+                            
+                            $sectionResult = ExecuteRows($sql, "DB");
+                            
+                            if (!empty($sectionResult) && isset($sectionResult[0]['section_id'])) {
+                                $sectionMap[$section['id']] = $sectionResult[0]['section_id'];
+                            }
+                        }
+                    }
+                    
+                    // Create fields for the template
+                    if (isset($parsedContent['fields']) && is_array($parsedContent['fields'])) {
+                        foreach ($parsedContent['fields'] as $index => $field) {
+                            // Determine section_id if field has a section
+                            $sectionId = null;
+                            if (isset($field['section_id']) && isset($sectionMap[$field['section_id']])) {
+                                $sectionId = $sectionMap[$field['section_id']];
+                            }
+                            
+                            // Convert options array to JSON string if it exists
+                            $fieldOptions = null;
+                            if (isset($field['options']) && is_array($field['options'])) {
+                                $fieldOptions = json_encode($field['options']);
+                            }
+                            
+                            $sql = "INSERT INTO template_fields (
+                                    template_id,
+                                    field_name,
+                                    field_label,
+                                    field_type,
+                                    field_options,
+                                    is_required,
+                                    placeholder,
+                                    default_value,
+                                    field_order,
+                                    validation_rules,
+                                    help_text,
+                                    field_width,
+                                    section_id
+                                ) VALUES (
+                                    " . QuotedValue($templateId, DataType::NUMBER) . ",
+                                    " . QuotedValue($field['name'], DataType::STRING) . ",
+                                    " . QuotedValue($field['label'], DataType::STRING) . ",
+                                    " . QuotedValue($field['type'], DataType::STRING) . ",
+                                    " . ($fieldOptions ? QuotedValue($fieldOptions, DataType::STRING) : "NULL") . ",
+                                    " . (isset($field['required']) && $field['required'] ? "TRUE" : "FALSE") . ",
+                                    " . QuotedValue($field['placeholder'] ?? '', DataType::STRING) . ",
+                                    " . QuotedValue($field['default_value'] ?? '', DataType::STRING) . ",
+                                    " . QuotedValue($index, DataType::NUMBER) . ",
+                                    NULL,
+                                    " . QuotedValue($field['help_text'] ?? '', DataType::STRING) . ",
+                                    " . QuotedValue($field['width'] ?? 'full', DataType::STRING) . ",
+                                    " . ($sectionId ? QuotedValue($sectionId, DataType::NUMBER) : "NULL") . "
+                                )";
+                            
+                            Execute($sql, "DB");
+                        }
+                    }
+                } else {
+                    // For system templates, just verify the template exists
+                    $sql = "SELECT template_id FROM document_templates WHERE template_id = " . QuotedValue($templateData['template_id'], DataType::NUMBER);
+                    $result = ExecuteRows($sql, "DB");
+                    
+                    if (empty($result)) {
+                        throw new \Exception("Template not found");
+                    }
+                    
+                    $templateId = $templateData['template_id'];
+                }
                 
                 // Insert user template
                 $sql = "INSERT INTO user_templates (
@@ -365,9 +486,9 @@ class TemplateService {
                         updated_at
                     ) VALUES (
                         " . QuotedValue($userId, DataType::NUMBER) . ",
-                        " . (!empty($templateData['template_id']) ? QuotedValue($templateData['template_id'], DataType::NUMBER) : "NULL") . ",
+                        " . QuotedValue($templateId, DataType::NUMBER) . ",
                         " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
-                        " . QuotedValue($templateData['custom_content'] ?? null, DataType::STRING) . ",
+                        " . ($isCustom ? QuotedValue($templateData['custom_content'], DataType::STRING) : "NULL") . ",
                         " . ($isCustom ? "TRUE" : "FALSE") . ",
                         CURRENT_TIMESTAMP,
                         CURRENT_TIMESTAMP
@@ -456,16 +577,113 @@ class TemplateService {
             // Save uploaded file
             $document->moveTo($uploadPath);
             
-            // Generate HTML content from document file
-            // This would typically involve parsing the document and generating HTML
-            // For simplicity, we'll just store the file path in the custom_content field
-            $customContent = $uploadPath;
+            // Create a default template structure with a default field
+            $defaultStructure = [
+                'fields' => [
+                    [
+                        'id' => 'field_1',
+                        'name' => 'full_name',
+                        'label' => 'Full Name',
+                        'type' => 'text',
+                        'placeholder' => 'Enter your full name',
+                        'required' => true,
+                        'section_id' => 'default',
+                        'width' => 'full',
+                        'options' => []
+                    ]
+                ],
+                'sections' => [
+                    [
+                        'id' => 'default',
+                        'name' => 'Default'
+                    ]
+                ]
+            ];
+            
+            // Encode the structure as JSON to store in custom_content
+            $customContent = json_encode($defaultStructure);
             
             // Begin transaction
             Execute("BEGIN", "DB");
             
             try {
-                // Insert user template
+                // Create a template in document_templates first
+                $sql = "INSERT INTO document_templates (
+                        template_name,
+                        template_code,
+                        category_id,
+                        description,
+                        html_content,
+                        is_active,
+                        template_type,
+                        fee_amount,
+                        notary_required,
+                        created_at,
+                        is_system,
+                        owner_id
+                    ) VALUES (
+                        " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
+                        " . QuotedValue('USR_' . substr(md5(uniqid()), 0, 8), DataType::STRING) . ",
+                        " . QuotedValue(1, DataType::NUMBER) . ", -- Default category (update if needed)
+                        " . QuotedValue($templateData['description'], DataType::STRING) . ",
+                        " . QuotedValue($uploadPath, DataType::STRING) . ", -- Store the file path in html_content
+                        TRUE,
+                        'uploaded',
+                        0.00,
+                        FALSE,
+                        CURRENT_TIMESTAMP,
+                        FALSE, -- Not a system template
+                        " . QuotedValue($userId, DataType::NUMBER) . "
+                    ) RETURNING template_id";
+                
+                $result = ExecuteRows($sql, "DB");
+                
+                if (empty($result) || !isset($result[0]['template_id'])) {
+                    throw new \Exception("Failed to create template record");
+                }
+                
+                $templateId = $result[0]['template_id'];
+                
+                // Add default section
+                $sql = "INSERT INTO template_sections (
+                        template_id,
+                        section_name,
+                        section_order
+                    ) VALUES (
+                        " . QuotedValue($templateId, DataType::NUMBER) . ",
+                        'Default',
+                        0
+                    ) RETURNING section_id";
+                
+                $sectionResult = ExecuteRows($sql, "DB");
+                $sectionId = $sectionResult[0]['section_id'] ?? null;
+                
+                // Add default field
+                $sql = "INSERT INTO template_fields (
+                        template_id,
+                        field_name,
+                        field_label,
+                        field_type,
+                        is_required,
+                        placeholder,
+                        field_order,
+                        field_width,
+                        section_id
+                    ) VALUES (
+                        " . QuotedValue($templateId, DataType::NUMBER) . ",
+                        'full_name',
+                        'Full Name',
+                        'text',
+                        TRUE,
+                        'Enter your full name',
+                        0,
+                        'full',
+                        " . ($sectionId ? QuotedValue($sectionId, DataType::NUMBER) : "NULL") . "
+                    )";
+                
+                Execute($sql, "DB");
+                
+                // Insert user template record
                 $sql = "INSERT INTO user_templates (
                         user_id,
                         template_id,
@@ -476,7 +694,7 @@ class TemplateService {
                         updated_at
                     ) VALUES (
                         " . QuotedValue($userId, DataType::NUMBER) . ",
-                        NULL,
+                        " . QuotedValue($templateId, DataType::NUMBER) . ",
                         " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
                         " . QuotedValue($customContent, DataType::STRING) . ",
                         TRUE,
@@ -541,7 +759,9 @@ class TemplateService {
                     ut.custom_name,
                     ut.custom_content,
                     ut.is_custom,
-                    ut.created_at
+                    ut.created_at,
+                    dt.is_system,
+                    dt.owner_id
                 FROM
                     user_templates ut
                 LEFT JOIN
@@ -560,8 +780,23 @@ class TemplateService {
             
             $userTemplate = $result[0];
             
-            // If not a custom uploaded template, get template fields
-            if (!$userTemplate['is_custom'] && !empty($userTemplate['template_id'])) {
+            // Get template fields from template_fields table
+            if (!empty($userTemplate['template_id'])) {
+                // Get template sections
+                $sql = "SELECT
+                        section_id,
+                        section_name,
+                        section_order
+                    FROM
+                        template_sections
+                    WHERE
+                        template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER) . "
+                    ORDER BY
+                        section_order ASC";
+                
+                $sections = ExecuteRows($sql, "DB");
+                
+                // Get template fields
                 $sql = "SELECT
                         field_id,
                         field_name,
@@ -573,7 +808,9 @@ class TemplateService {
                         default_value,
                         field_order,
                         validation_rules,
-                        help_text
+                        help_text,
+                        field_width,
+                        section_id
                     FROM
                         template_fields
                     WHERE
@@ -596,10 +833,31 @@ class TemplateService {
                     } else {
                         $field['field_options'] = [];
                     }
+                    
+                    // Find section name for this field
+                    if (!empty($field['section_id'])) {
+                        foreach ($sections as $section) {
+                            if ($section['section_id'] == $field['section_id']) {
+                                $field['section_name'] = $section['section_name'];
+                                break;
+                            }
+                        }
+                    }
                 }
                 
-                // Add fields to template data
+                // Add fields and sections to template data
                 $userTemplate['fields'] = $fields;
+                $userTemplate['sections'] = $sections;
+            }
+            
+            // If custom template, also return the parsed custom_content for the editor
+            if ($userTemplate['is_custom'] && !empty($userTemplate['custom_content'])) {
+                // Check if custom_content is valid JSON
+                $parsedContent = json_decode($userTemplate['custom_content'], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    // It's already in our JSON format
+                    $userTemplate['parsed_structure'] = $parsedContent;
+                }
             }
             
             // Return success response
@@ -626,8 +884,22 @@ class TemplateService {
      */
     public function deleteUserTemplate($userTemplateId) {
         try {
-            // Check if user template exists
-            $sql = "SELECT user_template_id, is_custom, custom_content FROM user_templates WHERE user_template_id = " . QuotedValue($userTemplateId, DataType::NUMBER);
+            // Check if user template exists and get related info
+            $sql = "SELECT 
+                    ut.user_template_id, 
+                    ut.is_custom, 
+                    ut.custom_content, 
+                    ut.template_id,
+                    dt.owner_id,
+                    dt.is_system,
+                    dt.html_content
+                FROM 
+                    user_templates ut
+                LEFT JOIN
+                    document_templates dt ON ut.template_id = dt.template_id
+                WHERE 
+                    ut.user_template_id = " . QuotedValue($userTemplateId, DataType::NUMBER);
+            
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result)) {
@@ -643,13 +915,28 @@ class TemplateService {
             Execute("BEGIN", "DB");
             
             try {
-                // Delete user template
+                // Delete user template record
                 $sql = "DELETE FROM user_templates WHERE user_template_id = " . QuotedValue($userTemplateId, DataType::NUMBER);
                 Execute($sql, "DB");
                 
-                // If custom template and has file path, delete the file
-                if ($userTemplate['is_custom'] && !empty($userTemplate['custom_content']) && file_exists($userTemplate['custom_content'])) {
-                    unlink($userTemplate['custom_content']);
+                // If this is a custom template created by the user (not a system template)
+                if ($userTemplate['template_id'] && $userTemplate['is_custom'] && !$userTemplate['is_system']) {
+                    // Delete template fields
+                    $sql = "DELETE FROM template_fields WHERE template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER);
+                    Execute($sql, "DB");
+                    
+                    // Delete template sections
+                    $sql = "DELETE FROM template_sections WHERE template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER);
+                    Execute($sql, "DB");
+                    
+                    // Delete the template record
+                    $sql = "DELETE FROM document_templates WHERE template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER);
+                    Execute($sql, "DB");
+                    
+                    // If it has a file path in html_content, delete the file
+                    if (!empty($userTemplate['html_content']) && file_exists($userTemplate['html_content'])) {
+                        unlink($userTemplate['html_content']);
+                    }
                 }
                 
                 // Commit transaction
@@ -767,6 +1054,515 @@ class TemplateService {
             return [
                 'success' => false,
                 'message' => 'Failed to generate PDF preview: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Create a new template
+     * @param int $userId User ID
+     * @param array $templateData Template data
+     * @return array Response data
+     */
+    public function createTemplate($userId, $templateData) {
+        try {
+            // Validate required fields
+            if (empty($templateData['template_name'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Template name is required',
+                    'errors' => ['template_name' => ['Template name is required']]
+                ];
+            }
+            
+            // Begin transaction
+            Execute("BEGIN", "DB");
+            
+            try {
+                // Generate a unique template code
+                $templateCode = 'T' . date('YmdHis') . mt_rand(1000, 9999);
+                
+                // Insert the template into document_templates
+                $sql = "INSERT INTO document_templates (
+                        template_name,
+                        template_code,
+                        category_id,
+                        description,
+                        html_content,
+                        is_active,
+                        template_type,
+                        fee_amount,
+                        notary_required,
+                        created_at,
+                        is_system,
+                        owner_id
+                    ) VALUES (
+                        " . QuotedValue($templateData['template_name'], DataType::STRING) . ",
+                        " . QuotedValue($templateCode, DataType::STRING) . ",
+                        " . QuotedValue($templateData['category_id'] ?? 1, DataType::NUMBER) . ",
+                        " . QuotedValue($templateData['description'] ?? '', DataType::STRING) . ",
+                        " . QuotedValue($templateData['html_content'] ?? '', DataType::STRING) . ",
+                        TRUE,
+                        " . QuotedValue($templateData['template_type'] ?? 'custom', DataType::STRING) . ",
+                        " . QuotedValue($templateData['fee_amount'] ?? 0.00, DataType::NUMBER) . ",
+                        " . ($templateData['notary_required'] ?? false ? "TRUE" : "FALSE") . ",
+                        CURRENT_TIMESTAMP,
+                        " . ($templateData['is_system'] ?? false ? "TRUE" : "FALSE") . ",
+                        " . QuotedValue($userId, DataType::NUMBER) . "
+                    ) RETURNING template_id";
+                
+                $result = ExecuteRows($sql, "DB");
+                
+                if (empty($result) || !isset($result[0]['template_id'])) {
+                    throw new \Exception("Failed to create template");
+                }
+                
+                $templateId = $result[0]['template_id'];
+                
+                // Commit transaction
+                Execute("COMMIT", "DB");
+                
+                // Return success response
+                return [
+                    'success' => true,
+                    'message' => 'Template created successfully',
+                    'data' => [
+                        'template_id' => $templateId
+                    ]
+                ];
+            } catch (\Exception $e) {
+                // Rollback transaction on error
+                Execute("ROLLBACK", "DB");
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to create template: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Update an existing template
+     * @param int $userId User ID
+     * @param int $templateId Template ID
+     * @param array $templateData Template data
+     * @return array Response data
+     */
+    public function updateTemplate($userId, $templateId, $templateData) {
+        try {
+            // Check if template exists and user has permission to edit it
+            $sql = "SELECT 
+                    template_id, 
+                    owner_id,
+                    is_system
+                FROM 
+                    document_templates 
+                WHERE 
+                    template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Template not found'
+                ];
+            }
+            
+            $template = $result[0];
+            
+            // If this is a system template, only admins can edit it
+            // If this is a user template, only the owner can edit it
+            // TODO: Add proper permission checking here
+            
+            // Begin transaction
+            Execute("BEGIN", "DB");
+            
+            try {
+                // Build update query
+                $updateFields = [];
+                
+                if (isset($templateData['template_name'])) {
+                    $updateFields[] = "template_name = " . QuotedValue($templateData['template_name'], DataType::STRING);
+                }
+                
+                if (isset($templateData['category_id'])) {
+                    $updateFields[] = "category_id = " . QuotedValue($templateData['category_id'], DataType::NUMBER);
+                }
+                
+                if (isset($templateData['description'])) {
+                    $updateFields[] = "description = " . QuotedValue($templateData['description'], DataType::STRING);
+                }
+                
+                if (isset($templateData['html_content'])) {
+                    $updateFields[] = "html_content = " . QuotedValue($templateData['html_content'], DataType::STRING);
+                }
+                
+                if (isset($templateData['is_active'])) {
+                    $updateFields[] = "is_active = " . ($templateData['is_active'] ? "TRUE" : "FALSE");
+                }
+                
+                if (isset($templateData['template_type'])) {
+                    $updateFields[] = "template_type = " . QuotedValue($templateData['template_type'], DataType::STRING);
+                }
+                
+                if (isset($templateData['fee_amount'])) {
+                    $updateFields[] = "fee_amount = " . QuotedValue($templateData['fee_amount'], DataType::NUMBER);
+                }
+                
+                if (isset($templateData['notary_required'])) {
+                    $updateFields[] = "notary_required = " . ($templateData['notary_required'] ? "TRUE" : "FALSE");
+                }
+                
+                if (isset($templateData['is_system'])) {
+                    $updateFields[] = "is_system = " . ($templateData['is_system'] ? "TRUE" : "FALSE");
+                }
+                
+                // Skip update if no fields to update
+                if (empty($updateFields)) {
+                    Execute("COMMIT", "DB");
+                    
+                    return [
+                        'success' => true,
+                        'message' => 'No changes to update'
+                    ];
+                }
+                
+                // Perform update
+                $sql = "UPDATE document_templates SET 
+                        " . implode(", ", $updateFields) . ",
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE 
+                        template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                
+                Execute($sql, "DB");
+                
+                // Commit transaction
+                Execute("COMMIT", "DB");
+                
+                // Return success response
+                return [
+                    'success' => true,
+                    'message' => 'Template updated successfully',
+                    'data' => [
+                        'template_id' => $templateId
+                    ]
+                ];
+            } catch (\Exception $e) {
+                // Rollback transaction on error
+                Execute("ROLLBACK", "DB");
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to update template: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Add a field to a template
+     * @param int $templateId Template ID
+     * @param array $fieldData Field data
+     * @return array Response data
+     */
+    public function addTemplateField($templateId, $fieldData) {
+        try {
+            // Validate required fields
+            if (empty($fieldData['field_name'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Field name is required',
+                    'errors' => ['field_name' => ['Field name is required']]
+                ];
+            }
+            
+            if (empty($fieldData['field_label'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Field label is required',
+                    'errors' => ['field_label' => ['Field label is required']]
+                ];
+            }
+            
+            if (empty($fieldData['field_type'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Field type is required',
+                    'errors' => ['field_type' => ['Field type is required']]
+                ];
+            }
+            
+            // Check if template exists
+            $sql = "SELECT template_id FROM document_templates WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Template not found'
+                ];
+            }
+            
+            // Get next field order
+            $sql = "SELECT COALESCE(MAX(field_order), 0) AS max_order FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            $nextOrder = (int)$result[0]['max_order'] + 1;
+            
+            // Prepare field options
+            $fieldOptions = null;
+            if (!empty($fieldData['field_options'])) {
+                if (is_array($fieldData['field_options'])) {
+                    $fieldOptions = json_encode($fieldData['field_options']);
+                } else {
+                    $fieldOptions = $fieldData['field_options'];
+                }
+            }
+            
+            // Insert the field
+            $sql = "INSERT INTO template_fields (
+                    template_id,
+                    field_name,
+                    field_label,
+                    field_type,
+                    field_options,
+                    is_required,
+                    placeholder,
+                    default_value,
+                    field_order,
+                    validation_rules,
+                    help_text,
+                    field_width,
+                    section_id
+                ) VALUES (
+                    " . QuotedValue($templateId, DataType::NUMBER) . ",
+                    " . QuotedValue($fieldData['field_name'], DataType::STRING) . ",
+                    " . QuotedValue($fieldData['field_label'], DataType::STRING) . ",
+                    " . QuotedValue($fieldData['field_type'], DataType::STRING) . ",
+                    " . ($fieldOptions ? QuotedValue($fieldOptions, DataType::STRING) : "NULL") . ",
+                    " . (isset($fieldData['is_required']) && $fieldData['is_required'] ? "TRUE" : "FALSE") . ",
+                    " . QuotedValue($fieldData['placeholder'] ?? '', DataType::STRING) . ",
+                    " . QuotedValue($fieldData['default_value'] ?? '', DataType::STRING) . ",
+                    " . QuotedValue($nextOrder, DataType::NUMBER) . ",
+                    " . QuotedValue($fieldData['validation_rules'] ?? '', DataType::STRING) . ",
+                    " . QuotedValue($fieldData['help_text'] ?? '', DataType::STRING) . ",
+                    " . QuotedValue($fieldData['field_width'] ?? 'full', DataType::STRING) . ",
+                    " . (isset($fieldData['section_id']) ? QuotedValue($fieldData['section_id'], DataType::NUMBER) : "NULL") . "
+                ) RETURNING field_id";
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result) || !isset($result[0]['field_id'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to add template field'
+                ];
+            }
+            
+            $fieldId = $result[0]['field_id'];
+            
+            // Return success response
+            return [
+                'success' => true,
+                'message' => 'Field added successfully',
+                'data' => [
+                    'field_id' => $fieldId,
+                    'field_order' => $nextOrder
+                ]
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to add template field: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Update a template field
+     * @param int $fieldId Field ID
+     * @param array $fieldData Field data
+     * @return array Response data
+     */
+    public function updateTemplateField($fieldId, $fieldData) {
+        try {
+            // Check if field exists
+            $sql = "SELECT field_id FROM template_fields WHERE field_id = " . QuotedValue($fieldId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Field not found'
+                ];
+            }
+            
+            // Build update query
+            $updateFields = [];
+            
+            if (isset($fieldData['field_name'])) {
+                $updateFields[] = "field_name = " . QuotedValue($fieldData['field_name'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['field_label'])) {
+                $updateFields[] = "field_label = " . QuotedValue($fieldData['field_label'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['field_type'])) {
+                $updateFields[] = "field_type = " . QuotedValue($fieldData['field_type'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['field_options'])) {
+                if (is_array($fieldData['field_options'])) {
+                    $fieldOptions = json_encode($fieldData['field_options']);
+                } else {
+                    $fieldOptions = $fieldData['field_options'];
+                }
+                $updateFields[] = "field_options = " . QuotedValue($fieldOptions, DataType::STRING);
+            }
+            
+            if (isset($fieldData['is_required'])) {
+                $updateFields[] = "is_required = " . ($fieldData['is_required'] ? "TRUE" : "FALSE");
+            }
+            
+            if (isset($fieldData['placeholder'])) {
+                $updateFields[] = "placeholder = " . QuotedValue($fieldData['placeholder'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['default_value'])) {
+                $updateFields[] = "default_value = " . QuotedValue($fieldData['default_value'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['field_order'])) {
+                $updateFields[] = "field_order = " . QuotedValue($fieldData['field_order'], DataType::NUMBER);
+            }
+            
+            if (isset($fieldData['validation_rules'])) {
+                $updateFields[] = "validation_rules = " . QuotedValue($fieldData['validation_rules'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['help_text'])) {
+                $updateFields[] = "help_text = " . QuotedValue($fieldData['help_text'], DataType::STRING);
+            }
+            
+            if (isset($fieldData['field_width'])) {
+                $updateFields[] = "field_width = " . QuotedValue($fieldData['field_width'], DataType::STRING);
+            }
+            
+            if (array_key_exists('section_id', $fieldData)) {
+                if ($fieldData['section_id'] === null) {
+                    $updateFields[] = "section_id = NULL";
+                } else {
+                    $updateFields[] = "section_id = " . QuotedValue($fieldData['section_id'], DataType::NUMBER);
+                }
+            }
+            
+            // Skip update if no fields to update
+            if (empty($updateFields)) {
+                return [
+                    'success' => true,
+                    'message' => 'No changes to update'
+                ];
+            }
+            
+            // Perform update
+            $sql = "UPDATE template_fields SET 
+                    " . implode(", ", $updateFields) . "
+                WHERE 
+                    field_id = " . QuotedValue($fieldId, DataType::NUMBER);
+            
+            Execute($sql, "DB");
+            
+            // Return success response
+            return [
+                'success' => true,
+                'message' => 'Field updated successfully'
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to update template field: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Delete a template field
+     * @param int $fieldId Field ID
+     * @return array Response data
+     */
+    public function deleteTemplateField($fieldId) {
+        try {
+            // Check if field exists
+            $sql = "SELECT field_id, template_id, field_order FROM template_fields WHERE field_id = " . QuotedValue($fieldId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Field not found'
+                ];
+            }
+            
+            $field = $result[0];
+            $templateId = $field['template_id'];
+            $fieldOrder = $field['field_order'];
+            
+            // Begin transaction
+            Execute("BEGIN", "DB");
+            
+            try {
+                // Delete the field
+                $sql = "DELETE FROM template_fields WHERE field_id = " . QuotedValue($fieldId, DataType::NUMBER);
+                Execute($sql, "DB");
+                
+                // Reorder remaining fields
+                $sql = "UPDATE template_fields 
+                        SET field_order = field_order - 1 
+                        WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER) . "
+                        AND field_order > " . QuotedValue($fieldOrder, DataType::NUMBER);
+                Execute($sql, "DB");
+                
+                // Commit transaction
+                Execute("COMMIT", "DB");
+                
+                // Return success response
+                return [
+                    'success' => true,
+                    'message' => 'Field deleted successfully'
+                ];
+            } catch (\Exception $e) {
+                // Rollback transaction on error
+                Execute("ROLLBACK", "DB");
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to delete template field: ' . $e->getMessage()
             ];
         }
     }

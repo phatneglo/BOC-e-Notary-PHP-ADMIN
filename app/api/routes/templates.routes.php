@@ -99,6 +99,66 @@ $app->delete("/user/templates/{user_template_id}", function ($request, $response
 })->add($jwtMiddleware);
 
 /**
+ * @api {post} /templates Create new template
+ * @apiName CreateTemplate
+ * @apiGroup Templates
+ */
+$app->post("/templates", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $userId = $request->getAttribute('user_id');
+    $templateData = $request->getParsedBody();
+    return $response->withJson($service->createTemplate($userId, $templateData));
+})->add($jwtMiddleware);
+
+/**
+ * @api {put} /templates/{template_id} Update template
+ * @apiName UpdateTemplate
+ * @apiGroup Templates
+ */
+$app->put("/templates/{template_id}", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $userId = $request->getAttribute('user_id');
+    $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
+    $templateData = $request->getParsedBody();
+    return $response->withJson($service->updateTemplate($userId, $templateId, $templateData));
+})->add($jwtMiddleware);
+
+/**
+ * @api {post} /templates/{template_id}/fields Add field to template
+ * @apiName AddTemplateField
+ * @apiGroup Templates
+ */
+$app->post("/templates/{template_id}/fields", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
+    $fieldData = $request->getParsedBody();
+    return $response->withJson($service->addTemplateField($templateId, $fieldData));
+})->add($jwtMiddleware);
+
+/**
+ * @api {put} /templates/fields/{field_id} Update template field
+ * @apiName UpdateTemplateField
+ * @apiGroup Templates
+ */
+$app->put("/templates/fields/{field_id}", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $fieldId = isset($args['field_id']) ? (int)$args['field_id'] : 0;
+    $fieldData = $request->getParsedBody();
+    return $response->withJson($service->updateTemplateField($fieldId, $fieldData));
+})->add($jwtMiddleware);
+
+/**
+ * @api {delete} /templates/fields/{field_id} Delete template field
+ * @apiName DeleteTemplateField
+ * @apiGroup Templates
+ */
+$app->delete("/templates/fields/{field_id}", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $fieldId = isset($args['field_id']) ? (int)$args['field_id'] : 0;
+    return $response->withJson($service->deleteTemplateField($fieldId));
+})->add($jwtMiddleware);
+
+/**
  * @api {post} /templates/{template_id}/generate-pdf Generate template PDF
  * @apiName GenerateTemplatePdf
  * @apiGroup Templates

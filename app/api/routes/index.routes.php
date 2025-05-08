@@ -7,6 +7,7 @@ require_once __DIR__ . '/auth.routes.php';
 require_once __DIR__ . '/user.routes.php';
 require_once __DIR__ . '/notary.routes.php';
 require_once __DIR__ . '/templates.routes.php';
+require_once __DIR__ . '/template-sections.routes.php';
 require_once __DIR__ . '/documents.routes.php';
 require_once __DIR__ . '/requests.routes.php';
 require_once __DIR__ . '/notarized.routes.php';
