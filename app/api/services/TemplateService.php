@@ -617,14 +617,14 @@ class TemplateService {
                         'type' => 'text',
                         'placeholder' => 'Enter your full name',
                         'required' => true,
-                        'section_id' => 'default',
+                        'section_name' => 'Default', // Changed section_id to section_name
                         'width' => 'full',
                         'options' => []
                     ]
                 ],
                 'sections' => [
                     [
-                        'id' => 'default',
+                        'id' => 'section_default',
                         'name' => 'Default'
                     ]
                 ]
@@ -955,10 +955,6 @@ class TemplateService {
                 if ($userTemplate['template_id'] && $userTemplate['is_custom'] && !$userTemplate['is_system']) {
                     // Delete template fields
                     $sql = "DELETE FROM template_fields WHERE template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER);
-                    Execute($sql, "DB");
-                    
-                    // Delete template sections
-                    $sql = "DELETE FROM template_sections WHERE template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER);
                     Execute($sql, "DB");
                     
                     // Delete the template record
@@ -1355,11 +1351,11 @@ class TemplateService {
             // Prepare field options as a comma-separated string
             $fieldOptions = null;
             if (!empty($fieldData['field_options'])) {
-            if (is_array($fieldData['field_options'])) {
-            $fieldOptions = implode(',', $fieldData['field_options']);
-            } else {
-            $fieldOptions = $fieldData['field_options'];
-            }
+                if (is_array($fieldData['field_options'])) {
+                    $fieldOptions = implode(',', $fieldData['field_options']);
+                } else {
+                    $fieldOptions = $fieldData['field_options'];
+                }
             }
             
             // Insert the field
@@ -1390,7 +1386,7 @@ class TemplateService {
                     " . QuotedValue($fieldData['validation_rules'] ?? '', DataType::STRING) . ",
                     " . QuotedValue($fieldData['help_text'] ?? '', DataType::STRING) . ",
                     " . QuotedValue($fieldData['field_width'] ?? 'full', DataType::STRING) . ",
-                    " . (isset($fieldData['section_id']) ? QuotedValue($fieldData['section_id'], DataType::NUMBER) : "NULL") . "
+                    " . (!empty($fieldData['section_name']) ? QuotedValue($fieldData['section_name'], DataType::STRING) : "'Default'") . "
                 ) RETURNING field_id";
             
             $result = ExecuteRows($sql, "DB");
