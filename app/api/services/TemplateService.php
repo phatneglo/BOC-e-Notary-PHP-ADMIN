@@ -189,12 +189,9 @@ class TemplateService {
                     tf.validation_rules,
                     tf.help_text,
                     tf.field_width,
-                    tf.section_id,
-                    ts.section_name
+                    tf.section_name
                 FROM
                     template_fields tf
-                LEFT JOIN
-                    template_sections ts ON tf.section_id = ts.section_id
                 WHERE
                     tf.template_id = " . QuotedValue($templateId, DataType::NUMBER) . "
                 ORDER BY
@@ -364,10 +361,41 @@ class TemplateService {
                 $templateId = null;
                 
                 if ($isCustom) {
-                    // For custom templates, create a new document_template record
+                    // If custom template, create a new document_template record
                     // Parse the custom_content to extract fields and sections
                     $customContent = $templateData['custom_content'];
-                    $parsedContent = json_decode($customContent, true);
+                    
+                    // If custom_content is a string, try to parse it as JSON
+                    $parsedContent = null;
+                    if (is_string($customContent)) {
+                        try {
+                            $parsedContent = json_decode($customContent, true);
+                            
+                            // Check if JSON parsing was successful
+                            if (json_last_error() !== JSON_ERROR_NONE) {
+                                LogError('JSON parse error: ' . json_last_error_msg() . ' for custom_content: ' . substr($customContent, 0, 100) . '...');
+                                $parsedContent = [
+                                    'sections' => [['id' => 'default', 'name' => 'Default']],
+                                    'fields' => []
+                                ];
+                            }
+                        } catch (\Exception $e) {
+                            LogError('Exception parsing custom_content: ' . $e->getMessage());
+                            $parsedContent = [
+                                'sections' => [['id' => 'default', 'name' => 'Default']],
+                                'fields' => []
+                            ];
+                        }
+                    } else if (is_array($customContent)) {
+                        // If it's already an array, use it directly
+                        $parsedContent = $customContent;
+                    } else {
+                        // Default structure if neither string nor array
+                        $parsedContent = [
+                            'sections' => [['id' => 'default', 'name' => 'Default']],
+                            'fields' => []
+                        ];
+                    }
                     
                     // Insert the template into document_templates
                     $sql = "INSERT INTO document_templates (
@@ -406,25 +434,12 @@ class TemplateService {
                     
                     $templateId = $result[0]['template_id'];
                     
-                    // If we have sections in the parsed content, create them
+                    // Extract sections from the parsed content to use their names
+                    $sectionMap = []; // Map to store section names for reference in fields
                     if (isset($parsedContent['sections']) && is_array($parsedContent['sections'])) {
-                        $sectionMap = []; // Map to store section_id for reference in fields
-                        
-                        foreach ($parsedContent['sections'] as $index => $section) {
-                            $sql = "INSERT INTO template_sections (
-                                    template_id,
-                                    section_name,
-                                    section_order
-                                ) VALUES (
-                                    " . QuotedValue($templateId, DataType::NUMBER) . ",
-                                    " . QuotedValue($section['name'], DataType::STRING) . ",
-                                    " . QuotedValue($index, DataType::NUMBER) . "
-                                ) RETURNING section_id";
-                            
-                            $sectionResult = ExecuteRows($sql, "DB");
-                            
-                            if (!empty($sectionResult) && isset($sectionResult[0]['section_id'])) {
-                                $sectionMap[$section['id']] = $sectionResult[0]['section_id'];
+                        foreach ($parsedContent['sections'] as $section) {
+                            if (isset($section['id']) && isset($section['name'])) {
+                                $sectionMap[$section['id']] = $section['name'];
                             }
                         }
                     }
@@ -432,10 +447,10 @@ class TemplateService {
                     // Create fields for the template
                     if (isset($parsedContent['fields']) && is_array($parsedContent['fields'])) {
                         foreach ($parsedContent['fields'] as $index => $field) {
-                            // Determine section_id if field has a section
-                            $sectionId = null;
+                            // Determine section_name if field has a section
+                            $sectionName = null;
                             if (isset($field['section_id']) && isset($sectionMap[$field['section_id']])) {
-                                $sectionId = $sectionMap[$field['section_id']];
+                                $sectionName = $sectionMap[$field['section_id']];
                             }
                             
                             // Store options as a comma-separated string
@@ -458,7 +473,7 @@ class TemplateService {
                                     validation_rules,
                                     help_text,
                                     field_width,
-                                    section_id
+                                    section_name
                                 ) VALUES (
                                     " . QuotedValue($templateId, DataType::NUMBER) . ",
                                     " . QuotedValue($field['name'], DataType::STRING) . ",
@@ -472,7 +487,7 @@ class TemplateService {
                                     NULL,
                                     " . QuotedValue($field['help_text'] ?? '', DataType::STRING) . ",
                                     " . QuotedValue($field['width'] ?? 'full', DataType::STRING) . ",
-                                    " . ($sectionId ? QuotedValue($sectionId, DataType::NUMBER) : "NULL") . "
+                                    " . ($sectionName ? QuotedValue($sectionName, DataType::STRING) : "'Default'") . "
                                 )";
                             
                             Execute($sql, "DB");
@@ -659,19 +674,7 @@ class TemplateService {
                 
                 $templateId = $result[0]['template_id'];
                 
-                // Add default section
-                $sql = "INSERT INTO template_sections (
-                        template_id,
-                        section_name,
-                        section_order
-                    ) VALUES (
-                        " . QuotedValue($templateId, DataType::NUMBER) . ",
-                        'Default',
-                        0
-                    ) RETURNING section_id";
-                
-                $sectionResult = ExecuteRows($sql, "DB");
-                $sectionId = $sectionResult[0]['section_id'] ?? null;
+                // No need to create default section, just use 'Default' as the section_name
                 
                 // Add default field
                 $sql = "INSERT INTO template_fields (
@@ -683,7 +686,7 @@ class TemplateService {
                         placeholder,
                         field_order,
                         field_width,
-                        section_id
+                        section_name
                     ) VALUES (
                         " . QuotedValue($templateId, DataType::NUMBER) . ",
                         'full_name',
@@ -693,7 +696,7 @@ class TemplateService {
                         'Enter your full name',
                         0,
                         'full',
-                        " . ($sectionId ? QuotedValue($sectionId, DataType::NUMBER) : "NULL") . "
+                        'Default'
                     )";
                 
                 Execute($sql, "DB");
@@ -797,19 +800,38 @@ class TemplateService {
             
             // Get template fields from template_fields table
             if (!empty($userTemplate['template_id'])) {
-                // Get template sections
-                $sql = "SELECT
-                        section_id,
-                        section_name,
-                        section_order
+                // Get unique section names from fields
+                $sql = "SELECT DISTINCT
+                        section_name
                     FROM
-                        template_sections
+                        template_fields
                     WHERE
                         template_id = " . QuotedValue($userTemplate['template_id'], DataType::NUMBER) . "
                     ORDER BY
-                        section_order ASC";
+                        section_name ASC";
                 
-                $sections = ExecuteRows($sql, "DB");
+                $sectionRows = ExecuteRows($sql, "DB");
+                
+                // Transform section rows into proper format
+                $sections = [];
+                foreach ($sectionRows as $index => $row) {
+                    if (!empty($row['section_name'])) {
+                        $sections[] = [
+                            'id' => 'section_' . md5($row['section_name']), // Generate consistent ID from name
+                            'name' => $row['section_name'],
+                            'order' => $index
+                        ];
+                    }
+                }
+                
+                // Ensure Default section exists
+                if (!array_filter($sections, function($section) { return $section['name'] === 'Default'; })) {
+                    array_unshift($sections, [
+                        'id' => 'section_default',
+                        'name' => 'Default',
+                        'order' => 0
+                    ]);
+                }
                 
                 // Get template fields
                 $sql = "SELECT
@@ -825,7 +847,7 @@ class TemplateService {
                         validation_rules,
                         help_text,
                         field_width,
-                        section_id
+                        section_name
                     FROM
                         template_fields
                     WHERE
@@ -849,14 +871,9 @@ class TemplateService {
                         $field['field_options'] = [];
                     }
                     
-                    // Find section name for this field
-                    if (!empty($field['section_id'])) {
-                        foreach ($sections as $section) {
-                            if ($section['section_id'] == $field['section_id']) {
-                                $field['section_name'] = $section['section_name'];
-                                break;
-                            }
-                        }
+                    // If no section_name, set it to Default
+                    if (empty($field['section_name'])) {
+                        $field['section_name'] = 'Default';
                     }
                 }
                 
@@ -1359,7 +1376,7 @@ class TemplateService {
                     validation_rules,
                     help_text,
                     field_width,
-                    section_id
+                    section_name
                 ) VALUES (
                     " . QuotedValue($templateId, DataType::NUMBER) . ",
                     " . QuotedValue($fieldData['field_name'], DataType::STRING) . ",
@@ -1479,11 +1496,11 @@ class TemplateService {
                 $updateFields[] = "field_width = " . QuotedValue($fieldData['field_width'], DataType::STRING);
             }
             
-            if (array_key_exists('section_id', $fieldData)) {
-                if ($fieldData['section_id'] === null) {
-                    $updateFields[] = "section_id = NULL";
+            if (array_key_exists('section_name', $fieldData)) {
+                if (empty($fieldData['section_name'])) {
+                    $updateFields[] = "section_name = 'Default'";
                 } else {
-                    $updateFields[] = "section_id = " . QuotedValue($fieldData['section_id'], DataType::NUMBER);
+                    $updateFields[] = "section_name = " . QuotedValue($fieldData['section_name'], DataType::STRING);
                 }
             }
             
