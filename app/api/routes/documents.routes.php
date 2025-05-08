@@ -9,7 +9,7 @@ namespace PHPMaker2024\eNotary;
  */
 $app->get("/documents/summary", function ($request, $response, $args) {
     $service = new DocumentService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     return $response->withJson($service->getDocumentSummary($userId));
 })->add($jwtMiddleware);
 
@@ -21,7 +21,7 @@ $app->get("/documents/summary", function ($request, $response, $args) {
  */
 $app->post("/documents", function ($request, $response, $args) {
     $service = new DocumentService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $documentData = $request->getParsedBody();
     return $response->withJson($service->createDocument($userId, $documentData));
 })->add($jwtMiddleware);
@@ -105,7 +105,7 @@ $app->get("/documents/{document_id}/preview", function ($request, $response, $ar
  */
 $app->get("/documents", function ($request, $response, $args) {
     $service = new DocumentService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $params = $request->getQueryParams();
     return $response->withJson($service->listUserDocuments($userId, $params));
 })->add($jwtMiddleware);

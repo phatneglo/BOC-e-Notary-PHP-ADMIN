@@ -9,7 +9,7 @@ namespace PHPMaker2024\eNotary;
  */
 $app->get("/notary/qr-settings", function ($request, $response, $args) {
     $service = new QrCodeService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     return $response->withJson($service->getNotaryQrSettings($userId));
 })->add($jwtMiddleware);
 
@@ -20,7 +20,7 @@ $app->get("/notary/qr-settings", function ($request, $response, $args) {
  */
 $app->post("/notary/qr-settings", function ($request, $response, $args) {
     $service = new QrCodeService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $settingsData = $request->getParsedBody();
     return $response->withJson($service->updateNotaryQrSettings($userId, $settingsData));
 })->add($jwtMiddleware);
@@ -32,7 +32,7 @@ $app->post("/notary/qr-settings", function ($request, $response, $args) {
  */
 $app->post("/notary/qr-appearance", function ($request, $response, $args) {
     $service = new QrCodeService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $customizationData = array_merge(
         $request->getParsedBody() ?? [],
         $request->getUploadedFiles() ?? []
