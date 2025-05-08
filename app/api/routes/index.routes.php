@@ -12,6 +12,6 @@ require_once __DIR__ . '/requests.routes.php';
 require_once __DIR__ . '/notarized.routes.php';
 require_once __DIR__ . '/payments.routes.php';
 require_once __DIR__ . '/verify.routes.php';
-require_once __DIR__ . '/notifications.routes.php';
+require_once __DIR__ . '/notification.routes.php';
 require_once __DIR__ . '/qrcode.routes.php';
 require_once __DIR__ . '/system.routes.php';

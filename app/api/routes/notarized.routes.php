@@ -9,7 +9,7 @@ namespace PHPMaker2024\eNotary;
  */
 $app->get("/notarized", function ($request, $response, $args) {
     $service = new NotarizedDocumentService();
-    $userId = Authentication::getUserId();
+    $userId = $request->getAttribute('user_id');
     $params = $request->getQueryParams();
     return $response->withJson($service->listNotarizedDocuments($userId, $params));
 })->add($jwtMiddleware);
