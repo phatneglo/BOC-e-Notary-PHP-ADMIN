@@ -34,11 +34,12 @@ $app->post("/documents", function ($request, $response, $args) {
 $app->post("/documents/{document_id}/attachments", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
+    $userId = $request->getAttribute('user_id');
     $attachmentData = array_merge(
         $request->getParsedBody() ?? [],
         $request->getUploadedFiles() ?? []
     );
-    return $response->withJson($service->uploadAttachment($documentId, $attachmentData));
+    return $response->withJson($service->uploadAttachment($documentId, $userId, $attachmentData));
 })->add($jwtMiddleware);
 
 /**
@@ -61,7 +62,8 @@ $app->delete("/documents/{document_id}/attachments/{attachment_id}", function ($
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
     $attachmentId = isset($args['attachment_id']) ? (int)$args['attachment_id'] : 0;
-    return $response->withJson($service->deleteAttachment($documentId, $attachmentId));
+    $userId = $request->getAttribute('user_id');
+    return $response->withJson($service->deleteAttachment($documentId, $attachmentId, $userId));
 })->add($jwtMiddleware);
 
 /**
@@ -73,7 +75,8 @@ $app->put("/documents/{document_id}", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
     $documentData = $request->getParsedBody();
-    return $response->withJson($service->updateDocument($documentId, $documentData));
+    $userId = $request->getAttribute('user_id');
+    return $response->withJson($service->updateDocument($documentId, $documentData, $userId));
 })->add($jwtMiddleware);
 
 /**
@@ -118,7 +121,8 @@ $app->get("/documents", function ($request, $response, $args) {
 $app->delete("/documents/{document_id}", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
-    return $response->withJson($service->deleteDocument($documentId));
+    $userId = $request->getAttribute('user_id');
+    return $response->withJson($service->deleteDocument($documentId, $userId));
 })->add($jwtMiddleware);
 
 
@@ -130,8 +134,9 @@ $app->delete("/documents/{document_id}", function ($request, $response, $args) {
 $app->post("/documents/{document_id}/convert", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
+    $userId = $request->getAttribute('user_id');
     $options = $request->getParsedBody();
-    return $response->withJson($service->convertToPdf($documentId, $options));
+    return $response->withJson($service->convertToPdf($documentId, $userId, $options));
 })->add($jwtMiddleware);
 
 /**
@@ -142,8 +147,9 @@ $app->post("/documents/{document_id}/convert", function ($request, $response, $a
 $app->post("/documents/{document_id}/render", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
+    $userId = $request->getAttribute('user_id');
     $options = $request->getParsedBody();
-    return $response->withJson($service->renderDocument($documentId, $options));
+    return $response->withJson($service->renderDocument($documentId, $userId, $options));
 })->add($jwtMiddleware);
 
 /**
@@ -155,7 +161,8 @@ $app->post("/documents/{document_id}/merge-attachments", function ($request, $re
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
     $options = $request->getParsedBody();
-    return $response->withJson($service->mergeAttachments($documentId, $options));
+    $userId = $request->getAttribute('user_id');
+    return $response->withJson($service->mergeAttachments($documentId, $options, $userId));
 })->add($jwtMiddleware);
 
 /**
@@ -179,5 +186,6 @@ $app->post("/documents/{document_id}/activity", function ($request, $response, $
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
     $activityData = $request->getParsedBody();
-    return $response->withJson($service->addDocumentActivity($documentId, $activityData));
+    $userId = $request->getAttribute('user_id');
+    return $response->withJson($service->addDocumentActivity($documentId, $activityData, $userId));
 })->add($jwtMiddleware);

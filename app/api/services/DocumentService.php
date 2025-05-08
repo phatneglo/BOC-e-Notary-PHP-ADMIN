@@ -145,13 +145,11 @@ class DocumentService {
                     $sql = "INSERT INTO document_fields (
                             document_id,
                             field_id,
-                            field_name,
                             field_value,
                             is_verified
                         ) VALUES (
                             " . QuotedValue($documentId, DataType::NUMBER) . ",
                             " . ($fieldId ? QuotedValue($fieldId, DataType::NUMBER) : "NULL") . ",
-                            " . QuotedValue($fieldName, DataType::STRING) . ",
                             " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::STRING) . ",
                             FALSE
                         )";
@@ -200,10 +198,11 @@ class DocumentService {
     /**
      * Upload supporting documents for a document
      * @param int $documentId Document ID
+     * @param int $userId User ID
      * @param array $attachmentData Attachment data including uploaded file
      * @return array Response data
      */
-    public function uploadAttachment($documentId, $attachmentData) {
+    public function uploadAttachment($documentId, $userId, $attachmentData) {
         try {
             // Validate required fields
             if (empty($attachmentData['description'])) {
@@ -237,22 +236,44 @@ class DocumentService {
             
             // Process uploaded file
             $attachment = $attachmentData['attachment'];
-            $originalFileName = $attachment->getClientFilename();
-            $fileType = $attachment->getClientMediaType();
-            $fileSize = $attachment->getSize();
-            
-            // Generate unique filename
-            $filename = uniqid('attachment_', true) . '_' . $originalFileName;
-            $uploadPath = 'uploads/attachments/' . $filename;
-            
-            // Ensure upload directory exists
-            $uploadDir = dirname($uploadPath);
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+            if (is_array($attachment)) {
+                // Handle array format
+                $originalFileName = $attachment['name'] ?? '';
+                $fileType = $attachment['type'] ?? '';
+                $fileSize = $attachment['size'] ?? 0;
+                $tempPath = $attachment['tmp_name'] ?? '';
+                
+                // Generate unique filename
+                $filename = uniqid('attachment_', true) . '_' . $originalFileName;
+                $uploadPath = 'uploads/attachments/' . $filename;
+                
+                // Ensure upload directory exists
+                $uploadDir = dirname($uploadPath);
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                
+                // Move the uploaded file
+                move_uploaded_file($tempPath, $uploadPath);
+            } else {
+                // Handle PSR-7 UploadedFile object
+                $originalFileName = $attachment->getClientFilename();
+                $fileType = $attachment->getClientMediaType();
+                $fileSize = $attachment->getSize();
+                
+                // Generate unique filename
+                $filename = uniqid('attachment_', true) . '_' . $originalFileName;
+                $uploadPath = 'uploads/attachments/' . $filename;
+                
+                // Ensure upload directory exists
+                $uploadDir = dirname($uploadPath);
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                
+                // Save uploaded file
+                $attachment->moveTo($uploadPath);
             }
-            
-            // Save uploaded file
-            $attachment->moveTo($uploadPath);
             
             // Begin transaction
             Execute("BEGIN", "DB");
@@ -278,7 +299,7 @@ class DocumentService {
                         " . QuotedValue($attachmentData['description'], DataType::STRING) . ",
                         " . QuotedValue(isset($attachmentData['is_supporting']) ? (bool)$attachmentData['is_supporting'] : true, DataType::BOOLEAN) . ",
                         CURRENT_TIMESTAMP,
-                        " . QuotedValue(Authentication::getUserId(), DataType::NUMBER) . "
+                        " . QuotedValue($userId, DataType::NUMBER) . "
                     ) RETURNING attachment_id";
                 
                 $result = ExecuteRows($sql, "DB");
@@ -292,7 +313,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'upload_attachment',
                     'Attachment uploaded: ' . $originalFileName
                 );
@@ -393,9 +414,10 @@ class DocumentService {
      * Delete an attachment from a document
      * @param int $documentId Document ID
      * @param int $attachmentId Attachment ID
+     * @param int $userId User ID
      * @return array Response data
      */
-    public function deleteAttachment($documentId, $attachmentId) {
+    public function deleteAttachment($documentId, $attachmentId, $userId) {
         try {
             // Check if document exists
             $sql = "SELECT document_id, status FROM documents WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
@@ -458,7 +480,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'delete_attachment',
                     'Attachment deleted: ' . $attachment['file_name']
                 );
@@ -492,9 +514,10 @@ class DocumentService {
      * Update a document (draft status only)
      * @param int $documentId Document ID
      * @param array $documentData Document data
+     * @param int $userId User ID
      * @return array Response data
      */
-    public function updateDocument($documentId, $documentData) {
+    public function updateDocument($documentId, $documentData, $userId) {
         try {
             // Validate required fields
             if (empty($documentData['document_title'])) {
@@ -591,13 +614,11 @@ class DocumentService {
                     $sql = "INSERT INTO document_fields (
                             document_id,
                             field_id,
-                            field_name,
                             field_value,
                             is_verified
                         ) VALUES (
                             " . QuotedValue($documentId, DataType::NUMBER) . ",
                             " . ($fieldId ? QuotedValue($fieldId, DataType::NUMBER) : "NULL") . ",
-                            " . QuotedValue($fieldName, DataType::STRING) . ",
                             " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::STRING) . ",
                             FALSE
                         )";
@@ -608,7 +629,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'update',
                     'Document updated'
                 );
@@ -870,9 +891,10 @@ class DocumentService {
     /**
      * Delete a document (draft status only)
      * @param int $documentId Document ID
+     * @param int $userId User ID
      * @return array Response data
      */
-    public function deleteDocument($documentId) {
+    public function deleteDocument($documentId, $userId) {
         try {
             // Check if document exists and is in draft status
             $sql = "SELECT document_id, status FROM documents 
@@ -911,7 +933,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'delete',
                     'Document deleted'
                 );
@@ -1015,10 +1037,11 @@ class DocumentService {
     /**
      * Convert document to PDF format
      * @param int $documentId Document ID
+     * @param int $userId User ID
      * @param array $options Conversion options
      * @return array Response data
      */
-    public function convertToPdf($documentId, $options = []) {
+    public function convertToPdf($documentId, $userId, $options = []) {
         try {
             // Get document details
             $sql = "SELECT
@@ -1060,7 +1083,7 @@ class DocumentService {
                         document_id = " . QuotedValue($documentId, DataType::NUMBER) . "
                         AND is_supporting = true";
                 
-                $supportingDocs = ExecuteRows($sql, "DB");
+                $supportingDocs = ExecuteRows( $sql, "DB");
             }
             
             // Generate PDF file
@@ -1093,7 +1116,7 @@ class DocumentService {
                         page_count,
                         is_final,
                         processing_options,
-                        created_at
+                        generated_at
                     ) VALUES (
                         " . QuotedValue($documentId, DataType::NUMBER) . ",
                         NULL,
@@ -1110,7 +1133,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'convert_to_pdf',
                     'Document converted to PDF'
                 );
@@ -1154,10 +1177,11 @@ class DocumentService {
     /**
      * Render document with field data for preview
      * @param int $documentId Document ID
+     * @param int $userId User ID
      * @param array $options Rendering options
      * @return array Response data
      */
-    public function renderDocument($documentId, $options = []) {
+    public function renderDocument($documentId, $userId, $options = []) {
         try {
             // Get document details
             $sql = "SELECT
@@ -1231,7 +1255,7 @@ class DocumentService {
             // Add to activity log
             $this->addActivityLog(
                 $documentId,
-                Authentication::getUserId(),
+                $userId,
                 'render_document',
                 'Document rendered for preview'
             );
@@ -1262,9 +1286,10 @@ class DocumentService {
      * Merge selected supporting documents with the main document
      * @param int $documentId Document ID
      * @param array $options Merge options
+     * @param int $userId User ID
      * @return array Response data
      */
-    public function mergeAttachments($documentId, $options) {
+    public function mergeAttachments($documentId, $options, $userId) {
         try {
             // Validate required options
             if (empty($options['attachment_ids']) || !is_array($options['attachment_ids'])) {
@@ -1373,7 +1398,7 @@ class DocumentService {
                 // Add to activity log
                 $this->addActivityLog(
                     $documentId,
-                    Authentication::getUserId(),
+                    $userId,
                     'merge_attachments',
                     'Document merged with attachments'
                 );
@@ -1494,12 +1519,11 @@ class DocumentService {
     /**
      * Add activity log entry for a document
      * @param int $documentId Document ID
+     * @param array $activityData Activity data
      * @param int $userId User ID
-     * @param string $action Action name
-     * @param string $details Action details
      * @return array Response data
      */
-    public function addDocumentActivity($documentId, $activityData) {
+    public function addDocumentActivity($documentId, $activityData, $userId) {
         try {
             // Validate required fields
             if (empty($activityData['action'])) {
@@ -1532,7 +1556,7 @@ class DocumentService {
             // Add activity log
             $added = $this->addActivityLog(
                 $documentId,
-                Authentication::getUserId(),
+                $userId,
                 $activityData['action'],
                 $activityData['details']
             );
@@ -1571,6 +1595,11 @@ class DocumentService {
         // In a real implementation, this would parse the template and replace placeholders with field data
         // For now, we'll just do a simple placeholder replacement
         
+        // Make sure template HTML is not null to avoid deprecation warning
+        if ($templateHtml === null) {
+            $templateHtml = '';
+        }
+        
         $html = $templateHtml;
         
         // Replace field placeholders
@@ -1578,6 +1607,11 @@ class DocumentService {
             // Handle array values (e.g., for checkboxes or multi-select)
             if (is_array($fieldValue)) {
                 $fieldValue = implode(', ', $fieldValue);
+            }
+            
+            // Make sure fieldValue is not null to avoid deprecation warning
+            if ($fieldValue === null) {
+                $fieldValue = '';
             }
             
             // Replace placeholders in format {{field_name}}

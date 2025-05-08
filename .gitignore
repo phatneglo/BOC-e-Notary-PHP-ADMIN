@@ -8,6 +8,7 @@
 /temp_uploads/
 /files/temp/
 /files/upload/
+/api/uploads/
 
 # Composer packages
 /vendor/
