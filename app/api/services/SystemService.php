@@ -131,8 +131,8 @@ class SystemService {
                 : date('Y-m-d');
             
             // Build WHERE clause
-            $where = "created_at BETWEEN " . QuotedValue($startDate . ' 00:00:00', DataType::DATETIME) . " 
-                     AND " . QuotedValue($endDate . ' 23:59:59', DataType::DATETIME);
+            $where = "created_at BETWEEN " . QuotedValue($startDate . ' 00:00:00', DataType::DATE) . " 
+                     AND " . QuotedValue($endDate . ' 23:59:59', DataType::DATE);
             
             // Query status history
             $sql = "SELECT

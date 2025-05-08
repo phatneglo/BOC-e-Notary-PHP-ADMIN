@@ -351,6 +351,9 @@ class TemplateService {
             Execute("BEGIN", "DB");
             
             try {
+                // Determine is_custom value properly
+                $isCustom = isset($templateData['is_custom']) && ($templateData['is_custom'] === true || $templateData['is_custom'] === 'true' || $templateData['is_custom'] === '1' || $templateData['is_custom'] === 1);
+                
                 // Insert user template
                 $sql = "INSERT INTO user_templates (
                         user_id,
@@ -364,8 +367,8 @@ class TemplateService {
                         " . QuotedValue($userId, DataType::NUMBER) . ",
                         " . (!empty($templateData['template_id']) ? QuotedValue($templateData['template_id'], DataType::NUMBER) : "NULL") . ",
                         " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
-                        " . QuotedValue($templateData['custom_content'] ?? null, DataType::TEXT) . ",
-                        " . QuotedValue(!empty($templateData['is_custom']), DataType::BOOLEAN) . ",
+                        " . QuotedValue($templateData['custom_content'] ?? null, DataType::STRING) . ",
+                        " . ($isCustom ? "TRUE" : "FALSE") . ",
                         CURRENT_TIMESTAMP,
                         CURRENT_TIMESTAMP
                     ) RETURNING user_template_id";
@@ -475,7 +478,7 @@ class TemplateService {
                         " . QuotedValue($userId, DataType::NUMBER) . ",
                         NULL,
                         " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
-                        " . QuotedValue($customContent, DataType::TEXT) . ",
+                        " . QuotedValue($customContent, DataType::STRING) . ",
                         TRUE,
                         CURRENT_TIMESTAMP,
                         CURRENT_TIMESTAMP

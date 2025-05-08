@@ -279,7 +279,7 @@ class PaymentService {
                         " . QuotedValue($amount, DataType::NUMBER) . ",
                         " . QuotedValue($currency, DataType::STRING) . ",
                         'pending',
-                        " . QuotedValue(json_encode($paymentData['additional_fields'] ?? []), DataType::TEXT) . ",
+                        " . QuotedValue(json_encode($paymentData['additional_fields'] ?? []), DataType::STRING) . ",
                         " . QuotedValue(0, DataType::NUMBER) . ", -- No processing fee for now
                         CURRENT_TIMESTAMP
                     ) RETURNING transaction_id";
@@ -443,7 +443,7 @@ class PaymentService {
                 $sql = "UPDATE payment_transactions SET
                         status = 'completed',
                         modified_at = CURRENT_TIMESTAMP,
-                        verification_data = " . QuotedValue(json_encode($verificationData), DataType::TEXT) . "
+                        verification_data = " . QuotedValue(json_encode($verificationData), DataType::STRING) . "
                         WHERE transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
                 
                 Execute($sql, "DB");
@@ -622,7 +622,7 @@ class PaymentService {
                 $sql = "UPDATE payment_transactions SET
                         status = " . QuotedValue($status, DataType::STRING) . ",
                         modified_at = CURRENT_TIMESTAMP,
-                        gateway_response = " . QuotedValue(json_encode($callbackData), DataType::TEXT) . "
+                        gateway_response = " . QuotedValue(json_encode($callbackData), DataType::STRING) . "
                         WHERE transaction_id = " . QuotedValue($transaction['transaction_id'], DataType::NUMBER);
                 
                 Execute($sql, "DB");
@@ -891,7 +891,7 @@ class PaymentService {
                     " . QuotedValue($target, DataType::STRING) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($subject, DataType::STRING) . ",
-                    " . QuotedValue($body, DataType::TEXT) . ",
+                    " . QuotedValue($body, DataType::STRING) . ",
                     " . QuotedValue($link, DataType::STRING) . ",
                     FALSE
                 )";

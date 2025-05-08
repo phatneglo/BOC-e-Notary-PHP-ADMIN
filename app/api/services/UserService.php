@@ -299,7 +299,7 @@ class UserService {
                     FROM
                         aggregated_audit_logs a
                     WHERE
-                        a.user = " . QuotedValue($userId, DataType::NUMBER) . "
+                        a.user = " . QuotedValue((string)$userId, DataType::STRING) . "
                     ORDER BY
                         a.action_date DESC
                     LIMIT " . $perPage . " OFFSET " . $offset;
@@ -307,7 +307,7 @@ class UserService {
                 $result = ExecuteRows($sql, "DB");
                 
                 // Get total count
-                $sqlCount = "SELECT COUNT(*) AS total FROM aggregated_audit_logs WHERE user = " . QuotedValue($userId, DataType::NUMBER);
+                $sqlCount = "SELECT COUNT(*) AS total FROM aggregated_audit_logs WHERE user = " . QuotedValue((string)$userId, DataType::STRING);
                 $resultCount = ExecuteRows($sqlCount, "DB");
                 $total = $resultCount[0]['total'] ?? 0;
                 
@@ -369,7 +369,7 @@ class UserService {
             JOIN
                 documents d ON a.script LIKE CONCAT('%/documents/', d.document_id, '%') AND a.table = 'documents'
             WHERE
-                a.user = " . QuotedValue($userId, DataType::NUMBER) . "
+                a.user = " . QuotedValue((string)$userId, DataType::STRING) . "
             ORDER BY
                 a.action_date DESC
             LIMIT 5";

@@ -109,8 +109,8 @@ class DocumentService {
                         " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
-                        " . QuotedValue($documentHtml, DataType::TEXT) . ",
-                        " . QuotedValue(json_encode($documentData['document_data']), DataType::TEXT) . ",
+                        " . QuotedValue($documentHtml, DataType::STRING) . ",
+                        " . QuotedValue(json_encode($documentData['document_data']), DataType::STRING) . ",
                         NULL,
                         1,
                         CURRENT_TIMESTAMP,
@@ -152,7 +152,7 @@ class DocumentService {
                             " . QuotedValue($documentId, DataType::NUMBER) . ",
                             " . ($fieldId ? QuotedValue($fieldId, DataType::NUMBER) : "NULL") . ",
                             " . QuotedValue($fieldName, DataType::STRING) . ",
-                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::TEXT) . ",
+                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::STRING) . ",
                             FALSE
                         )";
                     
@@ -560,8 +560,8 @@ class DocumentService {
                         company_name = " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
                         customs_entry_number = " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
                         date_of_entry = " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
-                        document_html = " . QuotedValue($updatedHtml, DataType::TEXT) . ",
-                        document_data = " . QuotedValue(json_encode($documentData['document_data']), DataType::TEXT) . ",
+                        document_html = " . QuotedValue($updatedHtml, DataType::STRING) . ",
+                        document_data = " . QuotedValue(json_encode($documentData['document_data']), DataType::STRING) . ",
                         updated_at = CURRENT_TIMESTAMP
                         WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
                 
@@ -598,7 +598,7 @@ class DocumentService {
                             " . QuotedValue($documentId, DataType::NUMBER) . ",
                             " . ($fieldId ? QuotedValue($fieldId, DataType::NUMBER) : "NULL") . ",
                             " . QuotedValue($fieldName, DataType::STRING) . ",
-                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::TEXT) . ",
+                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::STRING) . ",
                             FALSE
                         )";
                     
@@ -1101,7 +1101,7 @@ class DocumentService {
                         " . QuotedValue($pdfPath, DataType::STRING) . ",
                         " . QuotedValue(1, DataType::NUMBER) . ", -- Simulated page count
                         false,
-                        " . QuotedValue(json_encode($options), DataType::TEXT) . ",
+                        " . QuotedValue(json_encode($options), DataType::STRING) . ",
                         CURRENT_TIMESTAMP
                     )";
                 
@@ -1364,7 +1364,7 @@ class DocumentService {
                         " . QuotedValue($mergedPath, DataType::STRING) . ",
                         " . QuotedValue(count($attachments) + 1, DataType::NUMBER) . ", -- Main document + attachments
                         false,
-                        " . QuotedValue(json_encode($options), DataType::TEXT) . ",
+                        " . QuotedValue(json_encode($options), DataType::STRING) . ",
                         CURRENT_TIMESTAMP
                     )";
                 
@@ -1623,7 +1623,7 @@ class DocumentService {
                     " . QuotedValue($documentId, DataType::NUMBER) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($action, DataType::STRING) . ",
-                    " . QuotedValue($details, DataType::TEXT) . ",
+                    " . QuotedValue($details, DataType::STRING) . ",
                     " . QuotedValue($ipAddress, DataType::STRING) . ",
                     CURRENT_TIMESTAMP
                 )";

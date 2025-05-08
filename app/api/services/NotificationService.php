@@ -269,7 +269,7 @@ class NotificationService {
                     " . QuotedValue($target, DataType::STRING) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($subject, DataType::STRING) . ",
-                    " . QuotedValue($body, DataType::TEXT) . ",
+                    " . QuotedValue($body, DataType::STRING) . ",
                     " . QuotedValue($link, DataType::STRING) . ",
                     FALSE
                 )";

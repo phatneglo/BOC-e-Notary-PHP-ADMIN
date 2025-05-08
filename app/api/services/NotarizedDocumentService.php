@@ -387,7 +387,7 @@ class NotarizedDocumentService {
                         qr_code_path = " . QuotedValue($qrCodePath, DataType::STRING) . ",
                         verification_url = " . QuotedValue($verificationUrl, DataType::STRING) . ",
                         verification_id = " . QuotedValue($verificationId, DataType::STRING) . ",
-                        expiry_date = " . QuotedValue($expiryTime, DataType::DATETIME) . "
+                        expiry_date = " . QuotedValue($expiryTime, DataType::DATE) . "
                         WHERE notarized_id = " . QuotedValue($notarizedId, DataType::NUMBER);
                 
                 $result = Execute($sql, "DB");
@@ -410,7 +410,7 @@ class NotarizedDocumentService {
                             " . QuotedValue($verificationUrl, DataType::STRING) . ",
                             " . QuotedValue($verificationId, DataType::STRING) . ",
                             " . QuotedValue($qrCodePath, DataType::STRING) . ",
-                            " . QuotedValue($expiryTime, DataType::DATETIME) . ",
+                            " . QuotedValue($expiryTime, DataType::DATE) . ",
                             0
                         )";
                     
@@ -588,7 +588,7 @@ class NotarizedDocumentService {
                     " . QuotedValue($documentId, DataType::NUMBER) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($action, DataType::STRING) . ",
-                    " . QuotedValue($details, DataType::TEXT) . ",
+                    " . QuotedValue($details, DataType::STRING) . ",
                     " . QuotedValue($ipAddress, DataType::STRING) . ",
                     CURRENT_TIMESTAMP
                 )";

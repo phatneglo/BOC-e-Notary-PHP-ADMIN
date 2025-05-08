@@ -374,8 +374,8 @@ class RequestService {
                         " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
-                        " . QuotedValue($updatedHtml, DataType::TEXT) . ",
-                        " . QuotedValue(json_encode($documentData['document_data']), DataType::TEXT) . ",
+                        " . QuotedValue($updatedHtml, DataType::STRING) . ",
+                        " . QuotedValue(json_encode($documentData['document_data']), DataType::STRING) . ",
                         " . QuotedValue($request['document_id'], DataType::NUMBER) . ",
                         version + 1,
                         CURRENT_TIMESTAMP,
@@ -435,7 +435,7 @@ class RequestService {
                             " . QuotedValue($newDocumentId, DataType::NUMBER) . ",
                             " . ($fieldId ? QuotedValue($fieldId, DataType::NUMBER) : "NULL") . ",
                             " . QuotedValue($fieldName, DataType::STRING) . ",
-                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::TEXT) . ",
+                            " . QuotedValue(is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue, DataType::STRING) . ",
                             FALSE
                         )";
                     
@@ -704,7 +704,7 @@ class RequestService {
                     " . QuotedValue($documentId, DataType::NUMBER) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($action, DataType::STRING) . ",
-                    " . QuotedValue($details, DataType::TEXT) . ",
+                    " . QuotedValue($details, DataType::STRING) . ",
                     " . QuotedValue($ipAddress, DataType::STRING) . ",
                     CURRENT_TIMESTAMP
                 )";
@@ -749,7 +749,7 @@ class RequestService {
                     " . QuotedValue($target, DataType::STRING) . ",
                     " . QuotedValue($userId, DataType::NUMBER) . ",
                     " . QuotedValue($subject, DataType::STRING) . ",
-                    " . QuotedValue($body, DataType::TEXT) . ",
+                    " . QuotedValue($body, DataType::STRING) . ",
                     " . QuotedValue($link, DataType::STRING) . ",
                     FALSE
                 )";
