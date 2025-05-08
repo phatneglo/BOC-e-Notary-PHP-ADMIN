@@ -285,7 +285,15 @@ class AuthService {
             }
             
             // Generate tokens
-            $accessToken = CreateJwt($user);
+            $accessToken = CreateJwt([
+                'user_id' => $user['user_id'],
+                'username' => $user['username'],
+                'email' => $user['email'],
+                'first_name' => $user['first_name'],
+                'last_name' => $user['last_name'],
+                'user_level_id' => $user['user_level_id'],
+                'is_notary' => (bool)$user['is_notary']
+            ], 60 * 60 * 24);
             $refreshToken = $this->generateRefreshToken($user['user_id']);
             
             // Update last login timestamp

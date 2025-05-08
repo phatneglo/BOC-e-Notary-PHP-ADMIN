@@ -1048,6 +1048,7 @@ class TemplateService {
             // Generate PDF file
             // In a real implementation, this would create a PDF file using a library like mPDF or TCPDF
             // For now, we'll just simulate the PDF generation
+            // Note: This is a placeholder - the actual implementation would render the template with field placeholders
             
             // Generate a unique filename for the PDF
             $filename = uniqid('template_preview_', true) . '.pdf';
