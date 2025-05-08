@@ -202,12 +202,26 @@ class TemplateService {
             
             $fields = ExecuteRows($sql, "DB");
             
-            // Process field options (convert from string to array if needed)
+            // Process field options (convert from string to array of simple values)
             foreach ($fields as &$field) {
                 if (!empty($field['field_options']) && is_string($field['field_options'])) {
+                    // Try to parse as JSON first
                     $fieldOptions = json_decode($field['field_options'], true);
                     if (json_last_error() === JSON_ERROR_NONE) {
-                        $field['field_options'] = $fieldOptions;
+                        // If it was an array of objects with label/value, extract just the values
+                        if (is_array($fieldOptions) && !empty($fieldOptions) && isset($fieldOptions[0]) && is_array($fieldOptions[0])) {
+                            if (isset($fieldOptions[0]['label'])) {
+                                // Convert old format to new format
+                                $field['field_options'] = array_map(function($item) {
+                                    return $item['label'];
+                                }, $fieldOptions);
+                            } else {
+                                $field['field_options'] = $fieldOptions;
+                            }
+                        } else {
+                            // Already in the right format
+                            $field['field_options'] = $fieldOptions;
+                        }
                     } else {
                         // If not valid JSON, try comma-separated string
                         $field['field_options'] = explode(',', $field['field_options']);
@@ -424,10 +438,11 @@ class TemplateService {
                                 $sectionId = $sectionMap[$field['section_id']];
                             }
                             
-                            // Convert options array to JSON string if it exists
+                            // Store options as a comma-separated string
                             $fieldOptions = null;
                             if (isset($field['options']) && is_array($field['options'])) {
-                                $fieldOptions = json_encode($field['options']);
+                                // Simple array of strings
+                                $fieldOptions = implode(',', $field['options']);
                             }
                             
                             $sql = "INSERT INTO template_fields (
@@ -1320,14 +1335,14 @@ class TemplateService {
             $result = ExecuteRows($sql, "DB");
             $nextOrder = (int)$result[0]['max_order'] + 1;
             
-            // Prepare field options
+            // Prepare field options as a comma-separated string
             $fieldOptions = null;
             if (!empty($fieldData['field_options'])) {
-                if (is_array($fieldData['field_options'])) {
-                    $fieldOptions = json_encode($fieldData['field_options']);
-                } else {
-                    $fieldOptions = $fieldData['field_options'];
-                }
+            if (is_array($fieldData['field_options'])) {
+            $fieldOptions = implode(',', $fieldData['field_options']);
+            } else {
+            $fieldOptions = $fieldData['field_options'];
+            }
             }
             
             // Insert the field
