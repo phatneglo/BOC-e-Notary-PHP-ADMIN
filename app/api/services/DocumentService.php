@@ -355,7 +355,70 @@ class DocumentService {
             ];
         }
     }
-    
+    /**
+     * Generate preview for a new document before saving
+     * @param int $userId User ID
+     * @param array $previewData Preview data
+     * @return array Response data
+     */
+    public function generateDocumentPreview($userId, $previewData) {
+        try {
+            // Validate required fields
+            if (empty($previewData['template_id'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Template ID is required',
+                    'errors' => ['template_id' => ['Template ID is required']]
+                ];
+            }
+            
+            if (empty($previewData['document_data']) || !is_array($previewData['document_data'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Document data is required and must be an object',
+                    'errors' => ['document_data' => ['Document data is required and must be an object']]
+                ];
+            }
+            
+            // Get template details
+            $sql = "SELECT template_id, template_name, html_content FROM document_templates 
+                    WHERE template_id = " . QuotedValue($previewData['template_id'], DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Template not found'
+                ];
+            }
+            
+            $template = $result[0];
+            
+            // Generate document HTML content using template and field data
+            $previewHtml = $this->generateDocumentHtml($template['html_content'], $previewData['document_data']);
+            
+            // For debugging purposes, log the generated HTML
+            LogError("Preview HTML: " . $previewHtml);
+            
+            // Return success response
+            return [
+                'success' => true,
+                'data' => [
+                    'preview_html' => $previewHtml,
+                    'document_title' => $previewData['document_title'] ?? $template['template_name']
+                ]
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to generate document preview: ' . $e->getMessage()
+            ];
+        }
+    }    
     /**
      * Get all attachments for a document
      * @param int $documentId Document ID

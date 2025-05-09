@@ -27,6 +27,18 @@ $app->post("/documents", function ($request, $response, $args) {
 })->add($jwtMiddleware);
 
 /**
+ * @api {post} /documents/preview Generate document preview
+ * @apiName GenerateDocumentPreview
+ * @apiGroup Documents
+ */
+$app->post("/documents/preview", function ($request, $response, $args) {
+    $service = new DocumentService();
+    $userId = $request->getAttribute('user_id');
+    $previewData = $request->getParsedBody();
+    return $response->withJson($service->generateDocumentPreview($userId, $previewData));
+})->add($jwtMiddleware);
+
+/**
  * @api {post} /documents/{document_id}/attachments Upload document attachment
  * @apiName UploadAttachment
  * @apiGroup Documents
