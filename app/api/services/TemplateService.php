@@ -214,7 +214,10 @@ class TemplateService {
                 ORDER BY
                     tf.field_order ASC";
             
+            Log("Fetching fields SQL: " . $sql);
             $fields = ExecuteRows($sql, "DB");
+            Log("Template fields found: " . count($fields));
+            Log("Fields data: " . json_encode($fields));
             
             // Process field options (convert from string to array of simple values)
             foreach ($fields as &$field) {
@@ -1375,6 +1378,9 @@ class TemplateService {
      */
     public function createTemplate($userId, $templateData) {
         try {
+            // Log input data
+            Log("Creating template with data: " . json_encode($templateData));
+            
             // Validate required fields
             if (empty($templateData['template_name'])) {
                 return [
@@ -1559,6 +1565,9 @@ class TemplateService {
                 
                 // Handle fields if they were provided
                 if (!empty($templateData['fields']) && is_array($templateData['fields'])) {
+                    // Log fields data
+                    Log("Processing fields: " . json_encode($templateData['fields']));
+                    
                     // First, delete existing fields for the template
                     $sql = "DELETE FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
                     Execute($sql, "DB");
