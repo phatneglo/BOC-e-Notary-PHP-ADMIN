@@ -35,6 +35,19 @@ $app->get("/templates/{template_id}", function ($request, $response, $args) {
 })->add($jwtMiddleware);
 
 /**
+ * @api {post} /templates/{template_id}/duplicate Duplicate template as custom
+ * @apiName DuplicateTemplate
+ * @apiGroup Templates
+ */
+$app->post("/templates/{template_id}/duplicate", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $userId = $request->getAttribute('user_id');
+    $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
+    $templateData = $request->getParsedBody();
+    return $response->withJson($service->duplicateSystemTemplate($userId, $templateId, $templateData));
+})->add($jwtMiddleware);
+
+/**
  * @api {get} /user/templates Get user templates
  * @apiName GetUserTemplates
  * @apiGroup Templates

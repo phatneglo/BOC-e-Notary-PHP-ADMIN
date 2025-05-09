@@ -249,6 +249,134 @@ class TemplateService {
     }
     
     /**
+     * Duplicate a system template as a user's custom template
+     * @param int $userId User ID
+     * @param int $templateId Template ID to duplicate
+     * @param array $customData Custom data for the new template
+     * @return array Response data
+     */
+    public function duplicateSystemTemplate($userId, $templateId, $templateData) {
+        try {
+            // Start transaction
+            Execute("BEGIN", "DB");
+            
+            // Get original template
+            $sqlTemplate = "SELECT * FROM document_templates WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            $originalTemplate = ExecuteRows($sqlTemplate, "DB");
+            
+            if (empty($originalTemplate)) {
+                return [
+                    'success' => false,
+                    'message' => 'Original template not found'
+                ];
+            }
+            
+            $original = $originalTemplate[0];
+            
+            // Insert duplicate template
+            $sqlInsert = "INSERT INTO document_templates (
+                template_name,
+                template_code,
+                category_id,
+                description,
+                html_content,
+                is_active,
+                template_type,
+                fee_amount,
+                notary_required,
+                header_text,
+                footer_text,
+                created_at,
+                is_system,
+                owner_id,
+                original_template_id
+            ) VALUES (
+                " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
+                " . QuotedValue('COPY_' . substr(md5(uniqid()), 0, 8), DataType::STRING) . ",
+                " . QuotedValue($original['category_id'], DataType::NUMBER) . ",
+                " . QuotedValue(isset($templateData['description']) ? $templateData['description'] : '', DataType::STRING) . ",
+                " . QuotedValue($original['html_content'], DataType::STRING) . ",
+                TRUE,
+                " . QuotedValue($original['template_type'], DataType::STRING) . ",
+                " . QuotedValue($original['fee_amount'], DataType::NUMBER) . ",
+                " . QuotedValue($original['notary_required'], DataType::BOOLEAN) . ",
+                " . QuotedValue($original['header_text'], DataType::STRING) . ",
+                " . QuotedValue($original['footer_text'], DataType::STRING) . ",
+                CURRENT_TIMESTAMP,
+                FALSE,
+                " . QuotedValue($userId, DataType::NUMBER) . ",
+                " . QuotedValue($templateId, DataType::NUMBER) . "
+            ) RETURNING template_id";
+            
+            $resultInsert = ExecuteRows($sqlInsert, "DB");
+            
+            if (empty($resultInsert) || !isset($resultInsert[0]['template_id'])) {
+                throw new \Exception("Failed to create duplicate template");
+            }
+            
+            $newTemplateId = $resultInsert[0]['template_id'];
+            
+            // Copy fields from the original template
+            $sqlFields = "SELECT * FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            $fields = ExecuteRows($sqlFields, "DB");
+            
+            foreach ($fields as $field) {
+                $sqlField = "INSERT INTO template_fields (
+                    template_id,
+                    field_name,
+                    field_label,
+                    field_type,
+                    field_options,
+                    is_required,
+                    placeholder,
+                    default_value,
+                    field_order,
+                    validation_rules,
+                    help_text,
+                    field_width,
+                    section_name
+                ) VALUES (
+                    " . QuotedValue($newTemplateId, DataType::NUMBER) . ",
+                    " . QuotedValue($field['field_name'], DataType::STRING) . ",
+                    " . QuotedValue($field['field_label'], DataType::STRING) . ",
+                    " . QuotedValue($field['field_type'], DataType::STRING) . ",
+                    " . QuotedValue($field['field_options'], DataType::STRING) . ",
+                    " . QuotedValue($field['is_required'], DataType::BOOLEAN) . ",
+                    " . QuotedValue($field['placeholder'], DataType::STRING) . ",
+                    " . QuotedValue($field['default_value'], DataType::STRING) . ",
+                    " . QuotedValue($field['field_order'], DataType::NUMBER) . ",
+                    " . QuotedValue($field['validation_rules'], DataType::STRING) . ",
+                    " . QuotedValue($field['help_text'], DataType::STRING) . ",
+                    " . QuotedValue($field['field_width'], DataType::STRING) . ",
+                    " . QuotedValue($field['section_name'], DataType::STRING) . "
+                )";
+                
+                Execute($sqlField, "DB");
+            }
+            
+            // Commit the transaction
+            Execute("COMMIT", "DB");
+            
+            return [
+                'success' => true,
+                'message' => 'Template duplicated successfully',
+                'data' => [
+                    'template_id' => $newTemplateId
+                ]
+            ];
+        } catch (\Exception $e) {
+            // Rollback on error
+            Execute("ROLLBACK", "DB");
+            
+            LogError("Error in duplicateSystemTemplate: " . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Failed to duplicate template: ' . $e->getMessage()
+            ];
+        }
+    }
+    /**
      * Get templates saved by the user
      * @param int $userId User ID
      * @param array $params Query parameters
@@ -261,8 +389,28 @@ class TemplateService {
             $perPage = isset($params['per_page']) ? min(max(1, (int)$params['per_page']), 100) : 20;
             $offset = ($page - 1) * $perPage;
             
-            // Query user templates
-            $sql = "SELECT
+            // Two-part query: first get user-owned templates from document_templates
+            $sql1 = "SELECT
+                    NULL as user_template_id,
+                    dt.template_id,
+                    dt.template_name,
+                    dt.template_name as custom_name,
+                    tc.category_name,
+                    TRUE as is_custom,
+                    dt.created_at,
+                    dt.updated_at as updated_at,
+                    dt.is_system,
+                    dt.owner_id
+                FROM
+                    document_templates dt
+                LEFT JOIN
+                    template_categories tc ON dt.category_id = tc.category_id
+                WHERE
+                    dt.owner_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                    AND dt.is_system = FALSE";
+            
+            // Then get templates saved in user_templates table for backward compatibility
+            $sql2 = "SELECT
                     ut.user_template_id,
                     ut.template_id,
                     COALESCE(dt.template_name, 'Custom Template') AS template_name,
@@ -270,7 +418,9 @@ class TemplateService {
                     tc.category_name,
                     ut.is_custom,
                     ut.created_at,
-                    ut.updated_at
+                    ut.updated_at,
+                    dt.is_system,
+                    dt.owner_id
                 FROM
                     user_templates ut
                 LEFT JOIN
@@ -278,17 +428,30 @@ class TemplateService {
                 LEFT JOIN
                     template_categories tc ON dt.category_id = tc.category_id
                 WHERE
-                    ut.user_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                    ut.user_id = " . QuotedValue($userId, DataType::NUMBER);
+            
+            // Combine the results with UNION ALL
+            $sql = "(
+                    $sql1
+                ) UNION ALL (
+                    $sql2
+                )
                 ORDER BY
-                    ut.updated_at DESC
+                    updated_at DESC
                 LIMIT " . $perPage . " OFFSET " . $offset;
             
             $result = ExecuteRows($sql, "DB");
             
-            // Get total count
-            $sqlCount = "SELECT COUNT(*) AS total FROM user_templates WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
-            $resultCount = ExecuteRows($sqlCount, "DB");
-            $total = $resultCount[0]['total'] ?? 0;
+            // Get total count (combine both queries)
+            $sqlCount1 = "SELECT COUNT(*) AS total FROM document_templates 
+                         WHERE owner_id = " . QuotedValue($userId, DataType::NUMBER) . " AND is_system = FALSE";
+            
+            $sqlCount2 = "SELECT COUNT(*) AS total FROM user_templates WHERE user_id = " . QuotedValue($userId, DataType::NUMBER);
+            
+            $resultCount1 = ExecuteRows($sqlCount1, "DB");
+            $resultCount2 = ExecuteRows($sqlCount2, "DB");
+            
+            $total = ($resultCount1[0]['total'] ?? 0) + ($resultCount2[0]['total'] ?? 0);
             
             // Calculate pagination metadata
             $totalPages = ceil($total / $perPage);
@@ -353,6 +516,21 @@ class TemplateService {
             
             // Determine is_custom value properly
             $isCustom = isset($templateData['is_custom']) && ($templateData['is_custom'] === true || $templateData['is_custom'] === 'true' || $templateData['is_custom'] === '1' || $templateData['is_custom'] === 1);
+            
+            // If we're saving a system template, use duplicateSystemTemplate instead
+            if (!$isCustom && !empty($templateData['template_id'])) {
+                // Check if the template is a system template
+                $sql = "SELECT is_system FROM document_templates WHERE template_id = " . QuotedValue($templateData['template_id'], DataType::NUMBER);
+                $result = ExecuteRows($sql, "DB");
+                
+                if (!empty($result) && isset($result[0]['is_system']) && $result[0]['is_system']) {
+                    // It's a system template, so duplicate it as a custom template
+                    return $this->duplicateSystemTemplate($userId, $templateData['template_id'], [
+                        'custom_name' => $templateData['custom_name'],
+                        'description' => $templateData['description'] ?? null
+                    ]);
+                }
+            }
             
             // Begin transaction
             Execute("BEGIN", "DB");
@@ -769,7 +947,19 @@ class TemplateService {
      */
     public function getUserTemplateDetails($userTemplateId) {
         try {
-            // Get user template details
+            // First, check if this is actually a template_id from the document_templates table
+            if (is_numeric($userTemplateId)) {
+                // Try to get it directly from document_templates first
+                $sql = "SELECT template_id FROM document_templates WHERE template_id = " . QuotedValue($userTemplateId, DataType::NUMBER);
+                $templateResult = ExecuteRows($sql, "DB");
+                
+                if (!empty($templateResult)) {
+                    // This is a direct template_id from document_templates, so get the details
+                    return $this->getTemplateDetails($userTemplateId);
+                }
+            }
+            
+            // If not found directly, look in user_templates (legacy approach)
             $sql = "SELECT
                     ut.user_template_id,
                     ut.template_id,
@@ -909,6 +1099,7 @@ class TemplateService {
         }
     }
     
+
     /**
      * Delete a user template
      * @param int $userTemplateId User Template ID
