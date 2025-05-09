@@ -69,11 +69,11 @@ class RequestService {
             try {
                 // Update document status
                 $sql = "UPDATE documents SET
-                        status = 'submitted',
-                        submitted_at = CURRENT_TIMESTAMP,
-                        updated_at = CURRENT_TIMESTAMP
-                        WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
-                
+                    status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'submitted'),
+                    submitted_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                    WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                        
                 Execute($sql, "DB");
                 
                 // Create notarization request

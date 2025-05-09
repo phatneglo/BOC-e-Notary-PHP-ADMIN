@@ -86,36 +86,37 @@ class DocumentService {
                 
                 // Insert document record
                 $sql = "INSERT INTO documents (
-                        user_id,
-                        template_id,
-                        document_title,
-                        document_reference,
-                        status,
-                        company_name,
-                        customs_entry_number,
-                        date_of_entry,
-                        document_html,
-                        document_data,
-                        parent_document_id,
-                        version,
-                        created_at,
-                        updated_at
-                    ) VALUES (
-                        " . QuotedValue($userId, DataType::NUMBER) . ",
-                        " . ($templateId ? QuotedValue($templateId, DataType::NUMBER) : "NULL") . ",
-                        " . QuotedValue($documentData['document_title'], DataType::STRING) . ",
-                        " . QuotedValue($documentReference, DataType::STRING) . ",
-                        'draft',
-                        " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
-                        " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
-                        " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
-                        " . QuotedValue($documentHtml, DataType::STRING) . ",
-                        " . QuotedValue(json_encode($documentData['document_data']), DataType::STRING) . ",
-                        NULL,
-                        1,
-                        CURRENT_TIMESTAMP,
-                        CURRENT_TIMESTAMP
-                    ) RETURNING document_id";
+                    user_id,
+                    template_id,
+                    document_title,
+                    document_reference,
+                    status_id, // Changed from status
+                    company_name,
+                    customs_entry_number,
+                    date_of_entry,
+                    document_html,
+                    document_data,
+                    parent_document_id,
+                    version,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    " . QuotedValue($userId, DataType::NUMBER) . ",
+                    " . ($templateId ? QuotedValue($templateId, DataType::NUMBER) : "NULL") . ",
+                    " . QuotedValue($documentData['document_title'], DataType::STRING) . ",
+                    " . QuotedValue($documentReference, DataType::STRING) . ",
+                    (SELECT status_id FROM document_statuses WHERE status_code = 'draft'), // Get ID for 'draft'
+                    " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
+                    " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
+                    " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
+                    " . QuotedValue($documentHtml, DataType::STRING) . ",
+                    " . QuotedValue(json_encode($documentData['document_data']), DataType::STRING) . ",
+                    NULL,
+                    1,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                ) RETURNING document_id";
+            
                 
                 $result = ExecuteRows($sql, "DB");
                 
@@ -603,13 +604,14 @@ class DocumentService {
             // Check if document exists and is in draft status
             $sql = "SELECT
                     d.document_id,
-                    d.status,
+                    ds.status_code as status,
                     d.template_id,
                     d.document_html,
                     d.document_data,
                     dt.html_content AS template_html
                 FROM
                     documents d
+                JOIN document_statuses ds ON d.status_id = ds.status_id
                 LEFT JOIN
                     document_templates dt ON d.template_id = dt.template_id
                 WHERE
@@ -736,7 +738,9 @@ class DocumentService {
                     d.document_title,
                     d.template_id,
                     dt.template_name,
-                    d.status,
+                    ds.status_code AS status,
+                    ds.status_name,
+                    d.status_id,
                     d.created_at,
                     d.updated_at,
                     d.submitted_at,
@@ -751,6 +755,8 @@ class DocumentService {
                     d.version
                 FROM
                     documents d
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
                 LEFT JOIN
                     document_templates dt ON d.template_id = dt.template_id
                 WHERE
@@ -877,10 +883,11 @@ class DocumentService {
             
             // Build WHERE clause
             $where = "d.user_id = " . QuotedValue($userId, DataType::NUMBER) . " AND d.is_deleted = false";
-            
+
             if ($status) {
-                $where .= " AND d.status = " . QuotedValue($status, DataType::STRING);
+                $where .= " AND ds.status_code = " . QuotedValue($status, DataType::STRING);
             }
+            
             
             if ($search) {
                 $where .= " AND (
@@ -891,37 +898,39 @@ class DocumentService {
             
             // Query documents
             $sql = "SELECT
-                    d.document_id,
-                    d.document_reference,
-                    d.document_title,
-                    dt.template_name,
-                    d.status,
-                    d.created_at,
-                    d.updated_at,
-                    d.submitted_at,
-                    COALESCE(r.status, '') AS request_status,
-                    COALESCE(r.payment_status, '') AS payment_status,
-                    d.version
-                FROM
-                    documents d
-                LEFT JOIN
-                    document_templates dt ON d.template_id = dt.template_id
-                LEFT JOIN
-                    notarization_requests r ON d.document_id = r.document_id
-                WHERE
-                    " . $where . "
-                ORDER BY
-                    CASE 
-                        WHEN d.status = 'draft' THEN d.updated_at
-                        WHEN d.status = 'submitted' THEN d.submitted_at
-                        ELSE d.updated_at
-                    END DESC
-                LIMIT " . $perPage . " OFFSET " . $offset;
-            
+                d.document_id,
+                d.document_reference,
+                d.document_title,
+                dt.template_name,
+                ds.status_code AS status,
+                d.created_at,
+                d.updated_at,
+                d.submitted_at,
+                COALESCE(r.status, '') AS request_status,
+                COALESCE(r.payment_status, '') AS payment_status,
+                d.version
+            FROM
+                documents d
+            JOIN
+                document_statuses ds ON d.status_id = ds.status_id
+            LEFT JOIN
+                document_templates dt ON d.template_id = dt.template_id
+            LEFT JOIN
+                notarization_requests r ON d.document_id = r.document_id
+            WHERE
+                " . $where . "
+            ORDER BY
+                CASE 
+                    WHEN ds.status_code = 'draft' THEN d.updated_at
+                    WHEN ds.status_code = 'submitted' THEN d.submitted_at
+                    ELSE d.updated_at
+                END DESC
+            LIMIT " . $perPage . " OFFSET " . $offset;
+                
             $result = ExecuteRows($sql, "DB");
             
             // Get total count
-            $sqlCount = "SELECT COUNT(*) AS total FROM documents d WHERE " . $where;
+            $sqlCount = "SELECT COUNT(*) AS total FROM documents d JOIN document_statuses ds ON d.status_id = ds.status_id WHERE " . $where;
             $resultCount = ExecuteRows($sqlCount, "DB");
             $total = $resultCount[0]['total'] ?? 0;
             
@@ -960,9 +969,11 @@ class DocumentService {
     public function deleteDocument($documentId, $userId) {
         try {
             // Check if document exists and is in draft status
-            $sql = "SELECT document_id, status FROM documents 
-                    WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
-            
+            $sql = "SELECT d.document_id, ds.status_code as status 
+                FROM documents d
+                JOIN document_statuses ds ON d.status_id = ds.status_id
+                WHERE d.document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result)) {
@@ -1035,20 +1046,21 @@ class DocumentService {
         try {
             // Get document counts by status
             $sql = "SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft,
-                    SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) AS submitted,
-                    SUM(CASE WHEN status = 'pending_payment' THEN 1 ELSE 0 END) AS pending_payment,
-                    SUM(CASE WHEN status = 'in_queue' THEN 1 ELSE 0 END) AS in_queue,
-                    SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing,
-                    SUM(CASE WHEN status = 'notarized' THEN 1 ELSE 0 END) AS notarized,
-                    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected
-                FROM
-                    documents
-                WHERE
-                    user_id = " . QuotedValue($userId, DataType::NUMBER) . "
-                    AND is_deleted = false";
-            
+                COUNT(*) AS total,
+                SUM(CASE WHEN ds.status_code = 'draft' THEN 1 ELSE 0 END) AS draft,
+                SUM(CASE WHEN ds.status_code = 'submitted' THEN 1 ELSE 0 END) AS submitted,
+                SUM(CASE WHEN ds.status_code = 'pending_payment' THEN 1 ELSE 0 END) AS pending_payment,
+                SUM(CASE WHEN ds.status_code = 'in_queue' THEN 1 ELSE 0 END) AS in_queue,
+                SUM(CASE WHEN ds.status_code = 'processing' THEN 1 ELSE 0 END) AS processing,
+                SUM(CASE WHEN ds.status_code = 'notarized' THEN 1 ELSE 0 END) AS notarized,
+                SUM(CASE WHEN ds.status_code = 'rejected' THEN 1 ELSE 0 END) AS rejected
+            FROM
+                documents d
+            JOIN
+                document_statuses ds ON d.status_id = ds.status_id
+            WHERE
+                d.user_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                AND d.is_deleted = false";            
             $statusCounts = ExecuteRows($sql, "DB");
             
             // Get recent document updates
@@ -1106,15 +1118,19 @@ class DocumentService {
      */
     public function convertToPdf($documentId, $userId, $options = []) {
         try {
-            // Get document details
+            // Get document details with status information
             $sql = "SELECT
-                    document_id,
-                    document_title,
-                    document_html
+                    d.document_id,
+                    d.document_title,
+                    d.document_html,
+                    ds.status_code, 
+                    ds.status_name
                 FROM
-                    documents
+                    documents d
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
                 WHERE
-                    document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                    d.document_id = " . QuotedValue($documentId, DataType::NUMBER);
             
             $result = ExecuteRows($sql, "DB");
             
@@ -1146,12 +1162,29 @@ class DocumentService {
                         document_id = " . QuotedValue($documentId, DataType::NUMBER) . "
                         AND is_supporting = true";
                 
-                $supportingDocs = ExecuteRows( $sql, "DB");
+                $supportingDocs = ExecuteRows($sql, "DB");
             }
             
-            // Generate PDF file
-            // In a real implementation, this would create a PDF file using a library like mPDF or TCPDF
-            // For now, we'll just simulate the PDF generation
+            // Check if DOMPDF is available
+            if (!class_exists('\Dompdf\Dompdf')) {
+                throw new \Exception('DOMPDF library not found. Please install it using: composer require dompdf/dompdf');
+            }
+            
+            // Initialize DOMPDF
+            $dompdf = new \Dompdf\Dompdf();
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $dompdf->setOptions($options);
+            
+            // Set paper size and orientation
+            $dompdf->setPaper($pageSize, $orientation);
+            
+            // Load HTML content
+            $dompdf->loadHtml($document['document_html']);
+            
+            // Render PDF
+            $dompdf->render();
             
             // Generate a unique filename for the PDF
             $filename = uniqid('document_', true) . '.pdf';
@@ -1163,8 +1196,16 @@ class DocumentService {
                 mkdir($pdfDir, 0755, true);
             }
             
-            // Simulate PDF creation (in a real implementation, this would be replaced with actual PDF generation)
-            file_put_contents($pdfPath, "PDF Content for Document: " . $document['document_title']);
+            // Save PDF file
+            file_put_contents($pdfPath, $dompdf->output());
+            
+            // If supporting documents should be included, append them to the PDF
+            if ($includeSupportingDocs && !empty($supportingDocs)) {
+                // For simplicity, this example doesn't implement the actual PDF merging
+                // In a real implementation, you would use a library like FPDI to merge PDFs
+                // For now, we'll just log that supporting documents should be included
+                LogError("Supporting documents should be included in PDF: " . count($supportingDocs));
+            }
             
             // Begin transaction
             Execute("BEGIN", "DB");
@@ -1176,19 +1217,23 @@ class DocumentService {
                         notarized_id,
                         pdf_type,
                         file_path,
+                        file_size,
                         page_count,
                         is_final,
                         processing_options,
-                        generated_at
+                        generated_at,
+                        generated_by
                     ) VALUES (
                         " . QuotedValue($documentId, DataType::NUMBER) . ",
                         NULL,
-                        'draft',
+                        " . QuotedValue($document['status_code'], DataType::STRING) . ", -- Use status_code
                         " . QuotedValue($pdfPath, DataType::STRING) . ",
-                        " . QuotedValue(1, DataType::NUMBER) . ", -- Simulated page count
+                        " . QuotedValue(filesize($pdfPath), DataType::NUMBER) . ",
+                        " . QuotedValue(1, DataType::NUMBER) . ", -- Basic page count
                         false,
                         " . QuotedValue(json_encode($options), DataType::STRING) . ",
-                        CURRENT_TIMESTAMP
+                        CURRENT_TIMESTAMP,
+                        " . QuotedValue($userId, DataType::NUMBER) . "
                     )";
                 
                 Execute($sql, "DB");
@@ -1198,7 +1243,7 @@ class DocumentService {
                     $documentId,
                     $userId,
                     'convert_to_pdf',
-                    'Document converted to PDF'
+                    'Document converted to PDF (' . $document['status_name'] . ')'
                 );
                 
                 // Commit transaction
@@ -1210,7 +1255,9 @@ class DocumentService {
                     'message' => 'Document converted to PDF successfully',
                     'data' => [
                         'pdf_path' => $pdfPath,
-                        'page_count' => 1, // Simulated page count
+                        'status' => $document['status_code'],
+                        'status_name' => $document['status_name'],
+                        'page_count' => 1, // Basic page count
                         'file_size' => filesize($pdfPath)
                     ]
                 ];
