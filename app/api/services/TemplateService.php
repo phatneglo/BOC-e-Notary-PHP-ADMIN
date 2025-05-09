@@ -2,8 +2,6 @@
 // app/api/services/TemplateService.php
 namespace PHPMaker2024\eNotary;
 
-require_once __DIR__ . '/AuthService.php';
-
 class TemplateService {
     /**
      * Get all template categories
@@ -203,7 +201,19 @@ class TemplateService {
             }
             
             $template = $result[0];
-            
+            // Process the HTML content to ensure proper newline handling
+            if (isset($template['html_content']) && is_string($template['html_content'])) {
+                // Replace literal escaped newlines with actual newlines
+                $template['html_content'] = str_replace('\\n', "", $template['html_content']);
+                
+                // Normalize line breaks
+                $template['html_content'] = str_replace("\r\n", "", $template['html_content']);
+                $template['html_content'] = str_replace("\r", "", $template['html_content']);
+                
+                // Log for debugging
+                Log("Processed HTML content for template ID {$templateId}: " . substr($template['html_content'], 0, 100) . "...");
+            }
+                   
             // Get template fields
             $sql = "SELECT
                     tf.field_id,
@@ -262,7 +272,8 @@ class TemplateService {
             
             // Add fields to template data
             $template['fields'] = $fields;
-            
+
+
             // Return success response
             return [
                 'success' => true,
@@ -1460,6 +1471,20 @@ class TemplateService {
                 // Generate a unique template code
                 $templateCode = 'T' . date('YmdHis') . mt_rand(1000, 9999);
                 
+                // Process the HTML content
+                $htmlContent = '';
+                if (isset($templateData['html_content'])) {
+                    // Replace literal \n with actual newlines
+                    $htmlContent = str_replace('\\n', "\n", $templateData['html_content']);
+                    
+                    // Normalize line breaks
+                    $htmlContent = str_replace("\r\n", "\n", $htmlContent);
+                    $htmlContent = str_replace("\r", "\n", $htmlContent);
+                    
+                    // Trim whitespace
+                    $htmlContent = trim($htmlContent);
+                }
+                
                 // Insert the template into document_templates
                 $sql = "INSERT INTO document_templates (
                         template_name,
@@ -1591,7 +1616,19 @@ class TemplateService {
                     $updateFields[] = "description = " . QuotedValue($templateData['description'], DataType::STRING);
                 }
                 
+                // Process the HTML content to handle escaped newlines and normalize line breaks
                 if (isset($templateData['html_content'])) {
+                    // Replace literal \n with actual newlines
+                    $templateData['html_content'] = str_replace('\\n', "\n", $templateData['html_content']);
+                    
+                    // Normalize line breaks
+                    $templateData['html_content'] = str_replace("\r\n", "\n", $templateData['html_content']);
+                    $templateData['html_content'] = str_replace("\r", "\n", $templateData['html_content']);
+                    
+                    // Trim whitespace
+                    $templateData['html_content'] = trim($templateData['html_content']);
+                    
+                    // Update the HTML content field
                     $updateFields[] = "html_content = " . QuotedValue($templateData['html_content'], DataType::STRING);
                 }
                 
@@ -1627,7 +1664,7 @@ class TemplateService {
                     Execute($sql, "DB");
                 }
                 
-                // Handle fields if they were provided
+                // Process fields if they were provided
                 if (!empty($templateData['fields']) && is_array($templateData['fields'])) {
                     // Log fields data
                     Log("Processing fields: " . json_encode($templateData['fields']));
@@ -1682,8 +1719,17 @@ class TemplateService {
                                 " . QuotedValue($sectionName, DataType::STRING) . "
                             )";
                         
-                        Execute($sql, "DB");
+                        try {
+                            Log("Adding field $index: " . $field['field_name'] . " of type " . $field['field_type']);
+                            Execute($sql, "DB");
+                        } catch (\Exception $fieldError) {
+                            LogError("Error adding field: " . $fieldError->getMessage());
+                            LogError("SQL: " . $sql);
+                            // Continue even if one field fails
+                        }
                     }
+                    
+                    Log("Added " . count($templateData['fields']) . " fields to template ID: " . $templateId);
                 }
                 
                 // Commit transaction

@@ -50,6 +50,8 @@ class DocumentService {
                 $templateHtml = null;
                 $isUserTemplate = false;
                 
+
+                
                 if (!empty($documentData['template_id'])) {
                     $sql = "SELECT template_id, html_content FROM document_templates 
                             WHERE template_id = " . QuotedValue($documentData['template_id'], DataType::NUMBER);
@@ -1706,13 +1708,18 @@ class DocumentService {
      */
     private function generateDocumentHtml($templateHtml, $fieldData) {
         // In a real implementation, this would parse the template and replace placeholders with field data
-        // For now, we'll just do a simple placeholder replacement
         
         // Make sure template HTML is not null to avoid deprecation warning
         if ($templateHtml === null) {
             $templateHtml = '';
         }
         
+        // Process the template HTML to handle escaped newlines and normalize line breaks
+        $templateHtml = str_replace('\\n', "\n", $templateHtml); // Replace literal \n with actual newlines
+        $templateHtml = str_replace("\r\n", "\n", $templateHtml); // Normalize CRLF to LF
+        $templateHtml = str_replace("\r", "\n", $templateHtml); // Normalize CR to LF
+        
+        // Trim to remove any extraneous whitespace
         $html = trim($templateHtml);
         
         // Replace field placeholders
