@@ -90,7 +90,7 @@ class DocumentService {
                     template_id,
                     document_title,
                     document_reference,
-                    status_id, // Changed from status
+                    status_id, /* Changed from status */
                     company_name,
                     customs_entry_number,
                     date_of_entry,
@@ -105,7 +105,7 @@ class DocumentService {
                     " . ($templateId ? QuotedValue($templateId, DataType::NUMBER) : "NULL") . ",
                     " . QuotedValue($documentData['document_title'], DataType::STRING) . ",
                     " . QuotedValue($documentReference, DataType::STRING) . ",
-                    (SELECT status_id FROM document_statuses WHERE status_code = 'draft'), // Get ID for 'draft'
+                    (SELECT status_id FROM document_statuses WHERE status_code = 'draft'), /* Get ID for 'draft' */
                     " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
                     " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
                     " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
@@ -398,8 +398,11 @@ class DocumentService {
             // Generate document HTML content using template and field data
             $previewHtml = $this->generateDocumentHtml($template['html_content'], $previewData['document_data']);
             
-            // For debugging purposes, log the generated HTML
-            LogError("Preview HTML: " . $previewHtml);
+            // Clean up any extra whitespace/line breaks
+            $previewHtml = trim($previewHtml);
+            
+            // For debugging purposes, log a summary of the generated HTML
+            LogError("Preview HTML generated, length: " . strlen($previewHtml));
             
             // Return success response
             return [
@@ -1710,7 +1713,7 @@ class DocumentService {
             $templateHtml = '';
         }
         
-        $html = $templateHtml;
+        $html = trim($templateHtml);
         
         // Replace field placeholders
         foreach ($fieldData as $fieldName => $fieldValue) {
@@ -1722,6 +1725,13 @@ class DocumentService {
             // Make sure fieldValue is not null to avoid deprecation warning
             if ($fieldValue === null) {
                 $fieldValue = '';
+            }
+            
+            // Clean and normalize line breaks in text fields
+            if (is_string($fieldValue)) {
+                // Normalize line breaks to prevent mixed breaks
+                $fieldValue = str_replace("\r\n", "\n", $fieldValue);
+                $fieldValue = str_replace("\r", "\n", $fieldValue);
             }
             
             // Replace placeholders in format {{field_name}}
