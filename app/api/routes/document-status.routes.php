@@ -5,33 +5,32 @@ namespace PHPMaker2024\eNotary;
 /**
  * @api {get} /document-statuses Get all document statuses
  * @apiName GetDocumentStatuses
- * @apiGroup DocumentStatuses
- * @apiParam {Boolean} [active_only=false] Show only active statuses
+ * @apiGroup DocumentStatus
  */
 $app->get("/document-statuses", function ($request, $response, $args) {
     $service = new DocumentStatusService();
     $params = $request->getQueryParams();
     return $response->withJson($service->getDocumentStatuses($params));
-})->add($jwtMiddleware);
+});
 
 /**
- * @api {get} /document-statuses/:id Get document status by ID
+ * @api {get} /document-statuses/{status_id} Get document status by ID
  * @apiName GetDocumentStatus
- * @apiGroup DocumentStatuses
+ * @apiGroup DocumentStatus
  */
-$app->get("/document-statuses/{id}", function ($request, $response, $args) {
+$app->get("/document-statuses/{status_id}", function ($request, $response, $args) {
     $service = new DocumentStatusService();
-    $statusId = isset($args['id']) ? (int)$args['id'] : 0;
+    $statusId = isset($args['status_id']) ? (int)$args['status_id'] : 0;
     return $response->withJson($service->getDocumentStatus($statusId));
-})->add($jwtMiddleware);
+});
 
 /**
- * @api {get} /document-statuses/code/:code Get document status by code
+ * @api {get} /document-statuses/code/{status_code} Get document status by code
  * @apiName GetDocumentStatusByCode
- * @apiGroup DocumentStatuses
+ * @apiGroup DocumentStatus
  */
-$app->get("/document-statuses/code/{code}", function ($request, $response, $args) {
+$app->get("/document-statuses/code/{status_code}", function ($request, $response, $args) {
     $service = new DocumentStatusService();
-    $statusCode = isset($args['code']) ? $args['code'] : '';
+    $statusCode = isset($args['status_code']) ? $args['status_code'] : '';
     return $response->withJson($service->getDocumentStatusByCode($statusCode));
-})->add($jwtMiddleware);
+});

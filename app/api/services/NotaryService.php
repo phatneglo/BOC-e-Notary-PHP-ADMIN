@@ -60,6 +60,198 @@ class NotaryService {
     }
     
     /**
+     * Get request details
+     * @param int $notaryId Notary ID
+     * @param int $requestId Request ID
+     * @return array Response data
+     */
+    public function getRequestDetails($notaryId, $requestId) {
+        try {
+            // Verify user is a notary
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result) || !$result[0]['is_notary']) {
+                return [
+                    'success' => false,
+                    'message' => 'User is not a notary'
+                ];
+            }
+            
+            // Get request details
+            $sql = "SELECT
+                    r.request_id,
+                    r.request_reference,
+                    r.document_id,
+                    r.user_id,
+                    CONCAT(u.first_name, ' ', u.last_name) AS requester_name,
+                    r.status,
+                    r.requested_at,
+                    r.notary_id,
+                    r.assigned_at,
+                    r.notarized_at,
+                    r.rejected_at,
+                    r.rejected_by,
+                    r.rejection_reason,
+                    r.payment_status,
+                    r.payment_transaction_id,
+                    d.document_title,
+                    d.document_reference,
+                    d.status_id AS document_status_id,
+                    ds.status_code AS document_status,
+                    ds.status_name AS document_status_name,
+                    d.document_html,
+                    q.queue_id,
+                    q.queue_position,
+                    q.estimated_wait_time
+                FROM
+                    notarization_requests r
+                JOIN
+                    documents d ON r.document_id = d.document_id
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
+                JOIN
+                    users u ON r.user_id = u.user_id
+                LEFT JOIN
+                    notarization_queue q ON r.request_id = q.request_id
+                WHERE
+                    r.request_id = " . QuotedValue($requestId, DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Request not found'
+                ];
+            }
+            
+            // Return success response
+            return [
+                'success' => true,
+                'data' => $result[0]
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to get request details: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generate document preview for notarization
+     * @param int $notaryId Notary ID
+     * @param array $previewData Preview data
+     * @return array Response data
+     */
+    public function generateDocumentPreview($notaryId, $previewData) {
+        try {
+            // Verify user is a notary
+            $sql = "SELECT is_notary FROM users WHERE user_id = " . QuotedValue($notaryId, DataType::NUMBER);
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result) || !$result[0]['is_notary']) {
+                return [
+                    'success' => false,
+                    'message' => 'User is not a notary'
+                ];
+            }
+            
+            // Validate required fields
+            if (empty($previewData['document_id'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Document ID is required',
+                    'errors' => ['document_id' => ['Document ID is required']]
+                ];
+            }
+            
+            // Get document details
+            $sql = "SELECT
+                    d.document_id,
+                    d.document_title,
+                    d.document_html,
+                    d.status_id,
+                    ds.status_code,
+                    ds.status_name
+                FROM
+                    documents d
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
+                WHERE
+                    d.document_id = " . QuotedValue($previewData['document_id'], DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Document not found'
+                ];
+            }
+            
+            $document = $result[0];
+            
+            // Determine preview format (HTML or PDF)
+            $format = isset($previewData['format']) && $previewData['format'] === 'pdf' ? 'pdf' : 'html';
+            
+            if ($format === 'html') {
+                // Return HTML preview
+                return [
+                    'success' => true,
+                    'data' => [
+                        'format' => 'html',
+                        'html_content' => $document['document_html'],
+                        'document_title' => $document['document_title']
+                    ]
+                ];
+            } else {
+                // Generate PDF preview
+                // In a real implementation, this would create a PDF file
+                // For now, we'll just simulate the PDF generation
+                
+                // Generate a unique filename for the preview
+                $filename = uniqid('preview_', true) . '.pdf';
+                $previewPath = 'uploads/previews/' . $filename;
+                
+                // Ensure directory exists
+                $previewDir = dirname($previewPath);
+                if (!is_dir($previewDir)) {
+                    mkdir($previewDir, 0755, true);
+                }
+                
+                // Simulate PDF creation (in a real implementation, this would be replaced with actual PDF generation)
+                file_put_contents($previewPath, "PDF Preview for Document: " . $document['document_title']);
+                
+                // Return PDF preview info
+                return [
+                    'success' => true,
+                    'data' => [
+                        'format' => 'pdf',
+                        'render_url' => $previewPath,
+                        'document_title' => $document['document_title'],
+                        'page_count' => 1 // Simulated page count
+                    ]
+                ];
+            }
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to generate document preview: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
      * Update notary profile information
      * @param int $userId User ID
      * @param array $profileData Profile data including files
@@ -403,8 +595,7 @@ class NotaryService {
                 'book_number',
                 'series_of',
                 'notary_location',
-                'certificate_type',
-                'certificate_text'
+                'certificate_type'
             ];
             
             foreach ($requiredFields as $field) {
@@ -451,7 +642,7 @@ class NotaryService {
                 ];
             }
             
-            if ($request['payment_status'] !== 'paid') {
+            if ($request['payment_status'] !== 'paid' && $request['payment_status'] !== 'completed') {
                 return [
                     'success' => false,
                     'message' => 'Request payment is not completed'
@@ -465,6 +656,9 @@ class NotaryService {
             Execute("BEGIN", "DB");
             
             try {
+                // Default certificate text if not provided
+                $certificateText = $notarizationData['certificate_text'] ?? 'This document was notarized electronically on ' . date('F j, Y') . ' by ' . $notary['notary_commission_number'] . '.';
+                
                 // Create notarized document record
                 $sql = "INSERT INTO notarized_documents (
                         request_id,
@@ -475,11 +669,12 @@ class NotaryService {
                         book_number,
                         series_of,
                         doc_keycode,
+                        notary_location,
+                        notarization_date,
                         digital_signature,
                         digital_seal,
                         certificate_text,
                         certificate_type,
-                        notary_location,
                         revoked
                     ) VALUES (
                         " . QuotedValue($requestId, DataType::NUMBER) . ",
@@ -490,11 +685,12 @@ class NotaryService {
                         " . QuotedValue($notarizationData['book_number'], DataType::STRING) . ",
                         " . QuotedValue($notarizationData['series_of'], DataType::STRING) . ",
                         " . QuotedValue($keycode, DataType::STRING) . ",
+                        " . QuotedValue($notarizationData['notary_location'], DataType::STRING) . ",
+                        CURRENT_TIMESTAMP,
                         NULL, -- Digital signature will be added during PDF generation
                         NULL, -- Digital seal will be added during PDF generation
-                        " . QuotedValue($notarizationData['certificate_text'], DataType::STRING) . ",
+                        " . QuotedValue($certificateText, DataType::STRING) . ",
                         " . QuotedValue($notarizationData['certificate_type'], DataType::STRING) . ",
-                        " . QuotedValue($notarizationData['notary_location'], DataType::STRING) . ",
                         FALSE
                     ) RETURNING notarized_id";
                 
@@ -518,6 +714,7 @@ class NotaryService {
                         keycode,
                         verification_url,
                         qr_code_path,
+                        is_active,
                         expiry_date,
                         failed_attempts
                     ) VALUES (
@@ -526,13 +723,14 @@ class NotaryService {
                         " . QuotedValue($keycode, DataType::STRING) . ",
                         " . QuotedValue($verificationUrl, DataType::STRING) . ",
                         NULL, -- QR code path will be added later
+                        TRUE,
                         " . QuotedValue($expiryDate, DataType::DATE) . ",
                         0
                     )";
                 
                 Execute($sql, "DB");
                 
-                // Update request and document status
+                // Update request status
                 $sql = "UPDATE notarization_requests SET
                         status = 'notarized',
                         notarized_at = CURRENT_TIMESTAMP
@@ -540,8 +738,9 @@ class NotaryService {
                 
                 Execute($sql, "DB");
                 
+                // Update document status
                 $sql = "UPDATE documents SET
-                        status = 'notarized'
+                        status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'notarized')
                         WHERE document_id = " . QuotedValue($request['document_id'], DataType::NUMBER);
                 
                 Execute($sql, "DB");
@@ -678,7 +877,7 @@ class NotaryService {
                 
                 // Update document status
                 $sql = "UPDATE documents SET
-                        status = 'rejected'
+                        status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'rejected')
                         WHERE document_id = " . QuotedValue($request['document_id'], DataType::NUMBER);
                 
                 Execute($sql, "DB");
@@ -1139,7 +1338,7 @@ class NotaryService {
             // Get queue statistics
             $sqlQueue = "SELECT
                         SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS pending,
-                        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing
+                        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS in_progress
                     FROM
                         notarization_queue
                     WHERE
@@ -1211,20 +1410,14 @@ class NotaryService {
             return [
                 'success' => true,
                 'data' => [
-                    'queue' => [
-                        'pending' => (int)($queueStats[0]['pending'] ?? 0),
-                        'processing' => (int)($queueStats[0]['processing'] ?? 0)
-                    ],
-                    'processed' => [
-                        'today' => (int)($processedStats[0]['today'] ?? 0),
-                        'this_week' => (int)($processedStats[0]['this_week'] ?? 0),
-                        'this_month' => (int)($processedStats[0]['this_month'] ?? 0),
-                        'total' => (int)($processedStats[0]['total'] ?? 0)
-                    ],
-                    'performance' => [
-                        'average_time' => $performanceStats[0]['average_time'] ? round($performanceStats[0]['average_time'], 1) : 0,
-                        'completion_rate' => $performanceStats[0]['completion_rate'] ? round($performanceStats[0]['completion_rate'], 1) : 100
-                    ],
+                    'pending' => (int)($queueStats[0]['pending'] ?? 0),
+                    'in_progress' => (int)($queueStats[0]['in_progress'] ?? 0),
+                    'completed_today' => (int)($processedStats[0]['today'] ?? 0),
+                    'completed_week' => (int)($processedStats[0]['this_week'] ?? 0),
+                    'completed_month' => (int)($processedStats[0]['this_month'] ?? 0),
+                    'completed_total' => (int)($processedStats[0]['total'] ?? 0),
+                    'avg_time' => $performanceStats[0]['average_time'] ? round($performanceStats[0]['average_time'], 1) . 'm' : '0m',
+                    'completion_rate' => $performanceStats[0]['completion_rate'] ? round($performanceStats[0]['completion_rate'], 1) : 100,
                     'recent_activity' => $recentActivity
                 ]
             ];

@@ -176,10 +176,12 @@ class DocumentService {
                     'success' => true,
                     'message' => 'Document created successfully',
                     'data' => [
-                        'document_id' => $documentId,
-                        'document_reference' => $documentReference,
-                        'status' => 'draft'
-                    ]
+                    'document_id' => $documentId,
+                    'document_reference' => $documentReference,
+                    'status' => 'draft',
+                        'status_id' => ExecuteScalar("SELECT status_id FROM document_statuses WHERE status_code = 'draft'", "DB"),
+                    'status_name' => 'Draft'
+                ]
                 ];
             } catch (\Exception $e) {
                 // Rollback transaction on error
@@ -489,7 +491,7 @@ class DocumentService {
     public function deleteAttachment($documentId, $attachmentId, $userId) {
         try {
             // Check if document exists
-            $sql = "SELECT document_id, status FROM documents WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
+            $sql = "SELECT d.document_id, ds.status_code as status FROM documents d JOIN document_statuses ds ON d.status_id = ds.status_id WHERE d.document_id = " . QuotedValue($documentId, DataType::NUMBER);
             $result = ExecuteRows($sql, "DB");
             
             if (empty($result)) {
@@ -609,7 +611,9 @@ class DocumentService {
             // Check if document exists and is in draft status
             $sql = "SELECT
                     d.document_id,
+                    d.status_id,
                     ds.status_code as status,
+                    ds.status_name,
                     d.template_id,
                     d.document_html,
                     d.document_data,
@@ -880,7 +884,7 @@ class DocumentService {
             $offset = ($page - 1) * $perPage;
             
             // Filter parameters
-            $status = isset($params['status']) && in_array($params['status'], ['draft', 'submitted', 'rejected', 'notarized']) 
+            $status = isset($params['status']) && in_array($params['status'], ['draft', 'submitted', 'pending_payment', 'in_queue', 'processing', 'notarized', 'rejected']) 
                 ? $params['status'] 
                 : null;
             
@@ -908,6 +912,8 @@ class DocumentService {
                 d.document_title,
                 dt.template_name,
                 ds.status_code AS status,
+                ds.status_name,
+                d.status_id,
                 d.created_at,
                 d.updated_at,
                 d.submitted_at,
@@ -974,7 +980,7 @@ class DocumentService {
     public function deleteDocument($documentId, $userId) {
         try {
             // Check if document exists and is in draft status
-            $sql = "SELECT d.document_id, ds.status_code as status 
+            $sql = "SELECT d.document_id, d.status_id, ds.status_code as status, ds.status_name 
                 FROM documents d
                 JOIN document_statuses ds ON d.status_id = ds.status_id
                 WHERE d.document_id = " . QuotedValue($documentId, DataType::NUMBER);
@@ -1070,17 +1076,21 @@ class DocumentService {
             
             // Get recent document updates
             $sql = "SELECT
-                    document_id,
-                    document_title,
-                    status,
-                    updated_at
+                    d.document_id,
+                    d.document_title,
+                    ds.status_code AS status,
+                    d.status_id,
+                    ds.status_name,
+                    d.updated_at
                 FROM
-                    documents
+                    documents d
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
                 WHERE
-                    user_id = " . QuotedValue($userId, DataType::NUMBER) . "
-                    AND is_deleted = false
+                    d.user_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                    AND d.is_deleted = false
                 ORDER BY
-                    updated_at DESC
+                    d.updated_at DESC
                 LIMIT 5";
             
             $recentUpdates = ExecuteRows($sql, "DB");
@@ -1128,6 +1138,7 @@ class DocumentService {
                     d.document_id,
                     d.document_title,
                     d.document_html,
+                    d.status_id,
                     ds.status_code, 
                     ds.status_name
                 FROM

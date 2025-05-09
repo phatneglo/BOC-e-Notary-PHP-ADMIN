@@ -8,19 +8,23 @@ class RequestService {
      * @param int $documentId Document ID
      * @return array Response data
      */
-    public function submitDocument($documentId) {
+    public function submitDocument($documentId, $currentUserId) {
         try {
             // Check if document exists and belongs to the current user
             $sql = "SELECT 
                     d.document_id,
                     d.user_id,
-                    d.status,
+                    d.status_id,
+                    ds.status_code AS status,
+                    ds.status_name,
                     d.document_title,
                     dt.template_id,
                     dt.notary_required,
                     dt.fee_amount
                 FROM 
                     documents d
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
                 LEFT JOIN 
                     document_templates dt ON d.template_id = dt.template_id
                 WHERE 
@@ -37,7 +41,6 @@ class RequestService {
             }
             
             $document = $result[0];
-            $currentUserId = Authentication::getUserId();
             
             if ($document['user_id'] != $currentUserId) {
                 return [
@@ -67,7 +70,7 @@ class RequestService {
             Execute("BEGIN", "DB");
             
             try {
-                // Update document status
+                // Update document status to submitted
                 $sql = "UPDATE documents SET
                     status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'submitted'),
                     submitted_at = CURRENT_TIMESTAMP,
@@ -109,6 +112,14 @@ class RequestService {
                 
                 // If payment is not required, add to notarization queue immediately
                 if ($feeAmount <= 0) {
+                    // Update document status to in_queue
+                    $sql = "UPDATE documents SET
+                        status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'in_queue'),
+                        updated_at = CURRENT_TIMESTAMP
+                        WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                    
+                    Execute($sql, "DB");
+                    
                     // Assign to notary (in a real system, this would use some algorithm for load balancing)
                     // For now, we'll just get a random active notary
                     $sql = "SELECT 
@@ -154,6 +165,14 @@ class RequestService {
                         
                         Execute($sql, "DB");
                     }
+                } else {
+                    // If payment is required, update document status to pending_payment
+                    $sql = "UPDATE documents SET
+                        status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'pending_payment'),
+                        updated_at = CURRENT_TIMESTAMP
+                        WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                    
+                    Execute($sql, "DB");
                 }
                 
                 // Add to activity log
@@ -178,6 +197,16 @@ class RequestService {
                 Execute("COMMIT", "DB");
                 
                 // Return success response
+                // Get the current status information for the response
+                $sql = "SELECT 
+                    ds.status_id, 
+                    ds.status_code, 
+                    ds.status_name 
+                FROM documents d 
+                JOIN document_statuses ds ON d.status_id = ds.status_id 
+                WHERE d.document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                $statusInfo = ExecuteRows($sql, "DB");
+                
                 return [
                     'success' => true,
                     'message' => 'Document submitted for notarization',
@@ -185,7 +214,10 @@ class RequestService {
                         'request_id' => $requestId,
                         'request_reference' => $requestReference,
                         'payment_required' => $feeAmount > 0,
-                        'fee_amount' => $feeAmount
+                        'fee_amount' => $feeAmount,
+                        'status_id' => $statusInfo[0]['status_id'],
+                        'status' => $statusInfo[0]['status_code'],
+                        'status_name' => $statusInfo[0]['status_name']
                     ]
                 ];
             } catch (\Exception $e) {
@@ -279,7 +311,7 @@ class RequestService {
      * @param array $documentData Document data
      * @return array Response data
      */
-    public function modifyRejectedDocument($requestId, $documentData) {
+    public function modifyRejectedDocument($requestId, $currentUserId, $documentData) {
         try {
             // Validate required fields
             if (empty($documentData['document_title'])) {
@@ -306,11 +338,16 @@ class RequestService {
                     r.user_id,
                     d.document_title,
                     d.template_id,
+                    d.status_id,
+                    ds.status_code,
+                    ds.status_name,
                     dt.html_content AS template_html
                 FROM
                     notarization_requests r
                 JOIN
                     documents d ON r.document_id = d.document_id
+                JOIN
+                    document_statuses ds ON d.status_id = ds.status_id
                 LEFT JOIN
                     document_templates dt ON d.template_id = dt.template_id
                 WHERE
@@ -326,7 +363,6 @@ class RequestService {
             }
             
             $request = $result[0];
-            $currentUserId = Authentication::getUserId();
             
             if ($request['user_id'] != $currentUserId) {
                 return [
@@ -355,7 +391,7 @@ class RequestService {
                         template_id,
                         document_title,
                         document_reference,
-                        status,
+                        status_id,
                         company_name,
                         customs_entry_number,
                         date_of_entry,
@@ -370,7 +406,7 @@ class RequestService {
                         template_id,
                         " . QuotedValue($documentData['document_title'], DataType::STRING) . ",
                         document_reference,
-                        'submitted',
+                        (SELECT status_id FROM document_statuses WHERE status_code = 'submitted'),
                         " . QuotedValue($documentData['company_name'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['customs_entry_number'] ?? null, DataType::STRING) . ",
                         " . QuotedValue($documentData['date_of_entry'] ?? null, DataType::DATE) . ",
@@ -464,12 +500,26 @@ class RequestService {
                 Execute("COMMIT", "DB");
                 
                 // Return success response
+                // Get the current status information for the response
+                $sql = "SELECT 
+                    ds.status_id, 
+                    ds.status_code, 
+                    ds.status_name 
+                FROM documents d 
+                JOIN document_statuses ds ON d.status_id = ds.status_id 
+                WHERE d.document_id = " . QuotedValue($newDocumentId, DataType::NUMBER);
+                $statusInfo = ExecuteRows($sql, "DB");
+                
                 return [
                     'success' => true,
                     'message' => 'Document updated and resubmitted',
                     'data' => [
                         'request_id' => $requestId,
-                        'status' => 'pending'
+                        'document_id' => $newDocumentId,
+                        'status' => 'pending',
+                        'status_id' => $statusInfo[0]['status_id'],
+                        'status_code' => $statusInfo[0]['status_code'],
+                        'status_name' => $statusInfo[0]['status_name']
                     ]
                 ];
             } catch (\Exception $e) {
@@ -613,7 +663,7 @@ class RequestService {
             // Add activity log
             $added = $this->addActivityLog(
                 $documentId,
-                Authentication::getUserId(),
+                $currentUserId,
                 $activityData['action'],
                 $activityData['details']
             );

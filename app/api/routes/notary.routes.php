@@ -41,6 +41,30 @@ $app->get("/notary/queue", function ($request, $response, $args) {
 })->add($jwtMiddleware);
 
 /**
+ * @api {get} /notary/requests/{request_id} Get request details
+ * @apiName GetRequestDetails
+ * @apiGroup Notary
+ */
+$app->get("/notary/requests/{request_id}", function ($request, $response, $args) {
+    $service = new NotaryService();
+    $userId = $request->getAttribute('user_id');
+    $requestId = isset($args['request_id']) ? (int)$args['request_id'] : 0;
+    return $response->withJson($service->getRequestDetails($userId, $requestId));
+})->add($jwtMiddleware);
+
+/**
+ * @api {post} /notary/requests/preview Generate document preview
+ * @apiName GenerateDocumentPreview
+ * @apiGroup Notary
+ */
+$app->post("/notary/requests/preview", function ($request, $response, $args) {
+    $service = new NotaryService();
+    $userId = $request->getAttribute('user_id');
+    $previewData = $request->getParsedBody();
+    return $response->withJson($service->generateDocumentPreview($userId, $previewData));
+})->add($jwtMiddleware);
+
+/**
  * @api {post} /notary/queue/{queue_id}/accept Accept request from queue
  * @apiName AcceptRequest
  * @apiGroup Notary
