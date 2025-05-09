@@ -657,4 +657,85 @@ class AuthService {
         
         return $token;
     }
+
+
+
+    /**
+     * Check if a user has admin access
+     * @param int $userId User ID
+     * @return bool True if user has admin access, false otherwise
+     */
+    public function hasAdminAccess($userId) {
+        if (!$userId) return false;
+        
+        try {
+            // Check if user has admin role
+            $sql = "SELECT ul.name AS user_level_name
+                   FROM user_level_assignments ula
+                   JOIN user_levels ul ON ula.user_level_id = ul.user_level_id
+                   WHERE ula.user_id = " . QuotedValue($userId, DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (!empty($result)) {
+                foreach ($result as $row) {
+                    // Check for admin role names (case insensitive)
+                    $roleName = strtolower($row['user_level_name']);
+                    if (strpos($roleName, 'admin') !== false) {
+                        return true;
+                    }
+                }
+            }
+            
+            // If no admin role found, check if user ID is 1 (fallback)
+            return $userId == 1;
+        } catch (\Exception $e) {
+            LogError("Error checking admin access: " . $e->getMessage());
+            // Default to ID 1 as admin if query fails
+            return $userId == 1;
+        }
+    }
+    
+    /**
+     * Check if a user can edit a specific template
+     * @param int $userId User ID
+     * @param int $templateId Template ID
+     * @return bool True if user can edit template, false otherwise
+     */
+    public function canEditTemplate($userId, $templateId) {
+        if (!$userId || !$templateId) return false;
+        
+        try {
+            // Check if user is admin first (admins can edit any template)
+            if ($this->hasAdminAccess($userId)) {
+                return true;
+            }
+            
+            // Then check if user is the owner of the template
+            $sql = "SELECT owner_id, is_system 
+                   FROM document_templates 
+                   WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (!empty($result)) {
+                $template = $result[0];
+                
+                // Check if user is the owner
+                if ($template['owner_id'] == $userId) {
+                    return true;
+                }
+                
+                // System templates can only be edited by admins (already checked above)
+                if ($template['is_system']) {
+                    return false;
+                }
+            }
+            
+            return false;
+        } catch (\Exception $e) {
+            LogError("Error checking template edit permissions: " . $e->getMessage());
+            return false;
+        }
+    }    
 }

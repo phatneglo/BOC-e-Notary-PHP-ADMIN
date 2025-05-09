@@ -2,6 +2,8 @@
 // app/api/services/TemplateService.php
 namespace PHPMaker2024\eNotary;
 
+require_once __DIR__ . '/AuthService.php';
+
 class TemplateService {
     /**
      * Get all template categories
@@ -57,6 +59,14 @@ class TemplateService {
             $search = isset($params['search']) ? trim($params['search']) : null;
             $ownerIdFilter = isset($params['owner_id']) ? $params['owner_id'] : null;
             
+            // Get current user ID
+            global $Request;
+            $userId = $Request->getAttribute('user_id');
+            
+            // Check if user is admin (for filtering purposes)
+            $authService = new AuthService();
+            $isAdmin = $authService->hasAdminAccess($userId);
+            
             // Build WHERE clause
             $where = "dt.is_active = true";
             
@@ -73,19 +83,21 @@ class TemplateService {
             }
             
             // Apply owner_id filter if present
-            // This handles the case where we want to filter by current user's templates
             if ($ownerIdFilter === true || $ownerIdFilter === 'true' || $ownerIdFilter === '1') {
                 // When owner_id=true, filter by current user's ID
-                // The user_id will be attached to the request by the JWT middleware
-                global $Request;
-                $userId = $Request->getAttribute('user_id');
-                
                 if ($userId) {
                     $where .= " AND dt.owner_id = " . QuotedValue($userId, DataType::NUMBER);
                 }
             } else if (is_numeric($ownerIdFilter)) {
                 // When owner_id is a specific user ID
                 $where .= " AND dt.owner_id = " . QuotedValue($ownerIdFilter, DataType::NUMBER);
+            } else {
+                // For regular listing (no specific owner_id parameter)
+                // Non-admin users should only see their own templates and system templates
+                if (!$isAdmin) {
+                    $where .= " AND (dt.owner_id = " . QuotedValue($userId, DataType::NUMBER) . " OR dt.is_system = TRUE)";
+                }
+                // Admin users can see all templates by default
             }
             
             // Query templates
@@ -293,7 +305,11 @@ class TemplateService {
             
             $original = $originalTemplate[0];
             
-            // Insert duplicate template
+            // Log what we're duplicating
+            Log("Duplicating template ID: " . $templateId . " with template name: " . ($templateData['template_name'] ?? $templateData['custom_name'] ?? 'Untitled'));
+            Log("Original template data: " . json_encode($original));
+            
+            // Insert duplicate template with original_template_id
             $sqlInsert = "INSERT INTO document_templates (
                 template_name,
                 template_code,
@@ -311,7 +327,7 @@ class TemplateService {
                 owner_id,
                 original_template_id
             ) VALUES (
-                " . QuotedValue($templateData['custom_name'], DataType::STRING) . ",
+                " . QuotedValue($templateData['template_name'] ?? $templateData['custom_name'], DataType::STRING) . ",
                 " . QuotedValue('COPY_' . substr(md5(uniqid()), 0, 8), DataType::STRING) . ",
                 " . QuotedValue($original['category_id'], DataType::NUMBER) . ",
                 " . QuotedValue(isset($templateData['description']) ? $templateData['description'] : '', DataType::STRING) . ",
@@ -335,43 +351,90 @@ class TemplateService {
             }
             
             $newTemplateId = $resultInsert[0]['template_id'];
+            Log("Created new template with ID: " . $newTemplateId);
             
             // Copy fields from the original template
             $sqlFields = "SELECT * FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
             $fields = ExecuteRows($sqlFields, "DB");
             
-            foreach ($fields as $field) {
+            Log("Found " . count($fields) . " fields to copy");
+            Log("Fields data: " . json_encode($fields));
+            
+            // Check if we actually have fields to copy
+            if (empty($fields)) {
+                Log("No fields found in original template, creating a default field");
+                
+                // Create a default field if no fields exist
                 $sqlField = "INSERT INTO template_fields (
                     template_id,
                     field_name,
                     field_label,
                     field_type,
-                    field_options,
                     is_required,
                     placeholder,
-                    default_value,
                     field_order,
-                    validation_rules,
-                    help_text,
                     field_width,
                     section_name
                 ) VALUES (
                     " . QuotedValue($newTemplateId, DataType::NUMBER) . ",
-                    " . QuotedValue($field['field_name'], DataType::STRING) . ",
-                    " . QuotedValue($field['field_label'], DataType::STRING) . ",
-                    " . QuotedValue($field['field_type'], DataType::STRING) . ",
-                    " . QuotedValue($field['field_options'], DataType::STRING) . ",
-                    " . QuotedValue($field['is_required'], DataType::BOOLEAN) . ",
-                    " . QuotedValue($field['placeholder'], DataType::STRING) . ",
-                    " . QuotedValue($field['default_value'], DataType::STRING) . ",
-                    " . QuotedValue($field['field_order'], DataType::NUMBER) . ",
-                    " . QuotedValue($field['validation_rules'], DataType::STRING) . ",
-                    " . QuotedValue($field['help_text'], DataType::STRING) . ",
-                    " . QuotedValue($field['field_width'], DataType::STRING) . ",
-                    " . QuotedValue($field['section_name'], DataType::STRING) . "
+                    'full_name',
+                    'Full Name',
+                    'text',
+                    TRUE,
+                    'Enter your full name',
+                    0,
+                    'full',
+                    'Default'
                 )";
                 
                 Execute($sqlField, "DB");
+                Log("Created default field for the duplicated template");
+            } else {
+                // Copy each field from the original template
+                foreach ($fields as $fieldIndex => $field) {
+                    Log("Copying field: " . $field['field_name']);
+                    
+                    $sqlField = "INSERT INTO template_fields (
+                        template_id,
+                        field_name,
+                        field_label,
+                        field_type,
+                        field_options,
+                        is_required,
+                        placeholder,
+                        default_value,
+                        field_order,
+                        validation_rules,
+                        help_text,
+                        field_width,
+                        section_name
+                    ) VALUES (
+                        " . QuotedValue($newTemplateId, DataType::NUMBER) . ",
+                        " . QuotedValue($field['field_name'], DataType::STRING) . ",
+                        " . QuotedValue($field['field_label'], DataType::STRING) . ",
+                        " . QuotedValue($field['field_type'], DataType::STRING) . ",
+                        " . ($field['field_options'] ? QuotedValue($field['field_options'], DataType::STRING) : "NULL") . ",
+                        " . ($field['is_required'] ? "TRUE" : "FALSE") . ",
+                        " . ($field['placeholder'] ? QuotedValue($field['placeholder'], DataType::STRING) : "NULL") . ",
+                        " . ($field['default_value'] ? QuotedValue($field['default_value'], DataType::STRING) : "NULL") . ",
+                        " . QuotedValue($field['field_order'] !== null ? $field['field_order'] : $fieldIndex, DataType::NUMBER) . ",
+                        " . ($field['validation_rules'] ? QuotedValue($field['validation_rules'], DataType::STRING) : "NULL") . ",
+                        " . ($field['help_text'] ? QuotedValue($field['help_text'], DataType::STRING) : "NULL") . ",
+                        " . ($field['field_width'] ? QuotedValue($field['field_width'], DataType::STRING) : "'full'") . ",
+                        " . ($field['section_name'] ? QuotedValue($field['section_name'], DataType::STRING) : "'Default'") . "
+                    )";
+                    
+                    try {
+                        Execute($sqlField, "DB");
+                        Log("Successfully copied field: " . $field['field_name']);
+                    } catch (\Exception $fieldError) {
+                        LogError("Error copying field: " . $fieldError->getMessage());
+                        LogError("SQL: " . $sqlField);
+                        // Continue even if one field fails
+                    }
+                }
+                
+                Log("Finished copying all fields");
             }
             
             // Commit the transaction
@@ -1494,14 +1557,15 @@ class TemplateService {
             $template = $result[0];
             
             // Check if user has permission to edit this template
-            if ($template['is_system'] && !$this->hasAdminAccess($userId)) {
+            $authService = new AuthService();
+            if ($template['is_system'] && !$authService->hasAdminAccess($userId)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to edit system templates'
                 ];
             }
             
-            if (!$template['is_system'] && $template['owner_id'] != $userId && !$this->hasAdminAccess($userId)) {
+            if (!$template['is_system'] && $template['owner_id'] != $userId && !$authService->hasAdminAccess($userId)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to edit this template'
@@ -1682,14 +1746,15 @@ class TemplateService {
             $template = $result[0];
             
             // Check if user has permission to delete this template
-            if ($template['is_system'] && !$this->hasAdminAccess($userId)) {
+            $authService = new AuthService();
+            if ($template['is_system'] && !$authService->hasAdminAccess($userId)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to delete system templates'
                 ];
             }
             
-            if (!$template['is_system'] && $template['owner_id'] != $userId && !$this->hasAdminAccess($userId)) {
+            if (!$template['is_system'] && $template['owner_id'] != $userId && !$authService->hasAdminAccess($userId)) {
                 return [
                     'success' => false,
                     'message' => 'You do not have permission to delete this template'
@@ -1748,16 +1813,7 @@ class TemplateService {
         }
     }
     
-    /**
-     * Helper method to check if a user has admin access
-     * @param int $userId User ID
-     * @return bool True if user has admin access, false otherwise
-     */
-    private function hasAdminAccess($userId) {
-        // TODO: Implement proper admin access checking
-        // For now, we'll assume only user ID 1 has admin access
-        return $userId == 1;
-    }
+
     
     /**
      * Add a field to a template

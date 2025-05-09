@@ -60,6 +60,11 @@ $app->post("/templates/{template_id}/duplicate", function ($request, $response, 
     $userId = $request->getAttribute('user_id');
     $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
     $templateData = $request->getParsedBody();
+    
+    // Log duplication request
+    Log("Template duplication request received for template ID: " . $templateId . " by user ID: " . $userId);
+    Log("Template data: " . json_encode($templateData));
+    
     return $response->withJson($service->duplicateSystemTemplate($userId, $templateId, $templateData));
 })->add($jwtMiddleware);
 
