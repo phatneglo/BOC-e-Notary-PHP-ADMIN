@@ -164,6 +164,9 @@ class DocumentTemplatesList extends DocumentTemplates
         $this->header_text->Visible = false;
         $this->footer_text->Visible = false;
         $this->preview_image_path->setVisibility();
+        $this->is_system->setVisibility();
+        $this->owner_id->setVisibility();
+        $this->original_template_id->setVisibility();
     }
 
     // Constructor
@@ -719,6 +722,7 @@ class DocumentTemplatesList extends DocumentTemplates
         // Set up lookup cache
         $this->setupLookupOptions($this->is_active);
         $this->setupLookupOptions($this->notary_required);
+        $this->setupLookupOptions($this->is_system);
 
         // Update form name to avoid conflict
         if ($this->IsModal) {
@@ -1080,6 +1084,9 @@ class DocumentTemplatesList extends DocumentTemplates
         $filterList = Concat($filterList, $this->header_text->AdvancedSearch->toJson(), ","); // Field header_text
         $filterList = Concat($filterList, $this->footer_text->AdvancedSearch->toJson(), ","); // Field footer_text
         $filterList = Concat($filterList, $this->preview_image_path->AdvancedSearch->toJson(), ","); // Field preview_image_path
+        $filterList = Concat($filterList, $this->is_system->AdvancedSearch->toJson(), ","); // Field is_system
+        $filterList = Concat($filterList, $this->owner_id->AdvancedSearch->toJson(), ","); // Field owner_id
+        $filterList = Concat($filterList, $this->original_template_id->AdvancedSearch->toJson(), ","); // Field original_template_id
         if ($this->BasicSearch->Keyword != "") {
             $wrk = "\"" . Config("TABLE_BASIC_SEARCH") . "\":\"" . JsEncode($this->BasicSearch->Keyword) . "\",\"" . Config("TABLE_BASIC_SEARCH_TYPE") . "\":\"" . JsEncode($this->BasicSearch->Type) . "\"";
             $filterList = Concat($filterList, $wrk, ",");
@@ -1270,6 +1277,30 @@ class DocumentTemplatesList extends DocumentTemplates
         $this->preview_image_path->AdvancedSearch->SearchValue2 = @$filter["y_preview_image_path"];
         $this->preview_image_path->AdvancedSearch->SearchOperator2 = @$filter["w_preview_image_path"];
         $this->preview_image_path->AdvancedSearch->save();
+
+        // Field is_system
+        $this->is_system->AdvancedSearch->SearchValue = @$filter["x_is_system"];
+        $this->is_system->AdvancedSearch->SearchOperator = @$filter["z_is_system"];
+        $this->is_system->AdvancedSearch->SearchCondition = @$filter["v_is_system"];
+        $this->is_system->AdvancedSearch->SearchValue2 = @$filter["y_is_system"];
+        $this->is_system->AdvancedSearch->SearchOperator2 = @$filter["w_is_system"];
+        $this->is_system->AdvancedSearch->save();
+
+        // Field owner_id
+        $this->owner_id->AdvancedSearch->SearchValue = @$filter["x_owner_id"];
+        $this->owner_id->AdvancedSearch->SearchOperator = @$filter["z_owner_id"];
+        $this->owner_id->AdvancedSearch->SearchCondition = @$filter["v_owner_id"];
+        $this->owner_id->AdvancedSearch->SearchValue2 = @$filter["y_owner_id"];
+        $this->owner_id->AdvancedSearch->SearchOperator2 = @$filter["w_owner_id"];
+        $this->owner_id->AdvancedSearch->save();
+
+        // Field original_template_id
+        $this->original_template_id->AdvancedSearch->SearchValue = @$filter["x_original_template_id"];
+        $this->original_template_id->AdvancedSearch->SearchOperator = @$filter["z_original_template_id"];
+        $this->original_template_id->AdvancedSearch->SearchCondition = @$filter["v_original_template_id"];
+        $this->original_template_id->AdvancedSearch->SearchValue2 = @$filter["y_original_template_id"];
+        $this->original_template_id->AdvancedSearch->SearchOperator2 = @$filter["w_original_template_id"];
+        $this->original_template_id->AdvancedSearch->save();
         $this->BasicSearch->setKeyword(@$filter[Config("TABLE_BASIC_SEARCH")]);
         $this->BasicSearch->setType(@$filter[Config("TABLE_BASIC_SEARCH_TYPE")]);
     }
@@ -1410,6 +1441,9 @@ class DocumentTemplatesList extends DocumentTemplates
             $this->updateSort($this->fee_amount); // fee_amount
             $this->updateSort($this->template_type); // template_type
             $this->updateSort($this->preview_image_path); // preview_image_path
+            $this->updateSort($this->is_system); // is_system
+            $this->updateSort($this->owner_id); // owner_id
+            $this->updateSort($this->original_template_id); // original_template_id
             $this->setStartRecordNumber(1); // Reset start position
         }
 
@@ -1453,6 +1487,9 @@ class DocumentTemplatesList extends DocumentTemplates
                 $this->header_text->setSort("");
                 $this->footer_text->setSort("");
                 $this->preview_image_path->setSort("");
+                $this->is_system->setSort("");
+                $this->owner_id->setSort("");
+                $this->original_template_id->setSort("");
             }
 
             // Reset start position
@@ -1701,6 +1738,9 @@ class DocumentTemplatesList extends DocumentTemplates
             $this->createColumnOption($option, "fee_amount");
             $this->createColumnOption($option, "template_type");
             $this->createColumnOption($option, "preview_image_path");
+            $this->createColumnOption($option, "is_system");
+            $this->createColumnOption($option, "owner_id");
+            $this->createColumnOption($option, "original_template_id");
         }
 
         // Set up custom actions
@@ -2153,6 +2193,9 @@ class DocumentTemplatesList extends DocumentTemplates
         $this->header_text->setDbValue($row['header_text']);
         $this->footer_text->setDbValue($row['footer_text']);
         $this->preview_image_path->setDbValue($row['preview_image_path']);
+        $this->is_system->setDbValue((ConvertToBool($row['is_system']) ? "1" : "0"));
+        $this->owner_id->setDbValue($row['owner_id']);
+        $this->original_template_id->setDbValue($row['original_template_id']);
     }
 
     // Return a row with default values
@@ -2178,6 +2221,9 @@ class DocumentTemplatesList extends DocumentTemplates
         $row['header_text'] = $this->header_text->DefaultValue;
         $row['footer_text'] = $this->footer_text->DefaultValue;
         $row['preview_image_path'] = $this->preview_image_path->DefaultValue;
+        $row['is_system'] = $this->is_system->DefaultValue;
+        $row['owner_id'] = $this->owner_id->DefaultValue;
+        $row['original_template_id'] = $this->original_template_id->DefaultValue;
         return $row;
     }
 
@@ -2256,6 +2302,12 @@ class DocumentTemplatesList extends DocumentTemplates
 
         // preview_image_path
 
+        // is_system
+
+        // owner_id
+
+        // original_template_id
+
         // View row
         if ($this->RowType == RowType::VIEW) {
             // template_id
@@ -2315,6 +2367,21 @@ class DocumentTemplatesList extends DocumentTemplates
             // preview_image_path
             $this->preview_image_path->ViewValue = $this->preview_image_path->CurrentValue;
 
+            // is_system
+            if (ConvertToBool($this->is_system->CurrentValue)) {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(1) != "" ? $this->is_system->tagCaption(1) : "Yes";
+            } else {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(2) != "" ? $this->is_system->tagCaption(2) : "No";
+            }
+
+            // owner_id
+            $this->owner_id->ViewValue = $this->owner_id->CurrentValue;
+            $this->owner_id->ViewValue = FormatNumber($this->owner_id->ViewValue, $this->owner_id->formatPattern());
+
+            // original_template_id
+            $this->original_template_id->ViewValue = $this->original_template_id->CurrentValue;
+            $this->original_template_id->ViewValue = FormatNumber($this->original_template_id->ViewValue, $this->original_template_id->formatPattern());
+
             // template_id
             $this->template_id->HrefValue = "";
             $this->template_id->TooltipValue = "";
@@ -2370,6 +2437,18 @@ class DocumentTemplatesList extends DocumentTemplates
             // preview_image_path
             $this->preview_image_path->HrefValue = "";
             $this->preview_image_path->TooltipValue = "";
+
+            // is_system
+            $this->is_system->HrefValue = "";
+            $this->is_system->TooltipValue = "";
+
+            // owner_id
+            $this->owner_id->HrefValue = "";
+            $this->owner_id->TooltipValue = "";
+
+            // original_template_id
+            $this->original_template_id->HrefValue = "";
+            $this->original_template_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -2460,6 +2539,8 @@ class DocumentTemplatesList extends DocumentTemplates
                 case "x_is_active":
                     break;
                 case "x_notary_required":
+                    break;
+                case "x_is_system":
                     break;
                 default:
                     $lookupFilter = "";

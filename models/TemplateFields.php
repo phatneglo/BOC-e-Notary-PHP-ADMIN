@@ -66,6 +66,7 @@ class TemplateFields extends DbTable
     public $group_name;
     public $conditional_display;
     public $created_at;
+    public $section_id;
 
     // Page ID
     public $PageID = ""; // To be overridden by subclass
@@ -581,6 +582,30 @@ class TemplateFields extends DbTable
         $this->created_at->DefaultErrorMessage = str_replace("%s", $GLOBALS["DATE_FORMAT"], $Language->phrase("IncorrectDate"));
         $this->created_at->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
         $this->Fields['created_at'] = &$this->created_at;
+
+        // section_id
+        $this->section_id = new DbField(
+            $this, // Table
+            'x_section_id', // Variable name
+            'section_id', // Name
+            '"section_id"', // Expression
+            'CAST("section_id" AS varchar(255))', // Basic search expression
+            3, // Type
+            0, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"section_id"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'TEXT' // Edit Tag
+        );
+        $this->section_id->InputTextType = "text";
+        $this->section_id->Raw = true;
+        $this->section_id->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
+        $this->section_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
+        $this->Fields['section_id'] = &$this->section_id;
 
         // Add Doctrine Cache
         $this->Cache = new \Symfony\Component\Cache\Adapter\ArrayAdapter();
@@ -1124,6 +1149,7 @@ class TemplateFields extends DbTable
         $this->group_name->DbValue = $row['group_name'];
         $this->conditional_display->DbValue = $row['conditional_display'];
         $this->created_at->DbValue = $row['created_at'];
+        $this->section_id->DbValue = $row['section_id'];
     }
 
     // Delete uploaded files
@@ -1496,6 +1522,7 @@ class TemplateFields extends DbTable
         $this->group_name->setDbValue($row['group_name']);
         $this->conditional_display->setDbValue($row['conditional_display']);
         $this->created_at->setDbValue($row['created_at']);
+        $this->section_id->setDbValue($row['section_id']);
     }
 
     // Render list content
@@ -1565,6 +1592,8 @@ class TemplateFields extends DbTable
         // conditional_display
 
         // created_at
+
+        // section_id
 
         // field_id
         $this->field_id->ViewValue = $this->field_id->CurrentValue;
@@ -1638,6 +1667,10 @@ class TemplateFields extends DbTable
         // created_at
         $this->created_at->ViewValue = $this->created_at->CurrentValue;
         $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
+
+        // section_id
+        $this->section_id->ViewValue = $this->section_id->CurrentValue;
+        $this->section_id->ViewValue = FormatNumber($this->section_id->ViewValue, $this->section_id->formatPattern());
 
         // field_id
         $this->field_id->HrefValue = "";
@@ -1718,6 +1751,10 @@ class TemplateFields extends DbTable
         // created_at
         $this->created_at->HrefValue = "";
         $this->created_at->TooltipValue = "";
+
+        // section_id
+        $this->section_id->HrefValue = "";
+        $this->section_id->TooltipValue = "";
 
         // Call Row Rendered event
         $this->rowRendered();
@@ -1861,6 +1898,14 @@ class TemplateFields extends DbTable
         $this->created_at->EditValue = FormatDateTime($this->created_at->CurrentValue, $this->created_at->formatPattern());
         $this->created_at->PlaceHolder = RemoveHtml($this->created_at->caption());
 
+        // section_id
+        $this->section_id->setupEditAttributes();
+        $this->section_id->EditValue = $this->section_id->CurrentValue;
+        $this->section_id->PlaceHolder = RemoveHtml($this->section_id->caption());
+        if (strval($this->section_id->EditValue) != "" && is_numeric($this->section_id->EditValue)) {
+            $this->section_id->EditValue = FormatNumber($this->section_id->EditValue, null);
+        }
+
         // Call Row Rendered event
         $this->rowRendered();
     }
@@ -1909,6 +1954,7 @@ class TemplateFields extends DbTable
                     $doc->exportCaption($this->group_name);
                     $doc->exportCaption($this->conditional_display);
                     $doc->exportCaption($this->created_at);
+                    $doc->exportCaption($this->section_id);
                 } else {
                     $doc->exportCaption($this->field_id);
                     $doc->exportCaption($this->template_id);
@@ -1924,6 +1970,7 @@ class TemplateFields extends DbTable
                     $doc->exportCaption($this->y_position);
                     $doc->exportCaption($this->group_name);
                     $doc->exportCaption($this->created_at);
+                    $doc->exportCaption($this->section_id);
                 }
                 $doc->endExportRow();
             }
@@ -1970,6 +2017,7 @@ class TemplateFields extends DbTable
                         $doc->exportField($this->group_name);
                         $doc->exportField($this->conditional_display);
                         $doc->exportField($this->created_at);
+                        $doc->exportField($this->section_id);
                     } else {
                         $doc->exportField($this->field_id);
                         $doc->exportField($this->template_id);
@@ -1985,6 +2033,7 @@ class TemplateFields extends DbTable
                         $doc->exportField($this->y_position);
                         $doc->exportField($this->group_name);
                         $doc->exportField($this->created_at);
+                        $doc->exportField($this->section_id);
                     }
                     $doc->endExportRow($rowCnt);
                 }

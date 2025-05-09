@@ -273,6 +273,17 @@ loadjs.ready("head", function () {
 </td>
     </tr>
 <?php } ?>
+<?php if ($Page->section_id->Visible) { // section_id ?>
+    <tr id="r_section_id"<?= $Page->section_id->rowAttributes() ?>>
+        <td class="<?= $Page->TableLeftColumnClass ?>"><span id="elh_template_fields_section_id"><?= $Page->section_id->caption() ?></span></td>
+        <td data-name="section_id"<?= $Page->section_id->cellAttributes() ?>>
+<span id="el_template_fields_section_id">
+<span<?= $Page->section_id->viewAttributes() ?>>
+<?= $Page->section_id->getViewValue() ?></span>
+</span>
+</td>
+    </tr>
+<?php } ?>
 </table>
 </form>
 </main>

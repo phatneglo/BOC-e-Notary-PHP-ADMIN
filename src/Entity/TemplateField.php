@@ -91,6 +91,9 @@ class TemplateField extends AbstractEntity
     #[Column(name: "created_at", type: "datetime", nullable: true)]
     private ?DateTime $createdAt;
 
+    #[Column(name: "section_id", type: "integer", nullable: true)]
+    private ?int $sectionId;
+
     public function __construct()
     {
         $this->fieldWidth = "full";
@@ -313,6 +316,17 @@ class TemplateField extends AbstractEntity
     public function setCreatedAt(?DateTime $value): static
     {
         $this->createdAt = $value;
+        return $this;
+    }
+
+    public function getSectionId(): ?int
+    {
+        return $this->sectionId;
+    }
+
+    public function setSectionId(?int $value): static
+    {
+        $this->sectionId = $value;
         return $this;
     }
 }

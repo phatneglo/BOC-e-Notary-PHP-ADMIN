@@ -18,9 +18,25 @@ $app->get("/templates/categories", function ($request, $response, $args) {
  * @apiGroup Templates
  */
 $app->get("/templates", function ($request, $response, $args) {
+    global $Request;
+    $Request = $request; // Make request available globally for the service
+    
     $service = new TemplateService();
     $params = $request->getQueryParams();
     return $response->withJson($service->listTemplates($params));
+})->add($jwtMiddleware);
+
+/**
+ * @api {get} /templates/user-owned Get user owned templates
+ * @apiName GetUserOwnedTemplates
+ * @apiGroup Templates
+ */
+$app->get("/templates/user-owned", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $userId = $request->getAttribute('user_id');
+
+    $params = $request->getQueryParams();
+    return $response->withJson($service->getUserOwnedTemplates($userId, $params));
 })->add($jwtMiddleware);
 
 /**
@@ -47,38 +63,16 @@ $app->post("/templates/{template_id}/duplicate", function ($request, $response, 
     return $response->withJson($service->duplicateSystemTemplate($userId, $templateId, $templateData));
 })->add($jwtMiddleware);
 
-/**
- * @api {get} /user/templates Get user templates
- * @apiName GetUserTemplates
- * @apiGroup Templates
- */
-$app->get("/user/templates", function ($request, $response, $args) {
-    $service = new TemplateService();
-    $userId = $request->getAttribute('user_id');
 
-    $params = $request->getQueryParams();
-    return $response->withJson($service->getUserTemplates($userId, $params));
-})->add($jwtMiddleware);
+
+// Removed: /user/templates endpoint (using /templates for all template operations)
 
 /**
- * @api {post} /user/templates Save user template
- * @apiName SaveUserTemplate
- * @apiGroup Templates
- */
-$app->post("/user/templates", function ($request, $response, $args) {
-    $service = new TemplateService();
-    $userId = $request->getAttribute('user_id');
-
-    $templateData = $request->getParsedBody();
-    return $response->withJson($service->saveUserTemplate($userId, $templateData));
-})->add($jwtMiddleware);
-
-/**
- * @api {post} /user/templates/upload Upload custom template
+ * @api {post} /templates/upload Upload custom template
  * @apiName UploadCustomTemplate
  * @apiGroup Templates
  */
-$app->post("/user/templates/upload", function ($request, $response, $args) {
+$app->post("/templates/upload", function ($request, $response, $args) {
     $service = new TemplateService();
     $userId = $request->getAttribute('user_id');
 
@@ -89,27 +83,7 @@ $app->post("/user/templates/upload", function ($request, $response, $args) {
     return $response->withJson($service->uploadCustomTemplate($userId, $templateData));
 })->add($jwtMiddleware);
 
-/**
- * @api {get} /user/templates/{user_template_id} Get user template details
- * @apiName GetUserTemplateDetails
- * @apiGroup Templates
- */
-$app->get("/user/templates/{user_template_id}", function ($request, $response, $args) {
-    $service = new TemplateService();
-    $userTemplateId = isset($args['user_template_id']) ? (int)$args['user_template_id'] : 0;
-    return $response->withJson($service->getUserTemplateDetails($userTemplateId));
-})->add($jwtMiddleware);
-
-/**
- * @api {delete} /user/templates/{user_template_id} Delete user template
- * @apiName DeleteUserTemplate
- * @apiGroup Templates
- */
-$app->delete("/user/templates/{user_template_id}", function ($request, $response, $args) {
-    $service = new TemplateService();
-    $userTemplateId = isset($args['user_template_id']) ? (int)$args['user_template_id'] : 0;
-    return $response->withJson($service->deleteUserTemplate($userTemplateId));
-})->add($jwtMiddleware);
+// Removed: user_templates endpoints (using /templates endpoints for all template operations)
 
 /**
  * @api {post} /templates Create new template
@@ -181,4 +155,16 @@ $app->post("/templates/{template_id}/generate-pdf", function ($request, $respons
     $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
     $options = $request->getParsedBody();
     return $response->withJson($service->convertTemplateToPdf($templateId, $options));
+})->add($jwtMiddleware);
+
+/**
+ * @api {delete} /templates/{template_id} Delete template
+ * @apiName DeleteTemplate
+ * @apiGroup Templates
+ */
+$app->delete("/templates/{template_id}", function ($request, $response, $args) {
+    $service = new TemplateService();
+    $userId = $request->getAttribute('user_id');
+    $templateId = isset($args['template_id']) ? (int)$args['template_id'] : 0;
+    return $response->withJson($service->deleteTemplate($userId, $templateId));
 })->add($jwtMiddleware);

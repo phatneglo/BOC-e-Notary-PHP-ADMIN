@@ -141,6 +141,7 @@ class TemplateFieldsAdd extends TemplateFields
         $this->group_name->setVisibility();
         $this->conditional_display->setVisibility();
         $this->created_at->setVisibility();
+        $this->section_id->setVisibility();
     }
 
     // Constructor
@@ -890,6 +891,16 @@ class TemplateFieldsAdd extends TemplateFields
             $this->created_at->CurrentValue = UnFormatDateTime($this->created_at->CurrentValue, $this->created_at->formatPattern());
         }
 
+        // Check field name 'section_id' first before field var 'x_section_id'
+        $val = $CurrentForm->hasValue("section_id") ? $CurrentForm->getValue("section_id") : $CurrentForm->getValue("x_section_id");
+        if (!$this->section_id->IsDetailKey) {
+            if (IsApi() && $val === null) {
+                $this->section_id->Visible = false; // Disable update for API request
+            } else {
+                $this->section_id->setFormValue($val, true, $validate);
+            }
+        }
+
         // Check field name 'field_id' first before field var 'x_field_id'
         $val = $CurrentForm->hasValue("field_id") ? $CurrentForm->getValue("field_id") : $CurrentForm->getValue("x_field_id");
     }
@@ -918,6 +929,7 @@ class TemplateFieldsAdd extends TemplateFields
         $this->conditional_display->CurrentValue = $this->conditional_display->FormValue;
         $this->created_at->CurrentValue = $this->created_at->FormValue;
         $this->created_at->CurrentValue = UnFormatDateTime($this->created_at->CurrentValue, $this->created_at->formatPattern());
+        $this->section_id->CurrentValue = $this->section_id->FormValue;
     }
 
     /**
@@ -978,6 +990,7 @@ class TemplateFieldsAdd extends TemplateFields
         $this->group_name->setDbValue($row['group_name']);
         $this->conditional_display->setDbValue($row['conditional_display']);
         $this->created_at->setDbValue($row['created_at']);
+        $this->section_id->setDbValue($row['section_id']);
     }
 
     // Return a row with default values
@@ -1004,6 +1017,7 @@ class TemplateFieldsAdd extends TemplateFields
         $row['group_name'] = $this->group_name->DefaultValue;
         $row['conditional_display'] = $this->conditional_display->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
+        $row['section_id'] = $this->section_id->DefaultValue;
         return $row;
     }
 
@@ -1098,6 +1112,9 @@ class TemplateFieldsAdd extends TemplateFields
         // created_at
         $this->created_at->RowCssClass = "row";
 
+        // section_id
+        $this->section_id->RowCssClass = "row";
+
         // View row
         if ($this->RowType == RowType::VIEW) {
             // field_id
@@ -1173,6 +1190,10 @@ class TemplateFieldsAdd extends TemplateFields
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
             $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
 
+            // section_id
+            $this->section_id->ViewValue = $this->section_id->CurrentValue;
+            $this->section_id->ViewValue = FormatNumber($this->section_id->ViewValue, $this->section_id->formatPattern());
+
             // template_id
             $this->template_id->HrefValue = "";
 
@@ -1229,6 +1250,9 @@ class TemplateFieldsAdd extends TemplateFields
 
             // created_at
             $this->created_at->HrefValue = "";
+
+            // section_id
+            $this->section_id->HrefValue = "";
         } elseif ($this->RowType == RowType::ADD) {
             // template_id
             $this->template_id->setupEditAttributes();
@@ -1353,6 +1377,14 @@ class TemplateFieldsAdd extends TemplateFields
             $this->created_at->EditValue = HtmlEncode(FormatDateTime($this->created_at->CurrentValue, $this->created_at->formatPattern()));
             $this->created_at->PlaceHolder = RemoveHtml($this->created_at->caption());
 
+            // section_id
+            $this->section_id->setupEditAttributes();
+            $this->section_id->EditValue = $this->section_id->CurrentValue;
+            $this->section_id->PlaceHolder = RemoveHtml($this->section_id->caption());
+            if (strval($this->section_id->EditValue) != "" && is_numeric($this->section_id->EditValue)) {
+                $this->section_id->EditValue = FormatNumber($this->section_id->EditValue, null);
+            }
+
             // Add refer script
 
             // template_id
@@ -1411,6 +1443,9 @@ class TemplateFieldsAdd extends TemplateFields
 
             // created_at
             $this->created_at->HrefValue = "";
+
+            // section_id
+            $this->section_id->HrefValue = "";
         }
         if ($this->RowType == RowType::ADD || $this->RowType == RowType::EDIT || $this->RowType == RowType::SEARCH) { // Add/Edit/Search row
             $this->setupFieldTitles();
@@ -1541,6 +1576,14 @@ class TemplateFieldsAdd extends TemplateFields
             }
             if (!CheckDate($this->created_at->FormValue, $this->created_at->formatPattern())) {
                 $this->created_at->addErrorMessage($this->created_at->getErrorMessage(false));
+            }
+            if ($this->section_id->Visible && $this->section_id->Required) {
+                if (!$this->section_id->IsDetailKey && EmptyValue($this->section_id->FormValue)) {
+                    $this->section_id->addErrorMessage(str_replace("%s", $this->section_id->caption(), $this->section_id->RequiredErrorMessage));
+                }
+            }
+            if (!CheckInteger($this->section_id->FormValue)) {
+                $this->section_id->addErrorMessage($this->section_id->getErrorMessage(false));
             }
 
         // Return validate result
@@ -1677,6 +1720,9 @@ class TemplateFieldsAdd extends TemplateFields
 
         // created_at
         $this->created_at->setDbValueDef($rsnew, UnFormatDateTime($this->created_at->CurrentValue, $this->created_at->formatPattern()), false);
+
+        // section_id
+        $this->section_id->setDbValueDef($rsnew, $this->section_id->CurrentValue, false);
         return $rsnew;
     }
 
@@ -1742,6 +1788,9 @@ class TemplateFieldsAdd extends TemplateFields
         }
         if (isset($row['created_at'])) { // created_at
             $this->created_at->setFormValue($row['created_at']);
+        }
+        if (isset($row['section_id'])) { // section_id
+            $this->section_id->setFormValue($row['section_id']);
         }
     }
 

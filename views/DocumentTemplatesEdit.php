@@ -46,7 +46,10 @@ loadjs.ready(["wrapper", "head"], function () {
             ["template_type", [fields.template_type.visible && fields.template_type.required ? ew.Validators.required(fields.template_type.caption) : null], fields.template_type.isInvalid],
             ["header_text", [fields.header_text.visible && fields.header_text.required ? ew.Validators.required(fields.header_text.caption) : null], fields.header_text.isInvalid],
             ["footer_text", [fields.footer_text.visible && fields.footer_text.required ? ew.Validators.required(fields.footer_text.caption) : null], fields.footer_text.isInvalid],
-            ["preview_image_path", [fields.preview_image_path.visible && fields.preview_image_path.required ? ew.Validators.required(fields.preview_image_path.caption) : null], fields.preview_image_path.isInvalid]
+            ["preview_image_path", [fields.preview_image_path.visible && fields.preview_image_path.required ? ew.Validators.required(fields.preview_image_path.caption) : null], fields.preview_image_path.isInvalid],
+            ["is_system", [fields.is_system.visible && fields.is_system.required ? ew.Validators.required(fields.is_system.caption) : null], fields.is_system.isInvalid],
+            ["owner_id", [fields.owner_id.visible && fields.owner_id.required ? ew.Validators.required(fields.owner_id.caption) : null, ew.Validators.integer], fields.owner_id.isInvalid],
+            ["original_template_id", [fields.original_template_id.visible && fields.original_template_id.required ? ew.Validators.required(fields.original_template_id.caption) : null, ew.Validators.integer], fields.original_template_id.isInvalid]
         ])
 
         // Form_CustomValidate
@@ -64,6 +67,7 @@ loadjs.ready(["wrapper", "head"], function () {
         .setLists({
             "is_active": <?= $Page->is_active->toClientList($Page) ?>,
             "notary_required": <?= $Page->notary_required->toClientList($Page) ?>,
+            "is_system": <?= $Page->is_system->toClientList($Page) ?>,
         })
         .build();
     window[form.id] = form;
@@ -374,6 +378,44 @@ loadjs.ready(["fdocument_templatesedit", "datetimepicker"], function () {
 <input type="<?= $Page->preview_image_path->getInputTextType() ?>" name="x_preview_image_path" id="x_preview_image_path" data-table="document_templates" data-field="x_preview_image_path" value="<?= $Page->preview_image_path->EditValue ?>" size="30" maxlength="255" placeholder="<?= HtmlEncode($Page->preview_image_path->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->preview_image_path->formatPattern()) ?>"<?= $Page->preview_image_path->editAttributes() ?> aria-describedby="x_preview_image_path_help">
 <?= $Page->preview_image_path->getCustomMessage() ?>
 <div class="invalid-feedback"><?= $Page->preview_image_path->getErrorMessage() ?></div>
+</span>
+</div></div>
+    </div>
+<?php } ?>
+<?php if ($Page->is_system->Visible) { // is_system ?>
+    <div id="r_is_system"<?= $Page->is_system->rowAttributes() ?>>
+        <label id="elh_document_templates_is_system" class="<?= $Page->LeftColumnClass ?>"><?= $Page->is_system->caption() ?><?= $Page->is_system->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->is_system->cellAttributes() ?>>
+<span id="el_document_templates_is_system">
+<div class="form-check d-inline-block">
+    <input type="checkbox" class="form-check-input<?= $Page->is_system->isInvalidClass() ?>" data-table="document_templates" data-field="x_is_system" data-boolean name="x_is_system" id="x_is_system" value="1"<?= ConvertToBool($Page->is_system->CurrentValue) ? " checked" : "" ?><?= $Page->is_system->editAttributes() ?> aria-describedby="x_is_system_help">
+    <div class="invalid-feedback"><?= $Page->is_system->getErrorMessage() ?></div>
+</div>
+<?= $Page->is_system->getCustomMessage() ?>
+</span>
+</div></div>
+    </div>
+<?php } ?>
+<?php if ($Page->owner_id->Visible) { // owner_id ?>
+    <div id="r_owner_id"<?= $Page->owner_id->rowAttributes() ?>>
+        <label id="elh_document_templates_owner_id" for="x_owner_id" class="<?= $Page->LeftColumnClass ?>"><?= $Page->owner_id->caption() ?><?= $Page->owner_id->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->owner_id->cellAttributes() ?>>
+<span id="el_document_templates_owner_id">
+<input type="<?= $Page->owner_id->getInputTextType() ?>" name="x_owner_id" id="x_owner_id" data-table="document_templates" data-field="x_owner_id" value="<?= $Page->owner_id->EditValue ?>" size="30" placeholder="<?= HtmlEncode($Page->owner_id->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->owner_id->formatPattern()) ?>"<?= $Page->owner_id->editAttributes() ?> aria-describedby="x_owner_id_help">
+<?= $Page->owner_id->getCustomMessage() ?>
+<div class="invalid-feedback"><?= $Page->owner_id->getErrorMessage() ?></div>
+</span>
+</div></div>
+    </div>
+<?php } ?>
+<?php if ($Page->original_template_id->Visible) { // original_template_id ?>
+    <div id="r_original_template_id"<?= $Page->original_template_id->rowAttributes() ?>>
+        <label id="elh_document_templates_original_template_id" for="x_original_template_id" class="<?= $Page->LeftColumnClass ?>"><?= $Page->original_template_id->caption() ?><?= $Page->original_template_id->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->original_template_id->cellAttributes() ?>>
+<span id="el_document_templates_original_template_id">
+<input type="<?= $Page->original_template_id->getInputTextType() ?>" name="x_original_template_id" id="x_original_template_id" data-table="document_templates" data-field="x_original_template_id" value="<?= $Page->original_template_id->EditValue ?>" size="30" placeholder="<?= HtmlEncode($Page->original_template_id->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->original_template_id->formatPattern()) ?>"<?= $Page->original_template_id->editAttributes() ?> aria-describedby="x_original_template_id_help">
+<?= $Page->original_template_id->getCustomMessage() ?>
+<div class="invalid-feedback"><?= $Page->original_template_id->getErrorMessage() ?></div>
 </span>
 </div></div>
     </div>

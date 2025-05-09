@@ -44,7 +44,7 @@ class PersonalData
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "VerificationAttemptsDelete";
+    public $CurrentPageName = "RefreshTokensDelete";
 
     // Page headings
     public $Heading = "";

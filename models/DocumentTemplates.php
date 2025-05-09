@@ -65,6 +65,9 @@ class DocumentTemplates extends DbTable
     public $header_text;
     public $footer_text;
     public $preview_image_path;
+    public $is_system;
+    public $owner_id;
+    public $original_template_id;
 
     // Page ID
     public $PageID = ""; // To be overridden by subclass
@@ -560,6 +563,80 @@ class DocumentTemplates extends DbTable
         $this->preview_image_path->InputTextType = "text";
         $this->preview_image_path->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
         $this->Fields['preview_image_path'] = &$this->preview_image_path;
+
+        // is_system
+        $this->is_system = new DbField(
+            $this, // Table
+            'x_is_system', // Variable name
+            'is_system', // Name
+            '"is_system"', // Expression
+            'CAST("is_system" AS varchar(255))', // Basic search expression
+            11, // Type
+            0, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"is_system"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'CHECKBOX' // Edit Tag
+        );
+        $this->is_system->InputTextType = "text";
+        $this->is_system->Raw = true;
+        $this->is_system->setDataType(DataType::BOOLEAN);
+        $this->is_system->Lookup = new Lookup($this->is_system, 'document_templates', false, '', ["","","",""], '', '', [], [], [], [], [], [], false, '', '', "");
+        $this->is_system->OptionCount = 2;
+        $this->is_system->SearchOperators = ["=", "<>", "IS NULL", "IS NOT NULL"];
+        $this->Fields['is_system'] = &$this->is_system;
+
+        // owner_id
+        $this->owner_id = new DbField(
+            $this, // Table
+            'x_owner_id', // Variable name
+            'owner_id', // Name
+            '"owner_id"', // Expression
+            'CAST("owner_id" AS varchar(255))', // Basic search expression
+            3, // Type
+            0, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"owner_id"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'TEXT' // Edit Tag
+        );
+        $this->owner_id->InputTextType = "text";
+        $this->owner_id->Raw = true;
+        $this->owner_id->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
+        $this->owner_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
+        $this->Fields['owner_id'] = &$this->owner_id;
+
+        // original_template_id
+        $this->original_template_id = new DbField(
+            $this, // Table
+            'x_original_template_id', // Variable name
+            'original_template_id', // Name
+            '"original_template_id"', // Expression
+            'CAST("original_template_id" AS varchar(255))', // Basic search expression
+            3, // Type
+            0, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"original_template_id"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'TEXT' // Edit Tag
+        );
+        $this->original_template_id->InputTextType = "text";
+        $this->original_template_id->Raw = true;
+        $this->original_template_id->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
+        $this->original_template_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
+        $this->Fields['original_template_id'] = &$this->original_template_id;
 
         // Add Doctrine Cache
         $this->Cache = new \Symfony\Component\Cache\Adapter\ArrayAdapter();
@@ -1102,6 +1179,9 @@ class DocumentTemplates extends DbTable
         $this->header_text->DbValue = $row['header_text'];
         $this->footer_text->DbValue = $row['footer_text'];
         $this->preview_image_path->DbValue = $row['preview_image_path'];
+        $this->is_system->DbValue = (ConvertToBool($row['is_system']) ? "1" : "0");
+        $this->owner_id->DbValue = $row['owner_id'];
+        $this->original_template_id->DbValue = $row['original_template_id'];
     }
 
     // Delete uploaded files
@@ -1473,6 +1553,9 @@ class DocumentTemplates extends DbTable
         $this->header_text->setDbValue($row['header_text']);
         $this->footer_text->setDbValue($row['footer_text']);
         $this->preview_image_path->setDbValue($row['preview_image_path']);
+        $this->is_system->setDbValue(ConvertToBool($row['is_system']) ? "1" : "0");
+        $this->owner_id->setDbValue($row['owner_id']);
+        $this->original_template_id->setDbValue($row['original_template_id']);
     }
 
     // Render list content
@@ -1540,6 +1623,12 @@ class DocumentTemplates extends DbTable
         // footer_text
 
         // preview_image_path
+
+        // is_system
+
+        // owner_id
+
+        // original_template_id
 
         // template_id
         $this->template_id->ViewValue = $this->template_id->CurrentValue;
@@ -1612,6 +1701,21 @@ class DocumentTemplates extends DbTable
 
         // preview_image_path
         $this->preview_image_path->ViewValue = $this->preview_image_path->CurrentValue;
+
+        // is_system
+        if (ConvertToBool($this->is_system->CurrentValue)) {
+            $this->is_system->ViewValue = $this->is_system->tagCaption(1) != "" ? $this->is_system->tagCaption(1) : "Yes";
+        } else {
+            $this->is_system->ViewValue = $this->is_system->tagCaption(2) != "" ? $this->is_system->tagCaption(2) : "No";
+        }
+
+        // owner_id
+        $this->owner_id->ViewValue = $this->owner_id->CurrentValue;
+        $this->owner_id->ViewValue = FormatNumber($this->owner_id->ViewValue, $this->owner_id->formatPattern());
+
+        // original_template_id
+        $this->original_template_id->ViewValue = $this->original_template_id->CurrentValue;
+        $this->original_template_id->ViewValue = FormatNumber($this->original_template_id->ViewValue, $this->original_template_id->formatPattern());
 
         // template_id
         $this->template_id->HrefValue = "";
@@ -1688,6 +1792,18 @@ class DocumentTemplates extends DbTable
         // preview_image_path
         $this->preview_image_path->HrefValue = "";
         $this->preview_image_path->TooltipValue = "";
+
+        // is_system
+        $this->is_system->HrefValue = "";
+        $this->is_system->TooltipValue = "";
+
+        // owner_id
+        $this->owner_id->HrefValue = "";
+        $this->owner_id->TooltipValue = "";
+
+        // original_template_id
+        $this->original_template_id->HrefValue = "";
+        $this->original_template_id->TooltipValue = "";
 
         // Call Row Rendered event
         $this->rowRendered();
@@ -1823,6 +1939,26 @@ class DocumentTemplates extends DbTable
         $this->preview_image_path->EditValue = $this->preview_image_path->CurrentValue;
         $this->preview_image_path->PlaceHolder = RemoveHtml($this->preview_image_path->caption());
 
+        // is_system
+        $this->is_system->EditValue = $this->is_system->options(false);
+        $this->is_system->PlaceHolder = RemoveHtml($this->is_system->caption());
+
+        // owner_id
+        $this->owner_id->setupEditAttributes();
+        $this->owner_id->EditValue = $this->owner_id->CurrentValue;
+        $this->owner_id->PlaceHolder = RemoveHtml($this->owner_id->caption());
+        if (strval($this->owner_id->EditValue) != "" && is_numeric($this->owner_id->EditValue)) {
+            $this->owner_id->EditValue = FormatNumber($this->owner_id->EditValue, null);
+        }
+
+        // original_template_id
+        $this->original_template_id->setupEditAttributes();
+        $this->original_template_id->EditValue = $this->original_template_id->CurrentValue;
+        $this->original_template_id->PlaceHolder = RemoveHtml($this->original_template_id->caption());
+        if (strval($this->original_template_id->EditValue) != "" && is_numeric($this->original_template_id->EditValue)) {
+            $this->original_template_id->EditValue = FormatNumber($this->original_template_id->EditValue, null);
+        }
+
         // Call Row Rendered event
         $this->rowRendered();
     }
@@ -1870,6 +2006,9 @@ class DocumentTemplates extends DbTable
                     $doc->exportCaption($this->header_text);
                     $doc->exportCaption($this->footer_text);
                     $doc->exportCaption($this->preview_image_path);
+                    $doc->exportCaption($this->is_system);
+                    $doc->exportCaption($this->owner_id);
+                    $doc->exportCaption($this->original_template_id);
                 } else {
                     $doc->exportCaption($this->template_id);
                     $doc->exportCaption($this->template_name);
@@ -1885,6 +2024,9 @@ class DocumentTemplates extends DbTable
                     $doc->exportCaption($this->fee_amount);
                     $doc->exportCaption($this->template_type);
                     $doc->exportCaption($this->preview_image_path);
+                    $doc->exportCaption($this->is_system);
+                    $doc->exportCaption($this->owner_id);
+                    $doc->exportCaption($this->original_template_id);
                 }
                 $doc->endExportRow();
             }
@@ -1930,6 +2072,9 @@ class DocumentTemplates extends DbTable
                         $doc->exportField($this->header_text);
                         $doc->exportField($this->footer_text);
                         $doc->exportField($this->preview_image_path);
+                        $doc->exportField($this->is_system);
+                        $doc->exportField($this->owner_id);
+                        $doc->exportField($this->original_template_id);
                     } else {
                         $doc->exportField($this->template_id);
                         $doc->exportField($this->template_name);
@@ -1945,6 +2090,9 @@ class DocumentTemplates extends DbTable
                         $doc->exportField($this->fee_amount);
                         $doc->exportField($this->template_type);
                         $doc->exportField($this->preview_image_path);
+                        $doc->exportField($this->is_system);
+                        $doc->exportField($this->owner_id);
+                        $doc->exportField($this->original_template_id);
                     }
                     $doc->endExportRow($rowCnt);
                 }

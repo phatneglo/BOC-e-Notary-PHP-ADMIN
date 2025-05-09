@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class TemplateFieldsView extends TemplateFields
+class RefreshTokensView extends RefreshTokens
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class TemplateFieldsView extends TemplateFields
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "TemplateFieldsView";
+    public $PageObjName = "RefreshTokensView";
 
     // View file path
     public $View = null;
@@ -38,7 +38,7 @@ class TemplateFieldsView extends TemplateFields
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "TemplateFieldsView";
+    public $CurrentPageName = "RefreshTokensView";
 
     // Page URLs
     public $AddUrl;
@@ -139,27 +139,11 @@ class TemplateFieldsView extends TemplateFields
     // Set field visibility
     public function setVisibility()
     {
-        $this->field_id->setVisibility();
-        $this->template_id->setVisibility();
-        $this->field_name->setVisibility();
-        $this->field_label->setVisibility();
-        $this->field_type->setVisibility();
-        $this->field_options->setVisibility();
-        $this->is_required->setVisibility();
-        $this->placeholder->setVisibility();
-        $this->default_value->setVisibility();
-        $this->field_order->setVisibility();
-        $this->validation_rules->setVisibility();
-        $this->help_text->setVisibility();
-        $this->field_width->setVisibility();
-        $this->is_visible->setVisibility();
-        $this->section_name->setVisibility();
-        $this->x_position->setVisibility();
-        $this->y_position->setVisibility();
-        $this->group_name->setVisibility();
-        $this->conditional_display->setVisibility();
+        $this->token_id->setVisibility();
+        $this->user_id->setVisibility();
+        $this->_token->setVisibility();
+        $this->expires_at->setVisibility();
         $this->created_at->setVisibility();
-        $this->section_id->setVisibility();
     }
 
     // Constructor
@@ -167,8 +151,8 @@ class TemplateFieldsView extends TemplateFields
     {
         parent::__construct();
         global $Language, $DashboardReport, $DebugTimer, $UserTable;
-        $this->TableVar = 'template_fields';
-        $this->TableName = 'template_fields';
+        $this->TableVar = 'refresh_tokens';
+        $this->TableName = 'refresh_tokens';
 
         // Table CSS class
         $this->TableClass = "table table-striped table-bordered table-hover table-sm ew-view-table";
@@ -179,19 +163,19 @@ class TemplateFieldsView extends TemplateFields
         // Language object
         $Language = Container("app.language");
 
-        // Table object (template_fields)
-        if (!isset($GLOBALS["template_fields"]) || $GLOBALS["template_fields"]::class == PROJECT_NAMESPACE . "template_fields") {
-            $GLOBALS["template_fields"] = &$this;
+        // Table object (refresh_tokens)
+        if (!isset($GLOBALS["refresh_tokens"]) || $GLOBALS["refresh_tokens"]::class == PROJECT_NAMESPACE . "refresh_tokens") {
+            $GLOBALS["refresh_tokens"] = &$this;
         }
 
         // Set up record key
-        if (($keyValue = Get("field_id") ?? Route("field_id")) !== null) {
-            $this->RecKey["field_id"] = $keyValue;
+        if (($keyValue = Get("token_id") ?? Route("token_id")) !== null) {
+            $this->RecKey["token_id"] = $keyValue;
         }
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'template_fields');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'refresh_tokens');
         }
 
         // Start timer
@@ -311,7 +295,7 @@ class TemplateFieldsView extends TemplateFields
                 $result = ["url" => GetUrl($url), "modal" => "1"];  // Assume return to modal for simplicity
                 if (!SameString($pageName, GetPageName($this->getListUrl()))) { // Not List page
                     $result["caption"] = $this->getModalCaption($pageName);
-                    $result["view"] = SameString($pageName, "TemplateFieldsView"); // If View page, no primary button
+                    $result["view"] = SameString($pageName, "RefreshTokensView"); // If View page, no primary button
                 } else { // List page
                     $result["error"] = $this->getFailureMessage(); // List page should not be shown as modal => error
                     $this->clearFailureMessage();
@@ -399,7 +383,7 @@ class TemplateFieldsView extends TemplateFields
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['field_id'];
+            $key .= @$ar['token_id'];
         }
         return $key;
     }
@@ -412,7 +396,7 @@ class TemplateFieldsView extends TemplateFields
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->field_id->Visible = false;
+            $this->token_id->Visible = false;
         }
     }
 
@@ -560,10 +544,6 @@ class TemplateFieldsView extends TemplateFields
             $this->InlineDelete = true;
         }
 
-        // Set up lookup cache
-        $this->setupLookupOptions($this->is_required);
-        $this->setupLookupOptions($this->is_visible);
-
         // Check modal
         if ($this->IsModal) {
             $SkipHeaderFooter = true;
@@ -573,17 +553,17 @@ class TemplateFieldsView extends TemplateFields
         $loadCurrentRecord = false;
         $returnUrl = "";
         $matchRecord = false;
-        if (($keyValue = Get("field_id") ?? Route("field_id")) !== null) {
-            $this->field_id->setQueryStringValue($keyValue);
-            $this->RecKey["field_id"] = $this->field_id->QueryStringValue;
-        } elseif (Post("field_id") !== null) {
-            $this->field_id->setFormValue(Post("field_id"));
-            $this->RecKey["field_id"] = $this->field_id->FormValue;
+        if (($keyValue = Get("token_id") ?? Route("token_id")) !== null) {
+            $this->token_id->setQueryStringValue($keyValue);
+            $this->RecKey["token_id"] = $this->token_id->QueryStringValue;
+        } elseif (Post("token_id") !== null) {
+            $this->token_id->setFormValue(Post("token_id"));
+            $this->RecKey["token_id"] = $this->token_id->FormValue;
         } elseif (IsApi() && ($keyValue = Key(0) ?? Route(2)) !== null) {
-            $this->field_id->setQueryStringValue($keyValue);
-            $this->RecKey["field_id"] = $this->field_id->QueryStringValue;
+            $this->token_id->setQueryStringValue($keyValue);
+            $this->RecKey["token_id"] = $this->token_id->QueryStringValue;
         } elseif (!$loadCurrentRecord) {
-            $returnUrl = "TemplateFieldsList"; // Return to list
+            $returnUrl = "RefreshTokensList"; // Return to list
         }
 
         // Get action
@@ -605,7 +585,7 @@ class TemplateFieldsView extends TemplateFields
                         if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "") {
                             $this->setFailureMessage($Language->phrase("NoRecord")); // Set no record message
                         }
-                        $returnUrl = "TemplateFieldsList"; // No matching record, return to list
+                        $returnUrl = "RefreshTokensList"; // No matching record, return to list
                     }
                 break;
         }
@@ -762,54 +742,22 @@ class TemplateFieldsView extends TemplateFields
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->field_id->setDbValue($row['field_id']);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->field_name->setDbValue($row['field_name']);
-        $this->field_label->setDbValue($row['field_label']);
-        $this->field_type->setDbValue($row['field_type']);
-        $this->field_options->setDbValue($row['field_options']);
-        $this->is_required->setDbValue((ConvertToBool($row['is_required']) ? "1" : "0"));
-        $this->placeholder->setDbValue($row['placeholder']);
-        $this->default_value->setDbValue($row['default_value']);
-        $this->field_order->setDbValue($row['field_order']);
-        $this->validation_rules->setDbValue($row['validation_rules']);
-        $this->help_text->setDbValue($row['help_text']);
-        $this->field_width->setDbValue($row['field_width']);
-        $this->is_visible->setDbValue((ConvertToBool($row['is_visible']) ? "1" : "0"));
-        $this->section_name->setDbValue($row['section_name']);
-        $this->x_position->setDbValue($row['x_position']);
-        $this->y_position->setDbValue($row['y_position']);
-        $this->group_name->setDbValue($row['group_name']);
-        $this->conditional_display->setDbValue($row['conditional_display']);
+        $this->token_id->setDbValue($row['token_id']);
+        $this->user_id->setDbValue($row['user_id']);
+        $this->_token->setDbValue($row['token']);
+        $this->expires_at->setDbValue($row['expires_at']);
         $this->created_at->setDbValue($row['created_at']);
-        $this->section_id->setDbValue($row['section_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['field_id'] = $this->field_id->DefaultValue;
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['field_name'] = $this->field_name->DefaultValue;
-        $row['field_label'] = $this->field_label->DefaultValue;
-        $row['field_type'] = $this->field_type->DefaultValue;
-        $row['field_options'] = $this->field_options->DefaultValue;
-        $row['is_required'] = $this->is_required->DefaultValue;
-        $row['placeholder'] = $this->placeholder->DefaultValue;
-        $row['default_value'] = $this->default_value->DefaultValue;
-        $row['field_order'] = $this->field_order->DefaultValue;
-        $row['validation_rules'] = $this->validation_rules->DefaultValue;
-        $row['help_text'] = $this->help_text->DefaultValue;
-        $row['field_width'] = $this->field_width->DefaultValue;
-        $row['is_visible'] = $this->is_visible->DefaultValue;
-        $row['section_name'] = $this->section_name->DefaultValue;
-        $row['x_position'] = $this->x_position->DefaultValue;
-        $row['y_position'] = $this->y_position->DefaultValue;
-        $row['group_name'] = $this->group_name->DefaultValue;
-        $row['conditional_display'] = $this->conditional_display->DefaultValue;
+        $row['token_id'] = $this->token_id->DefaultValue;
+        $row['user_id'] = $this->user_id->DefaultValue;
+        $row['token'] = $this->_token->DefaultValue;
+        $row['expires_at'] = $this->expires_at->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
-        $row['section_id'] = $this->section_id->DefaultValue;
         return $row;
     }
 
@@ -831,210 +779,55 @@ class TemplateFieldsView extends TemplateFields
 
         // Common render codes for all row types
 
-        // field_id
+        // token_id
 
-        // template_id
+        // user_id
 
-        // field_name
+        // token
 
-        // field_label
-
-        // field_type
-
-        // field_options
-
-        // is_required
-
-        // placeholder
-
-        // default_value
-
-        // field_order
-
-        // validation_rules
-
-        // help_text
-
-        // field_width
-
-        // is_visible
-
-        // section_name
-
-        // x_position
-
-        // y_position
-
-        // group_name
-
-        // conditional_display
+        // expires_at
 
         // created_at
 
-        // section_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // field_id
-            $this->field_id->ViewValue = $this->field_id->CurrentValue;
+            // token_id
+            $this->token_id->ViewValue = $this->token_id->CurrentValue;
 
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
-            $this->template_id->ViewValue = FormatNumber($this->template_id->ViewValue, $this->template_id->formatPattern());
+            // user_id
+            $this->user_id->ViewValue = $this->user_id->CurrentValue;
+            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
 
-            // field_name
-            $this->field_name->ViewValue = $this->field_name->CurrentValue;
+            // token
+            $this->_token->ViewValue = $this->_token->CurrentValue;
 
-            // field_label
-            $this->field_label->ViewValue = $this->field_label->CurrentValue;
-
-            // field_type
-            $this->field_type->ViewValue = $this->field_type->CurrentValue;
-
-            // field_options
-            $this->field_options->ViewValue = $this->field_options->CurrentValue;
-
-            // is_required
-            if (ConvertToBool($this->is_required->CurrentValue)) {
-                $this->is_required->ViewValue = $this->is_required->tagCaption(1) != "" ? $this->is_required->tagCaption(1) : "Yes";
-            } else {
-                $this->is_required->ViewValue = $this->is_required->tagCaption(2) != "" ? $this->is_required->tagCaption(2) : "No";
-            }
-
-            // placeholder
-            $this->placeholder->ViewValue = $this->placeholder->CurrentValue;
-
-            // default_value
-            $this->default_value->ViewValue = $this->default_value->CurrentValue;
-
-            // field_order
-            $this->field_order->ViewValue = $this->field_order->CurrentValue;
-            $this->field_order->ViewValue = FormatNumber($this->field_order->ViewValue, $this->field_order->formatPattern());
-
-            // validation_rules
-            $this->validation_rules->ViewValue = $this->validation_rules->CurrentValue;
-
-            // help_text
-            $this->help_text->ViewValue = $this->help_text->CurrentValue;
-
-            // field_width
-            $this->field_width->ViewValue = $this->field_width->CurrentValue;
-
-            // is_visible
-            if (ConvertToBool($this->is_visible->CurrentValue)) {
-                $this->is_visible->ViewValue = $this->is_visible->tagCaption(1) != "" ? $this->is_visible->tagCaption(1) : "Yes";
-            } else {
-                $this->is_visible->ViewValue = $this->is_visible->tagCaption(2) != "" ? $this->is_visible->tagCaption(2) : "No";
-            }
-
-            // section_name
-            $this->section_name->ViewValue = $this->section_name->CurrentValue;
-
-            // x_position
-            $this->x_position->ViewValue = $this->x_position->CurrentValue;
-            $this->x_position->ViewValue = FormatNumber($this->x_position->ViewValue, $this->x_position->formatPattern());
-
-            // y_position
-            $this->y_position->ViewValue = $this->y_position->CurrentValue;
-            $this->y_position->ViewValue = FormatNumber($this->y_position->ViewValue, $this->y_position->formatPattern());
-
-            // group_name
-            $this->group_name->ViewValue = $this->group_name->CurrentValue;
-
-            // conditional_display
-            $this->conditional_display->ViewValue = $this->conditional_display->CurrentValue;
+            // expires_at
+            $this->expires_at->ViewValue = $this->expires_at->CurrentValue;
+            $this->expires_at->ViewValue = FormatDateTime($this->expires_at->ViewValue, $this->expires_at->formatPattern());
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
             $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
 
-            // section_id
-            $this->section_id->ViewValue = $this->section_id->CurrentValue;
-            $this->section_id->ViewValue = FormatNumber($this->section_id->ViewValue, $this->section_id->formatPattern());
+            // token_id
+            $this->token_id->HrefValue = "";
+            $this->token_id->TooltipValue = "";
 
-            // field_id
-            $this->field_id->HrefValue = "";
-            $this->field_id->TooltipValue = "";
+            // user_id
+            $this->user_id->HrefValue = "";
+            $this->user_id->TooltipValue = "";
 
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
+            // token
+            $this->_token->HrefValue = "";
+            $this->_token->TooltipValue = "";
 
-            // field_name
-            $this->field_name->HrefValue = "";
-            $this->field_name->TooltipValue = "";
-
-            // field_label
-            $this->field_label->HrefValue = "";
-            $this->field_label->TooltipValue = "";
-
-            // field_type
-            $this->field_type->HrefValue = "";
-            $this->field_type->TooltipValue = "";
-
-            // field_options
-            $this->field_options->HrefValue = "";
-            $this->field_options->TooltipValue = "";
-
-            // is_required
-            $this->is_required->HrefValue = "";
-            $this->is_required->TooltipValue = "";
-
-            // placeholder
-            $this->placeholder->HrefValue = "";
-            $this->placeholder->TooltipValue = "";
-
-            // default_value
-            $this->default_value->HrefValue = "";
-            $this->default_value->TooltipValue = "";
-
-            // field_order
-            $this->field_order->HrefValue = "";
-            $this->field_order->TooltipValue = "";
-
-            // validation_rules
-            $this->validation_rules->HrefValue = "";
-            $this->validation_rules->TooltipValue = "";
-
-            // help_text
-            $this->help_text->HrefValue = "";
-            $this->help_text->TooltipValue = "";
-
-            // field_width
-            $this->field_width->HrefValue = "";
-            $this->field_width->TooltipValue = "";
-
-            // is_visible
-            $this->is_visible->HrefValue = "";
-            $this->is_visible->TooltipValue = "";
-
-            // section_name
-            $this->section_name->HrefValue = "";
-            $this->section_name->TooltipValue = "";
-
-            // x_position
-            $this->x_position->HrefValue = "";
-            $this->x_position->TooltipValue = "";
-
-            // y_position
-            $this->y_position->HrefValue = "";
-            $this->y_position->TooltipValue = "";
-
-            // group_name
-            $this->group_name->HrefValue = "";
-            $this->group_name->TooltipValue = "";
-
-            // conditional_display
-            $this->conditional_display->HrefValue = "";
-            $this->conditional_display->TooltipValue = "";
+            // expires_at
+            $this->expires_at->HrefValue = "";
+            $this->expires_at->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
             $this->created_at->TooltipValue = "";
-
-            // section_id
-            $this->section_id->HrefValue = "";
-            $this->section_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -1049,7 +842,7 @@ class TemplateFieldsView extends TemplateFields
         global $Breadcrumb, $Language;
         $Breadcrumb = new Breadcrumb("index");
         $url = CurrentUrl();
-        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("TemplateFieldsList"), "", $this->TableVar, true);
+        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("RefreshTokensList"), "", $this->TableVar, true);
         $pageId = "view";
         $Breadcrumb->add("view", $pageId, $url);
     }
@@ -1067,10 +860,6 @@ class TemplateFieldsView extends TemplateFields
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_required":
-                    break;
-                case "x_is_visible":
-                    break;
                 default:
                     $lookupFilter = "";
                     break;

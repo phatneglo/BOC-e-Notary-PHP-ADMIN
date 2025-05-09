@@ -114,6 +114,7 @@ return [
     "template_fields" => \DI\create(TemplateFields::class),
     "user_templates" => \DI\create(UserTemplates::class),
     "verification_attempts" => \DI\create(VerificationAttempts::class),
+    "refresh_tokens" => \DI\create(RefreshTokens::class),
 
     // User table
     "usertable" => \DI\get("users"),

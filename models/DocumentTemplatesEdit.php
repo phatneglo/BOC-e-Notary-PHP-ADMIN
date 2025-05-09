@@ -140,6 +140,9 @@ class DocumentTemplatesEdit extends DocumentTemplates
         $this->header_text->setVisibility();
         $this->footer_text->setVisibility();
         $this->preview_image_path->setVisibility();
+        $this->is_system->setVisibility();
+        $this->owner_id->setVisibility();
+        $this->original_template_id->setVisibility();
     }
 
     // Constructor
@@ -542,6 +545,7 @@ class DocumentTemplatesEdit extends DocumentTemplates
         // Set up lookup cache
         $this->setupLookupOptions($this->is_active);
         $this->setupLookupOptions($this->notary_required);
+        $this->setupLookupOptions($this->is_system);
 
         // Check modal
         if ($this->IsModal) {
@@ -911,6 +915,36 @@ class DocumentTemplatesEdit extends DocumentTemplates
                 $this->preview_image_path->setFormValue($val);
             }
         }
+
+        // Check field name 'is_system' first before field var 'x_is_system'
+        $val = $CurrentForm->hasValue("is_system") ? $CurrentForm->getValue("is_system") : $CurrentForm->getValue("x_is_system");
+        if (!$this->is_system->IsDetailKey) {
+            if (IsApi() && $val === null) {
+                $this->is_system->Visible = false; // Disable update for API request
+            } else {
+                $this->is_system->setFormValue($val);
+            }
+        }
+
+        // Check field name 'owner_id' first before field var 'x_owner_id'
+        $val = $CurrentForm->hasValue("owner_id") ? $CurrentForm->getValue("owner_id") : $CurrentForm->getValue("x_owner_id");
+        if (!$this->owner_id->IsDetailKey) {
+            if (IsApi() && $val === null) {
+                $this->owner_id->Visible = false; // Disable update for API request
+            } else {
+                $this->owner_id->setFormValue($val, true, $validate);
+            }
+        }
+
+        // Check field name 'original_template_id' first before field var 'x_original_template_id'
+        $val = $CurrentForm->hasValue("original_template_id") ? $CurrentForm->getValue("original_template_id") : $CurrentForm->getValue("x_original_template_id");
+        if (!$this->original_template_id->IsDetailKey) {
+            if (IsApi() && $val === null) {
+                $this->original_template_id->Visible = false; // Disable update for API request
+            } else {
+                $this->original_template_id->setFormValue($val, true, $validate);
+            }
+        }
     }
 
     // Restore form values
@@ -938,6 +972,9 @@ class DocumentTemplatesEdit extends DocumentTemplates
         $this->header_text->CurrentValue = $this->header_text->FormValue;
         $this->footer_text->CurrentValue = $this->footer_text->FormValue;
         $this->preview_image_path->CurrentValue = $this->preview_image_path->FormValue;
+        $this->is_system->CurrentValue = $this->is_system->FormValue;
+        $this->owner_id->CurrentValue = $this->owner_id->FormValue;
+        $this->original_template_id->CurrentValue = $this->original_template_id->FormValue;
     }
 
     /**
@@ -997,6 +1034,9 @@ class DocumentTemplatesEdit extends DocumentTemplates
         $this->header_text->setDbValue($row['header_text']);
         $this->footer_text->setDbValue($row['footer_text']);
         $this->preview_image_path->setDbValue($row['preview_image_path']);
+        $this->is_system->setDbValue((ConvertToBool($row['is_system']) ? "1" : "0"));
+        $this->owner_id->setDbValue($row['owner_id']);
+        $this->original_template_id->setDbValue($row['original_template_id']);
     }
 
     // Return a row with default values
@@ -1022,6 +1062,9 @@ class DocumentTemplatesEdit extends DocumentTemplates
         $row['header_text'] = $this->header_text->DefaultValue;
         $row['footer_text'] = $this->footer_text->DefaultValue;
         $row['preview_image_path'] = $this->preview_image_path->DefaultValue;
+        $row['is_system'] = $this->is_system->DefaultValue;
+        $row['owner_id'] = $this->owner_id->DefaultValue;
+        $row['original_template_id'] = $this->original_template_id->DefaultValue;
         return $row;
     }
 
@@ -1113,6 +1156,15 @@ class DocumentTemplatesEdit extends DocumentTemplates
         // preview_image_path
         $this->preview_image_path->RowCssClass = "row";
 
+        // is_system
+        $this->is_system->RowCssClass = "row";
+
+        // owner_id
+        $this->owner_id->RowCssClass = "row";
+
+        // original_template_id
+        $this->original_template_id->RowCssClass = "row";
+
         // View row
         if ($this->RowType == RowType::VIEW) {
             // template_id
@@ -1187,6 +1239,21 @@ class DocumentTemplatesEdit extends DocumentTemplates
             // preview_image_path
             $this->preview_image_path->ViewValue = $this->preview_image_path->CurrentValue;
 
+            // is_system
+            if (ConvertToBool($this->is_system->CurrentValue)) {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(1) != "" ? $this->is_system->tagCaption(1) : "Yes";
+            } else {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(2) != "" ? $this->is_system->tagCaption(2) : "No";
+            }
+
+            // owner_id
+            $this->owner_id->ViewValue = $this->owner_id->CurrentValue;
+            $this->owner_id->ViewValue = FormatNumber($this->owner_id->ViewValue, $this->owner_id->formatPattern());
+
+            // original_template_id
+            $this->original_template_id->ViewValue = $this->original_template_id->CurrentValue;
+            $this->original_template_id->ViewValue = FormatNumber($this->original_template_id->ViewValue, $this->original_template_id->formatPattern());
+
             // template_id
             $this->template_id->HrefValue = "";
 
@@ -1243,6 +1310,15 @@ class DocumentTemplatesEdit extends DocumentTemplates
 
             // preview_image_path
             $this->preview_image_path->HrefValue = "";
+
+            // is_system
+            $this->is_system->HrefValue = "";
+
+            // owner_id
+            $this->owner_id->HrefValue = "";
+
+            // original_template_id
+            $this->original_template_id->HrefValue = "";
         } elseif ($this->RowType == RowType::EDIT) {
             // template_id
             $this->template_id->setupEditAttributes();
@@ -1363,6 +1439,26 @@ class DocumentTemplatesEdit extends DocumentTemplates
             $this->preview_image_path->EditValue = HtmlEncode($this->preview_image_path->CurrentValue);
             $this->preview_image_path->PlaceHolder = RemoveHtml($this->preview_image_path->caption());
 
+            // is_system
+            $this->is_system->EditValue = $this->is_system->options(false);
+            $this->is_system->PlaceHolder = RemoveHtml($this->is_system->caption());
+
+            // owner_id
+            $this->owner_id->setupEditAttributes();
+            $this->owner_id->EditValue = $this->owner_id->CurrentValue;
+            $this->owner_id->PlaceHolder = RemoveHtml($this->owner_id->caption());
+            if (strval($this->owner_id->EditValue) != "" && is_numeric($this->owner_id->EditValue)) {
+                $this->owner_id->EditValue = FormatNumber($this->owner_id->EditValue, null);
+            }
+
+            // original_template_id
+            $this->original_template_id->setupEditAttributes();
+            $this->original_template_id->EditValue = $this->original_template_id->CurrentValue;
+            $this->original_template_id->PlaceHolder = RemoveHtml($this->original_template_id->caption());
+            if (strval($this->original_template_id->EditValue) != "" && is_numeric($this->original_template_id->EditValue)) {
+                $this->original_template_id->EditValue = FormatNumber($this->original_template_id->EditValue, null);
+            }
+
             // Edit refer script
 
             // template_id
@@ -1421,6 +1517,15 @@ class DocumentTemplatesEdit extends DocumentTemplates
 
             // preview_image_path
             $this->preview_image_path->HrefValue = "";
+
+            // is_system
+            $this->is_system->HrefValue = "";
+
+            // owner_id
+            $this->owner_id->HrefValue = "";
+
+            // original_template_id
+            $this->original_template_id->HrefValue = "";
         }
         if ($this->RowType == RowType::ADD || $this->RowType == RowType::EDIT || $this->RowType == RowType::SEARCH) { // Add/Edit/Search row
             $this->setupFieldTitles();
@@ -1557,6 +1662,27 @@ class DocumentTemplatesEdit extends DocumentTemplates
                 if (!$this->preview_image_path->IsDetailKey && EmptyValue($this->preview_image_path->FormValue)) {
                     $this->preview_image_path->addErrorMessage(str_replace("%s", $this->preview_image_path->caption(), $this->preview_image_path->RequiredErrorMessage));
                 }
+            }
+            if ($this->is_system->Visible && $this->is_system->Required) {
+                if ($this->is_system->FormValue == "") {
+                    $this->is_system->addErrorMessage(str_replace("%s", $this->is_system->caption(), $this->is_system->RequiredErrorMessage));
+                }
+            }
+            if ($this->owner_id->Visible && $this->owner_id->Required) {
+                if (!$this->owner_id->IsDetailKey && EmptyValue($this->owner_id->FormValue)) {
+                    $this->owner_id->addErrorMessage(str_replace("%s", $this->owner_id->caption(), $this->owner_id->RequiredErrorMessage));
+                }
+            }
+            if (!CheckInteger($this->owner_id->FormValue)) {
+                $this->owner_id->addErrorMessage($this->owner_id->getErrorMessage(false));
+            }
+            if ($this->original_template_id->Visible && $this->original_template_id->Required) {
+                if (!$this->original_template_id->IsDetailKey && EmptyValue($this->original_template_id->FormValue)) {
+                    $this->original_template_id->addErrorMessage(str_replace("%s", $this->original_template_id->caption(), $this->original_template_id->RequiredErrorMessage));
+                }
+            }
+            if (!CheckInteger($this->original_template_id->FormValue)) {
+                $this->original_template_id->addErrorMessage($this->original_template_id->getErrorMessage(false));
             }
 
         // Return validate result
@@ -1726,6 +1852,19 @@ class DocumentTemplatesEdit extends DocumentTemplates
 
         // preview_image_path
         $this->preview_image_path->setDbValueDef($rsnew, $this->preview_image_path->CurrentValue, $this->preview_image_path->ReadOnly);
+
+        // is_system
+        $tmpBool = $this->is_system->CurrentValue;
+        if ($tmpBool != "1" && $tmpBool != "0") {
+            $tmpBool = !empty($tmpBool) ? "1" : "0";
+        }
+        $this->is_system->setDbValueDef($rsnew, $tmpBool, $this->is_system->ReadOnly);
+
+        // owner_id
+        $this->owner_id->setDbValueDef($rsnew, $this->owner_id->CurrentValue, $this->owner_id->ReadOnly);
+
+        // original_template_id
+        $this->original_template_id->setDbValueDef($rsnew, $this->original_template_id->CurrentValue, $this->original_template_id->ReadOnly);
         return $rsnew;
     }
 
@@ -1789,6 +1928,15 @@ class DocumentTemplatesEdit extends DocumentTemplates
         if (isset($row['preview_image_path'])) { // preview_image_path
             $this->preview_image_path->CurrentValue = $row['preview_image_path'];
         }
+        if (isset($row['is_system'])) { // is_system
+            $this->is_system->CurrentValue = $row['is_system'];
+        }
+        if (isset($row['owner_id'])) { // owner_id
+            $this->owner_id->CurrentValue = $row['owner_id'];
+        }
+        if (isset($row['original_template_id'])) { // original_template_id
+            $this->original_template_id->CurrentValue = $row['original_template_id'];
+        }
     }
 
     // Set up Breadcrumb
@@ -1818,6 +1966,8 @@ class DocumentTemplatesEdit extends DocumentTemplates
                 case "x_is_active":
                     break;
                 case "x_notary_required":
+                    break;
+                case "x_is_system":
                     break;
                 default:
                     $lookupFilter = "";

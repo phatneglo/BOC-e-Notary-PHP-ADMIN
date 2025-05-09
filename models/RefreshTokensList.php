@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class TemplateFieldsList extends TemplateFields
+class RefreshTokensList extends RefreshTokens
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class TemplateFieldsList extends TemplateFields
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "TemplateFieldsList";
+    public $PageObjName = "RefreshTokensList";
 
     // View file path
     public $View = null;
@@ -38,13 +38,13 @@ class TemplateFieldsList extends TemplateFields
     public $RenderingView = false;
 
     // Grid form hidden field names
-    public $FormName = "ftemplate_fieldslist";
+    public $FormName = "frefresh_tokenslist";
     public $FormActionName = "";
     public $FormBlankRowName = "";
     public $FormKeyCountName = "";
 
     // CSS class/style
-    public $CurrentPageName = "TemplateFieldsList";
+    public $CurrentPageName = "RefreshTokensList";
 
     // Page URLs
     public $AddUrl;
@@ -145,27 +145,11 @@ class TemplateFieldsList extends TemplateFields
     // Set field visibility
     public function setVisibility()
     {
-        $this->field_id->setVisibility();
-        $this->template_id->setVisibility();
-        $this->field_name->setVisibility();
-        $this->field_label->setVisibility();
-        $this->field_type->setVisibility();
-        $this->field_options->Visible = false;
-        $this->is_required->setVisibility();
-        $this->placeholder->Visible = false;
-        $this->default_value->Visible = false;
-        $this->field_order->setVisibility();
-        $this->validation_rules->Visible = false;
-        $this->help_text->Visible = false;
-        $this->field_width->setVisibility();
-        $this->is_visible->setVisibility();
-        $this->section_name->setVisibility();
-        $this->x_position->setVisibility();
-        $this->y_position->setVisibility();
-        $this->group_name->setVisibility();
-        $this->conditional_display->Visible = false;
+        $this->token_id->setVisibility();
+        $this->user_id->setVisibility();
+        $this->_token->setVisibility();
+        $this->expires_at->setVisibility();
         $this->created_at->setVisibility();
-        $this->section_id->setVisibility();
     }
 
     // Constructor
@@ -176,8 +160,8 @@ class TemplateFieldsList extends TemplateFields
         $this->FormActionName = Config("FORM_ROW_ACTION_NAME");
         $this->FormBlankRowName = Config("FORM_BLANK_ROW_NAME");
         $this->FormKeyCountName = Config("FORM_KEY_COUNT_NAME");
-        $this->TableVar = 'template_fields';
-        $this->TableName = 'template_fields';
+        $this->TableVar = 'refresh_tokens';
+        $this->TableName = 'refresh_tokens';
 
         // Table CSS class
         $this->TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -197,26 +181,26 @@ class TemplateFieldsList extends TemplateFields
         // Language object
         $Language = Container("app.language");
 
-        // Table object (template_fields)
-        if (!isset($GLOBALS["template_fields"]) || $GLOBALS["template_fields"]::class == PROJECT_NAMESPACE . "template_fields") {
-            $GLOBALS["template_fields"] = &$this;
+        // Table object (refresh_tokens)
+        if (!isset($GLOBALS["refresh_tokens"]) || $GLOBALS["refresh_tokens"]::class == PROJECT_NAMESPACE . "refresh_tokens") {
+            $GLOBALS["refresh_tokens"] = &$this;
         }
 
         // Page URL
         $pageUrl = $this->pageUrl(false);
 
         // Initialize URLs
-        $this->AddUrl = "TemplateFieldsAdd";
+        $this->AddUrl = "RefreshTokensAdd";
         $this->InlineAddUrl = $pageUrl . "action=add";
         $this->GridAddUrl = $pageUrl . "action=gridadd";
         $this->GridEditUrl = $pageUrl . "action=gridedit";
         $this->MultiEditUrl = $pageUrl . "action=multiedit";
-        $this->MultiDeleteUrl = "TemplateFieldsDelete";
-        $this->MultiUpdateUrl = "TemplateFieldsUpdate";
+        $this->MultiDeleteUrl = "RefreshTokensDelete";
+        $this->MultiUpdateUrl = "RefreshTokensUpdate";
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'template_fields');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'refresh_tokens');
         }
 
         // Start timer
@@ -367,7 +351,7 @@ class TemplateFieldsList extends TemplateFields
                 $result = ["url" => GetUrl($url), "modal" => "1"];  // Assume return to modal for simplicity
                 if (!SameString($pageName, GetPageName($this->getListUrl()))) { // Not List page
                     $result["caption"] = $this->getModalCaption($pageName);
-                    $result["view"] = SameString($pageName, "TemplateFieldsView"); // If View page, no primary button
+                    $result["view"] = SameString($pageName, "RefreshTokensView"); // If View page, no primary button
                 } else { // List page
                     $result["error"] = $this->getFailureMessage(); // List page should not be shown as modal => error
                     $this->clearFailureMessage();
@@ -458,7 +442,7 @@ class TemplateFieldsList extends TemplateFields
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['field_id'];
+            $key .= @$ar['token_id'];
         }
         return $key;
     }
@@ -471,7 +455,7 @@ class TemplateFieldsList extends TemplateFields
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->field_id->Visible = false;
+            $this->token_id->Visible = false;
         }
     }
 
@@ -718,13 +702,9 @@ class TemplateFieldsList extends TemplateFields
         // Setup other options
         $this->setupOtherOptions();
 
-        // Set up lookup cache
-        $this->setupLookupOptions($this->is_required);
-        $this->setupLookupOptions($this->is_visible);
-
         // Update form name to avoid conflict
         if ($this->IsModal) {
-            $this->FormName = "ftemplate_fieldsgrid";
+            $this->FormName = "frefresh_tokensgrid";
         }
 
         // Set up page action
@@ -1061,29 +1041,13 @@ class TemplateFieldsList extends TemplateFields
 
         // Load server side filters
         if (Config("SEARCH_FILTER_OPTION") == "Server") {
-            $savedFilterList = Profile()->getSearchFilters("ftemplate_fieldssrch");
+            $savedFilterList = Profile()->getSearchFilters("frefresh_tokenssrch");
         }
-        $filterList = Concat($filterList, $this->field_id->AdvancedSearch->toJson(), ","); // Field field_id
-        $filterList = Concat($filterList, $this->template_id->AdvancedSearch->toJson(), ","); // Field template_id
-        $filterList = Concat($filterList, $this->field_name->AdvancedSearch->toJson(), ","); // Field field_name
-        $filterList = Concat($filterList, $this->field_label->AdvancedSearch->toJson(), ","); // Field field_label
-        $filterList = Concat($filterList, $this->field_type->AdvancedSearch->toJson(), ","); // Field field_type
-        $filterList = Concat($filterList, $this->field_options->AdvancedSearch->toJson(), ","); // Field field_options
-        $filterList = Concat($filterList, $this->is_required->AdvancedSearch->toJson(), ","); // Field is_required
-        $filterList = Concat($filterList, $this->placeholder->AdvancedSearch->toJson(), ","); // Field placeholder
-        $filterList = Concat($filterList, $this->default_value->AdvancedSearch->toJson(), ","); // Field default_value
-        $filterList = Concat($filterList, $this->field_order->AdvancedSearch->toJson(), ","); // Field field_order
-        $filterList = Concat($filterList, $this->validation_rules->AdvancedSearch->toJson(), ","); // Field validation_rules
-        $filterList = Concat($filterList, $this->help_text->AdvancedSearch->toJson(), ","); // Field help_text
-        $filterList = Concat($filterList, $this->field_width->AdvancedSearch->toJson(), ","); // Field field_width
-        $filterList = Concat($filterList, $this->is_visible->AdvancedSearch->toJson(), ","); // Field is_visible
-        $filterList = Concat($filterList, $this->section_name->AdvancedSearch->toJson(), ","); // Field section_name
-        $filterList = Concat($filterList, $this->x_position->AdvancedSearch->toJson(), ","); // Field x_position
-        $filterList = Concat($filterList, $this->y_position->AdvancedSearch->toJson(), ","); // Field y_position
-        $filterList = Concat($filterList, $this->group_name->AdvancedSearch->toJson(), ","); // Field group_name
-        $filterList = Concat($filterList, $this->conditional_display->AdvancedSearch->toJson(), ","); // Field conditional_display
+        $filterList = Concat($filterList, $this->token_id->AdvancedSearch->toJson(), ","); // Field token_id
+        $filterList = Concat($filterList, $this->user_id->AdvancedSearch->toJson(), ","); // Field user_id
+        $filterList = Concat($filterList, $this->_token->AdvancedSearch->toJson(), ","); // Field token
+        $filterList = Concat($filterList, $this->expires_at->AdvancedSearch->toJson(), ","); // Field expires_at
         $filterList = Concat($filterList, $this->created_at->AdvancedSearch->toJson(), ","); // Field created_at
-        $filterList = Concat($filterList, $this->section_id->AdvancedSearch->toJson(), ","); // Field section_id
         if ($this->BasicSearch->Keyword != "") {
             $wrk = "\"" . Config("TABLE_BASIC_SEARCH") . "\":\"" . JsEncode($this->BasicSearch->Keyword) . "\",\"" . Config("TABLE_BASIC_SEARCH_TYPE") . "\":\"" . JsEncode($this->BasicSearch->Type) . "\"";
             $filterList = Concat($filterList, $wrk, ",");
@@ -1104,7 +1068,7 @@ class TemplateFieldsList extends TemplateFields
     {
         if (Post("ajax") == "savefilters") { // Save filter request (Ajax)
             $filters = Post("filters");
-            Profile()->setSearchFilters("ftemplate_fieldssrch", $filters);
+            Profile()->setSearchFilters("frefresh_tokenssrch", $filters);
             WriteJson([["success" => true]]); // Success
             return true;
         } elseif (Post("cmd") == "resetfilter") {
@@ -1123,157 +1087,37 @@ class TemplateFieldsList extends TemplateFields
         $filter = json_decode(Post("filter"), true);
         $this->Command = "search";
 
-        // Field field_id
-        $this->field_id->AdvancedSearch->SearchValue = @$filter["x_field_id"];
-        $this->field_id->AdvancedSearch->SearchOperator = @$filter["z_field_id"];
-        $this->field_id->AdvancedSearch->SearchCondition = @$filter["v_field_id"];
-        $this->field_id->AdvancedSearch->SearchValue2 = @$filter["y_field_id"];
-        $this->field_id->AdvancedSearch->SearchOperator2 = @$filter["w_field_id"];
-        $this->field_id->AdvancedSearch->save();
+        // Field token_id
+        $this->token_id->AdvancedSearch->SearchValue = @$filter["x_token_id"];
+        $this->token_id->AdvancedSearch->SearchOperator = @$filter["z_token_id"];
+        $this->token_id->AdvancedSearch->SearchCondition = @$filter["v_token_id"];
+        $this->token_id->AdvancedSearch->SearchValue2 = @$filter["y_token_id"];
+        $this->token_id->AdvancedSearch->SearchOperator2 = @$filter["w_token_id"];
+        $this->token_id->AdvancedSearch->save();
 
-        // Field template_id
-        $this->template_id->AdvancedSearch->SearchValue = @$filter["x_template_id"];
-        $this->template_id->AdvancedSearch->SearchOperator = @$filter["z_template_id"];
-        $this->template_id->AdvancedSearch->SearchCondition = @$filter["v_template_id"];
-        $this->template_id->AdvancedSearch->SearchValue2 = @$filter["y_template_id"];
-        $this->template_id->AdvancedSearch->SearchOperator2 = @$filter["w_template_id"];
-        $this->template_id->AdvancedSearch->save();
+        // Field user_id
+        $this->user_id->AdvancedSearch->SearchValue = @$filter["x_user_id"];
+        $this->user_id->AdvancedSearch->SearchOperator = @$filter["z_user_id"];
+        $this->user_id->AdvancedSearch->SearchCondition = @$filter["v_user_id"];
+        $this->user_id->AdvancedSearch->SearchValue2 = @$filter["y_user_id"];
+        $this->user_id->AdvancedSearch->SearchOperator2 = @$filter["w_user_id"];
+        $this->user_id->AdvancedSearch->save();
 
-        // Field field_name
-        $this->field_name->AdvancedSearch->SearchValue = @$filter["x_field_name"];
-        $this->field_name->AdvancedSearch->SearchOperator = @$filter["z_field_name"];
-        $this->field_name->AdvancedSearch->SearchCondition = @$filter["v_field_name"];
-        $this->field_name->AdvancedSearch->SearchValue2 = @$filter["y_field_name"];
-        $this->field_name->AdvancedSearch->SearchOperator2 = @$filter["w_field_name"];
-        $this->field_name->AdvancedSearch->save();
+        // Field token
+        $this->_token->AdvancedSearch->SearchValue = @$filter["x__token"];
+        $this->_token->AdvancedSearch->SearchOperator = @$filter["z__token"];
+        $this->_token->AdvancedSearch->SearchCondition = @$filter["v__token"];
+        $this->_token->AdvancedSearch->SearchValue2 = @$filter["y__token"];
+        $this->_token->AdvancedSearch->SearchOperator2 = @$filter["w__token"];
+        $this->_token->AdvancedSearch->save();
 
-        // Field field_label
-        $this->field_label->AdvancedSearch->SearchValue = @$filter["x_field_label"];
-        $this->field_label->AdvancedSearch->SearchOperator = @$filter["z_field_label"];
-        $this->field_label->AdvancedSearch->SearchCondition = @$filter["v_field_label"];
-        $this->field_label->AdvancedSearch->SearchValue2 = @$filter["y_field_label"];
-        $this->field_label->AdvancedSearch->SearchOperator2 = @$filter["w_field_label"];
-        $this->field_label->AdvancedSearch->save();
-
-        // Field field_type
-        $this->field_type->AdvancedSearch->SearchValue = @$filter["x_field_type"];
-        $this->field_type->AdvancedSearch->SearchOperator = @$filter["z_field_type"];
-        $this->field_type->AdvancedSearch->SearchCondition = @$filter["v_field_type"];
-        $this->field_type->AdvancedSearch->SearchValue2 = @$filter["y_field_type"];
-        $this->field_type->AdvancedSearch->SearchOperator2 = @$filter["w_field_type"];
-        $this->field_type->AdvancedSearch->save();
-
-        // Field field_options
-        $this->field_options->AdvancedSearch->SearchValue = @$filter["x_field_options"];
-        $this->field_options->AdvancedSearch->SearchOperator = @$filter["z_field_options"];
-        $this->field_options->AdvancedSearch->SearchCondition = @$filter["v_field_options"];
-        $this->field_options->AdvancedSearch->SearchValue2 = @$filter["y_field_options"];
-        $this->field_options->AdvancedSearch->SearchOperator2 = @$filter["w_field_options"];
-        $this->field_options->AdvancedSearch->save();
-
-        // Field is_required
-        $this->is_required->AdvancedSearch->SearchValue = @$filter["x_is_required"];
-        $this->is_required->AdvancedSearch->SearchOperator = @$filter["z_is_required"];
-        $this->is_required->AdvancedSearch->SearchCondition = @$filter["v_is_required"];
-        $this->is_required->AdvancedSearch->SearchValue2 = @$filter["y_is_required"];
-        $this->is_required->AdvancedSearch->SearchOperator2 = @$filter["w_is_required"];
-        $this->is_required->AdvancedSearch->save();
-
-        // Field placeholder
-        $this->placeholder->AdvancedSearch->SearchValue = @$filter["x_placeholder"];
-        $this->placeholder->AdvancedSearch->SearchOperator = @$filter["z_placeholder"];
-        $this->placeholder->AdvancedSearch->SearchCondition = @$filter["v_placeholder"];
-        $this->placeholder->AdvancedSearch->SearchValue2 = @$filter["y_placeholder"];
-        $this->placeholder->AdvancedSearch->SearchOperator2 = @$filter["w_placeholder"];
-        $this->placeholder->AdvancedSearch->save();
-
-        // Field default_value
-        $this->default_value->AdvancedSearch->SearchValue = @$filter["x_default_value"];
-        $this->default_value->AdvancedSearch->SearchOperator = @$filter["z_default_value"];
-        $this->default_value->AdvancedSearch->SearchCondition = @$filter["v_default_value"];
-        $this->default_value->AdvancedSearch->SearchValue2 = @$filter["y_default_value"];
-        $this->default_value->AdvancedSearch->SearchOperator2 = @$filter["w_default_value"];
-        $this->default_value->AdvancedSearch->save();
-
-        // Field field_order
-        $this->field_order->AdvancedSearch->SearchValue = @$filter["x_field_order"];
-        $this->field_order->AdvancedSearch->SearchOperator = @$filter["z_field_order"];
-        $this->field_order->AdvancedSearch->SearchCondition = @$filter["v_field_order"];
-        $this->field_order->AdvancedSearch->SearchValue2 = @$filter["y_field_order"];
-        $this->field_order->AdvancedSearch->SearchOperator2 = @$filter["w_field_order"];
-        $this->field_order->AdvancedSearch->save();
-
-        // Field validation_rules
-        $this->validation_rules->AdvancedSearch->SearchValue = @$filter["x_validation_rules"];
-        $this->validation_rules->AdvancedSearch->SearchOperator = @$filter["z_validation_rules"];
-        $this->validation_rules->AdvancedSearch->SearchCondition = @$filter["v_validation_rules"];
-        $this->validation_rules->AdvancedSearch->SearchValue2 = @$filter["y_validation_rules"];
-        $this->validation_rules->AdvancedSearch->SearchOperator2 = @$filter["w_validation_rules"];
-        $this->validation_rules->AdvancedSearch->save();
-
-        // Field help_text
-        $this->help_text->AdvancedSearch->SearchValue = @$filter["x_help_text"];
-        $this->help_text->AdvancedSearch->SearchOperator = @$filter["z_help_text"];
-        $this->help_text->AdvancedSearch->SearchCondition = @$filter["v_help_text"];
-        $this->help_text->AdvancedSearch->SearchValue2 = @$filter["y_help_text"];
-        $this->help_text->AdvancedSearch->SearchOperator2 = @$filter["w_help_text"];
-        $this->help_text->AdvancedSearch->save();
-
-        // Field field_width
-        $this->field_width->AdvancedSearch->SearchValue = @$filter["x_field_width"];
-        $this->field_width->AdvancedSearch->SearchOperator = @$filter["z_field_width"];
-        $this->field_width->AdvancedSearch->SearchCondition = @$filter["v_field_width"];
-        $this->field_width->AdvancedSearch->SearchValue2 = @$filter["y_field_width"];
-        $this->field_width->AdvancedSearch->SearchOperator2 = @$filter["w_field_width"];
-        $this->field_width->AdvancedSearch->save();
-
-        // Field is_visible
-        $this->is_visible->AdvancedSearch->SearchValue = @$filter["x_is_visible"];
-        $this->is_visible->AdvancedSearch->SearchOperator = @$filter["z_is_visible"];
-        $this->is_visible->AdvancedSearch->SearchCondition = @$filter["v_is_visible"];
-        $this->is_visible->AdvancedSearch->SearchValue2 = @$filter["y_is_visible"];
-        $this->is_visible->AdvancedSearch->SearchOperator2 = @$filter["w_is_visible"];
-        $this->is_visible->AdvancedSearch->save();
-
-        // Field section_name
-        $this->section_name->AdvancedSearch->SearchValue = @$filter["x_section_name"];
-        $this->section_name->AdvancedSearch->SearchOperator = @$filter["z_section_name"];
-        $this->section_name->AdvancedSearch->SearchCondition = @$filter["v_section_name"];
-        $this->section_name->AdvancedSearch->SearchValue2 = @$filter["y_section_name"];
-        $this->section_name->AdvancedSearch->SearchOperator2 = @$filter["w_section_name"];
-        $this->section_name->AdvancedSearch->save();
-
-        // Field x_position
-        $this->x_position->AdvancedSearch->SearchValue = @$filter["x_x_position"];
-        $this->x_position->AdvancedSearch->SearchOperator = @$filter["z_x_position"];
-        $this->x_position->AdvancedSearch->SearchCondition = @$filter["v_x_position"];
-        $this->x_position->AdvancedSearch->SearchValue2 = @$filter["y_x_position"];
-        $this->x_position->AdvancedSearch->SearchOperator2 = @$filter["w_x_position"];
-        $this->x_position->AdvancedSearch->save();
-
-        // Field y_position
-        $this->y_position->AdvancedSearch->SearchValue = @$filter["x_y_position"];
-        $this->y_position->AdvancedSearch->SearchOperator = @$filter["z_y_position"];
-        $this->y_position->AdvancedSearch->SearchCondition = @$filter["v_y_position"];
-        $this->y_position->AdvancedSearch->SearchValue2 = @$filter["y_y_position"];
-        $this->y_position->AdvancedSearch->SearchOperator2 = @$filter["w_y_position"];
-        $this->y_position->AdvancedSearch->save();
-
-        // Field group_name
-        $this->group_name->AdvancedSearch->SearchValue = @$filter["x_group_name"];
-        $this->group_name->AdvancedSearch->SearchOperator = @$filter["z_group_name"];
-        $this->group_name->AdvancedSearch->SearchCondition = @$filter["v_group_name"];
-        $this->group_name->AdvancedSearch->SearchValue2 = @$filter["y_group_name"];
-        $this->group_name->AdvancedSearch->SearchOperator2 = @$filter["w_group_name"];
-        $this->group_name->AdvancedSearch->save();
-
-        // Field conditional_display
-        $this->conditional_display->AdvancedSearch->SearchValue = @$filter["x_conditional_display"];
-        $this->conditional_display->AdvancedSearch->SearchOperator = @$filter["z_conditional_display"];
-        $this->conditional_display->AdvancedSearch->SearchCondition = @$filter["v_conditional_display"];
-        $this->conditional_display->AdvancedSearch->SearchValue2 = @$filter["y_conditional_display"];
-        $this->conditional_display->AdvancedSearch->SearchOperator2 = @$filter["w_conditional_display"];
-        $this->conditional_display->AdvancedSearch->save();
+        // Field expires_at
+        $this->expires_at->AdvancedSearch->SearchValue = @$filter["x_expires_at"];
+        $this->expires_at->AdvancedSearch->SearchOperator = @$filter["z_expires_at"];
+        $this->expires_at->AdvancedSearch->SearchCondition = @$filter["v_expires_at"];
+        $this->expires_at->AdvancedSearch->SearchValue2 = @$filter["y_expires_at"];
+        $this->expires_at->AdvancedSearch->SearchOperator2 = @$filter["w_expires_at"];
+        $this->expires_at->AdvancedSearch->save();
 
         // Field created_at
         $this->created_at->AdvancedSearch->SearchValue = @$filter["x_created_at"];
@@ -1282,14 +1126,6 @@ class TemplateFieldsList extends TemplateFields
         $this->created_at->AdvancedSearch->SearchValue2 = @$filter["y_created_at"];
         $this->created_at->AdvancedSearch->SearchOperator2 = @$filter["w_created_at"];
         $this->created_at->AdvancedSearch->save();
-
-        // Field section_id
-        $this->section_id->AdvancedSearch->SearchValue = @$filter["x_section_id"];
-        $this->section_id->AdvancedSearch->SearchOperator = @$filter["z_section_id"];
-        $this->section_id->AdvancedSearch->SearchCondition = @$filter["v_section_id"];
-        $this->section_id->AdvancedSearch->SearchValue2 = @$filter["y_section_id"];
-        $this->section_id->AdvancedSearch->SearchOperator2 = @$filter["w_section_id"];
-        $this->section_id->AdvancedSearch->save();
         $this->BasicSearch->setKeyword(@$filter[Config("TABLE_BASIC_SEARCH")]);
         $this->BasicSearch->setType(@$filter[Config("TABLE_BASIC_SEARCH_TYPE")]);
     }
@@ -1329,18 +1165,7 @@ class TemplateFieldsList extends TemplateFields
 
         // Fields to search
         $searchFlds = [];
-        $searchFlds[] = &$this->field_name;
-        $searchFlds[] = &$this->field_label;
-        $searchFlds[] = &$this->field_type;
-        $searchFlds[] = &$this->field_options;
-        $searchFlds[] = &$this->placeholder;
-        $searchFlds[] = &$this->default_value;
-        $searchFlds[] = &$this->validation_rules;
-        $searchFlds[] = &$this->help_text;
-        $searchFlds[] = &$this->field_width;
-        $searchFlds[] = &$this->section_name;
-        $searchFlds[] = &$this->group_name;
-        $searchFlds[] = &$this->conditional_display;
+        $searchFlds[] = &$this->_token;
         $searchKeyword = $default ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
         $searchType = $default ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
 
@@ -1419,21 +1244,11 @@ class TemplateFieldsList extends TemplateFields
         if (Get("order") !== null) {
             $this->CurrentOrder = Get("order");
             $this->CurrentOrderType = Get("ordertype", "");
-            $this->updateSort($this->field_id); // field_id
-            $this->updateSort($this->template_id); // template_id
-            $this->updateSort($this->field_name); // field_name
-            $this->updateSort($this->field_label); // field_label
-            $this->updateSort($this->field_type); // field_type
-            $this->updateSort($this->is_required); // is_required
-            $this->updateSort($this->field_order); // field_order
-            $this->updateSort($this->field_width); // field_width
-            $this->updateSort($this->is_visible); // is_visible
-            $this->updateSort($this->section_name); // section_name
-            $this->updateSort($this->x_position); // x_position
-            $this->updateSort($this->y_position); // y_position
-            $this->updateSort($this->group_name); // group_name
+            $this->updateSort($this->token_id); // token_id
+            $this->updateSort($this->user_id); // user_id
+            $this->updateSort($this->_token); // token
+            $this->updateSort($this->expires_at); // expires_at
             $this->updateSort($this->created_at); // created_at
-            $this->updateSort($this->section_id); // section_id
             $this->setStartRecordNumber(1); // Reset start position
         }
 
@@ -1458,27 +1273,11 @@ class TemplateFieldsList extends TemplateFields
             if ($this->Command == "resetsort") {
                 $orderBy = "";
                 $this->setSessionOrderBy($orderBy);
-                $this->field_id->setSort("");
-                $this->template_id->setSort("");
-                $this->field_name->setSort("");
-                $this->field_label->setSort("");
-                $this->field_type->setSort("");
-                $this->field_options->setSort("");
-                $this->is_required->setSort("");
-                $this->placeholder->setSort("");
-                $this->default_value->setSort("");
-                $this->field_order->setSort("");
-                $this->validation_rules->setSort("");
-                $this->help_text->setSort("");
-                $this->field_width->setSort("");
-                $this->is_visible->setSort("");
-                $this->section_name->setSort("");
-                $this->x_position->setSort("");
-                $this->y_position->setSort("");
-                $this->group_name->setSort("");
-                $this->conditional_display->setSort("");
+                $this->token_id->setSort("");
+                $this->user_id->setSort("");
+                $this->_token->setSort("");
+                $this->expires_at->setSort("");
                 $this->created_at->setSort("");
-                $this->section_id->setSort("");
             }
 
             // Reset start position
@@ -1585,7 +1384,7 @@ class TemplateFieldsList extends TemplateFields
             $viewcaption = HtmlTitle($Language->phrase("ViewLink"));
             if ($Security->canView()) {
                 if ($this->ModalView && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-table=\"template_fields\" data-caption=\"" . $viewcaption . "\" data-ew-action=\"modal\" data-action=\"view\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\" data-btn=\"null\">" . $Language->phrase("ViewLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-table=\"refresh_tokens\" data-caption=\"" . $viewcaption . "\" data-ew-action=\"modal\" data-action=\"view\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\" data-btn=\"null\">" . $Language->phrase("ViewLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-caption=\"" . $viewcaption . "\" href=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\">" . $Language->phrase("ViewLink") . "</a>";
                 }
@@ -1598,7 +1397,7 @@ class TemplateFieldsList extends TemplateFields
             $editcaption = HtmlTitle($Language->phrase("EditLink"));
             if ($Security->canEdit()) {
                 if ($this->ModalEdit && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-table=\"template_fields\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-action=\"edit\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\" data-btn=\"SaveBtn\">" . $Language->phrase("EditLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-table=\"refresh_tokens\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-action=\"edit\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\" data-btn=\"SaveBtn\">" . $Language->phrase("EditLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-caption=\"" . $editcaption . "\" href=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\">" . $Language->phrase("EditLink") . "</a>";
                 }
@@ -1611,7 +1410,7 @@ class TemplateFieldsList extends TemplateFields
             $copycaption = HtmlTitle($Language->phrase("CopyLink"));
             if ($Security->canAdd()) {
                 if ($this->ModalAdd && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-table=\"template_fields\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("CopyLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-table=\"refresh_tokens\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("CopyLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-caption=\"" . $copycaption . "\" href=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\">" . $Language->phrase("CopyLink") . "</a>";
                 }
@@ -1652,12 +1451,12 @@ class TemplateFieldsList extends TemplateFields
                         $icon = ($listAction->Icon != "") ? "<i class=\"" . HtmlEncode(str_replace(" ew-icon", "", $listAction->Icon)) . "\" data-caption=\"" . $title . "\"></i> " : "";
                         $link = $disabled
                             ? "<li><div class=\"alert alert-light\">" . $icon . " " . $caption . "</div></li>"
-                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"ftemplate_fieldslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
+                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"frefresh_tokenslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
                         $links[] = $link;
                         if ($body == "") { // Setup first button
                             $body = $disabled
                             ? "<div class=\"alert alert-light\">" . $icon . " " . $caption . "</div>"
-                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"ftemplate_fieldslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
+                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"frefresh_tokenslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
                         }
                     }
                 }
@@ -1675,7 +1474,7 @@ class TemplateFieldsList extends TemplateFields
 
         // "checkbox"
         $opt = $this->ListOptions["checkbox"];
-        $opt->Body = "<div class=\"form-check\"><input type=\"checkbox\" id=\"key_m_" . $this->RowCount . "\" name=\"key_m[]\" class=\"form-check-input ew-multi-select\" value=\"" . HtmlEncode($this->field_id->CurrentValue) . "\" data-ew-action=\"select-key\"></div>";
+        $opt->Body = "<div class=\"form-check\"><input type=\"checkbox\" id=\"key_m_" . $this->RowCount . "\" name=\"key_m[]\" class=\"form-check-input ew-multi-select\" value=\"" . HtmlEncode($this->token_id->CurrentValue) . "\" data-ew-action=\"select-key\"></div>";
         $this->renderListOptionsExt();
 
         // Call ListOptions_Rendered event
@@ -1700,7 +1499,7 @@ class TemplateFieldsList extends TemplateFields
         $item = &$option->add("add");
         $addcaption = HtmlTitle($Language->phrase("AddLink"));
         if ($this->ModalAdd && !IsMobile()) {
-            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-table=\"template_fields\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("AddLink") . "</a>";
+            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-table=\"refresh_tokens\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("AddLink") . "</a>";
         } else {
             $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" href=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\">" . $Language->phrase("AddLink") . "</a>";
         }
@@ -1713,21 +1512,11 @@ class TemplateFieldsList extends TemplateFields
             $item = &$option->addGroupOption();
             $item->Body = "";
             $item->Visible = $this->UseColumnVisibility;
-            $this->createColumnOption($option, "field_id");
-            $this->createColumnOption($option, "template_id");
-            $this->createColumnOption($option, "field_name");
-            $this->createColumnOption($option, "field_label");
-            $this->createColumnOption($option, "field_type");
-            $this->createColumnOption($option, "is_required");
-            $this->createColumnOption($option, "field_order");
-            $this->createColumnOption($option, "field_width");
-            $this->createColumnOption($option, "is_visible");
-            $this->createColumnOption($option, "section_name");
-            $this->createColumnOption($option, "x_position");
-            $this->createColumnOption($option, "y_position");
-            $this->createColumnOption($option, "group_name");
+            $this->createColumnOption($option, "token_id");
+            $this->createColumnOption($option, "user_id");
+            $this->createColumnOption($option, "token");
+            $this->createColumnOption($option, "expires_at");
             $this->createColumnOption($option, "created_at");
-            $this->createColumnOption($option, "section_id");
         }
 
         // Set up custom actions
@@ -1752,10 +1541,10 @@ class TemplateFieldsList extends TemplateFields
 
         // Filter button
         $item = &$this->FilterOptions->add("savecurrentfilter");
-        $item->Body = "<a class=\"ew-save-filter\" data-form=\"ftemplate_fieldssrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
+        $item->Body = "<a class=\"ew-save-filter\" data-form=\"frefresh_tokenssrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
         $item->Visible = true;
         $item = &$this->FilterOptions->add("deletefilter");
-        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"ftemplate_fieldssrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
+        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"frefresh_tokenssrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
         $item->Visible = true;
         $this->FilterOptions->UseDropDownButton = true;
         $this->FilterOptions->UseButtonGroup = !$this->FilterOptions->UseDropDownButton;
@@ -1815,7 +1604,7 @@ class TemplateFieldsList extends TemplateFields
                 $item = &$option->add("custom_" . $listAction->Action);
                 $caption = $listAction->Caption;
                 $icon = ($listAction->Icon != "") ? '<i class="' . HtmlEncode($listAction->Icon) . '" data-caption="' . HtmlEncode($caption) . '"></i>' . $caption : $caption;
-                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="ftemplate_fieldslist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
+                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="frefresh_tokenslist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
                 $item->Visible = $listAction->Allowed;
             }
         }
@@ -1981,7 +1770,7 @@ class TemplateFieldsList extends TemplateFields
 
                 // Set row properties
                 $this->resetAttributes();
-                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_template_fields", "data-rowtype" => RowType::ADD]);
+                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_refresh_tokens", "data-rowtype" => RowType::ADD]);
                 $this->RowAttrs->appendClass("ew-template");
                 // Render row
                 $this->RowType = RowType::ADD;
@@ -2042,7 +1831,7 @@ class TemplateFieldsList extends TemplateFields
         $this->RowAttrs->merge([
             "data-rowindex" => $this->RowCount,
             "data-key" => $this->getKey(true),
-            "id" => "r" . $this->RowCount . "_template_fields",
+            "id" => "r" . $this->RowCount . "_refresh_tokens",
             "data-rowtype" => $this->RowType,
             "data-inline" => ($this->isAdd() || $this->isCopy() || $this->isEdit()) ? "true" : "false", // Inline-Add/Copy/Edit
             "class" => ($this->RowCount % 2 != 1) ? "ew-table-alt-row" : "",
@@ -2161,54 +1950,22 @@ class TemplateFieldsList extends TemplateFields
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->field_id->setDbValue($row['field_id']);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->field_name->setDbValue($row['field_name']);
-        $this->field_label->setDbValue($row['field_label']);
-        $this->field_type->setDbValue($row['field_type']);
-        $this->field_options->setDbValue($row['field_options']);
-        $this->is_required->setDbValue((ConvertToBool($row['is_required']) ? "1" : "0"));
-        $this->placeholder->setDbValue($row['placeholder']);
-        $this->default_value->setDbValue($row['default_value']);
-        $this->field_order->setDbValue($row['field_order']);
-        $this->validation_rules->setDbValue($row['validation_rules']);
-        $this->help_text->setDbValue($row['help_text']);
-        $this->field_width->setDbValue($row['field_width']);
-        $this->is_visible->setDbValue((ConvertToBool($row['is_visible']) ? "1" : "0"));
-        $this->section_name->setDbValue($row['section_name']);
-        $this->x_position->setDbValue($row['x_position']);
-        $this->y_position->setDbValue($row['y_position']);
-        $this->group_name->setDbValue($row['group_name']);
-        $this->conditional_display->setDbValue($row['conditional_display']);
+        $this->token_id->setDbValue($row['token_id']);
+        $this->user_id->setDbValue($row['user_id']);
+        $this->_token->setDbValue($row['token']);
+        $this->expires_at->setDbValue($row['expires_at']);
         $this->created_at->setDbValue($row['created_at']);
-        $this->section_id->setDbValue($row['section_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['field_id'] = $this->field_id->DefaultValue;
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['field_name'] = $this->field_name->DefaultValue;
-        $row['field_label'] = $this->field_label->DefaultValue;
-        $row['field_type'] = $this->field_type->DefaultValue;
-        $row['field_options'] = $this->field_options->DefaultValue;
-        $row['is_required'] = $this->is_required->DefaultValue;
-        $row['placeholder'] = $this->placeholder->DefaultValue;
-        $row['default_value'] = $this->default_value->DefaultValue;
-        $row['field_order'] = $this->field_order->DefaultValue;
-        $row['validation_rules'] = $this->validation_rules->DefaultValue;
-        $row['help_text'] = $this->help_text->DefaultValue;
-        $row['field_width'] = $this->field_width->DefaultValue;
-        $row['is_visible'] = $this->is_visible->DefaultValue;
-        $row['section_name'] = $this->section_name->DefaultValue;
-        $row['x_position'] = $this->x_position->DefaultValue;
-        $row['y_position'] = $this->y_position->DefaultValue;
-        $row['group_name'] = $this->group_name->DefaultValue;
-        $row['conditional_display'] = $this->conditional_display->DefaultValue;
+        $row['token_id'] = $this->token_id->DefaultValue;
+        $row['user_id'] = $this->user_id->DefaultValue;
+        $row['token'] = $this->_token->DefaultValue;
+        $row['expires_at'] = $this->expires_at->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
-        $row['section_id'] = $this->section_id->DefaultValue;
         return $row;
     }
 
@@ -2249,168 +2006,55 @@ class TemplateFieldsList extends TemplateFields
 
         // Common render codes for all row types
 
-        // field_id
+        // token_id
 
-        // template_id
+        // user_id
 
-        // field_name
+        // token
 
-        // field_label
-
-        // field_type
-
-        // field_options
-
-        // is_required
-
-        // placeholder
-
-        // default_value
-
-        // field_order
-
-        // validation_rules
-
-        // help_text
-
-        // field_width
-
-        // is_visible
-
-        // section_name
-
-        // x_position
-
-        // y_position
-
-        // group_name
-
-        // conditional_display
+        // expires_at
 
         // created_at
 
-        // section_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // field_id
-            $this->field_id->ViewValue = $this->field_id->CurrentValue;
+            // token_id
+            $this->token_id->ViewValue = $this->token_id->CurrentValue;
 
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
-            $this->template_id->ViewValue = FormatNumber($this->template_id->ViewValue, $this->template_id->formatPattern());
+            // user_id
+            $this->user_id->ViewValue = $this->user_id->CurrentValue;
+            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
 
-            // field_name
-            $this->field_name->ViewValue = $this->field_name->CurrentValue;
+            // token
+            $this->_token->ViewValue = $this->_token->CurrentValue;
 
-            // field_label
-            $this->field_label->ViewValue = $this->field_label->CurrentValue;
-
-            // field_type
-            $this->field_type->ViewValue = $this->field_type->CurrentValue;
-
-            // is_required
-            if (ConvertToBool($this->is_required->CurrentValue)) {
-                $this->is_required->ViewValue = $this->is_required->tagCaption(1) != "" ? $this->is_required->tagCaption(1) : "Yes";
-            } else {
-                $this->is_required->ViewValue = $this->is_required->tagCaption(2) != "" ? $this->is_required->tagCaption(2) : "No";
-            }
-
-            // field_order
-            $this->field_order->ViewValue = $this->field_order->CurrentValue;
-            $this->field_order->ViewValue = FormatNumber($this->field_order->ViewValue, $this->field_order->formatPattern());
-
-            // field_width
-            $this->field_width->ViewValue = $this->field_width->CurrentValue;
-
-            // is_visible
-            if (ConvertToBool($this->is_visible->CurrentValue)) {
-                $this->is_visible->ViewValue = $this->is_visible->tagCaption(1) != "" ? $this->is_visible->tagCaption(1) : "Yes";
-            } else {
-                $this->is_visible->ViewValue = $this->is_visible->tagCaption(2) != "" ? $this->is_visible->tagCaption(2) : "No";
-            }
-
-            // section_name
-            $this->section_name->ViewValue = $this->section_name->CurrentValue;
-
-            // x_position
-            $this->x_position->ViewValue = $this->x_position->CurrentValue;
-            $this->x_position->ViewValue = FormatNumber($this->x_position->ViewValue, $this->x_position->formatPattern());
-
-            // y_position
-            $this->y_position->ViewValue = $this->y_position->CurrentValue;
-            $this->y_position->ViewValue = FormatNumber($this->y_position->ViewValue, $this->y_position->formatPattern());
-
-            // group_name
-            $this->group_name->ViewValue = $this->group_name->CurrentValue;
+            // expires_at
+            $this->expires_at->ViewValue = $this->expires_at->CurrentValue;
+            $this->expires_at->ViewValue = FormatDateTime($this->expires_at->ViewValue, $this->expires_at->formatPattern());
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
             $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
 
-            // section_id
-            $this->section_id->ViewValue = $this->section_id->CurrentValue;
-            $this->section_id->ViewValue = FormatNumber($this->section_id->ViewValue, $this->section_id->formatPattern());
+            // token_id
+            $this->token_id->HrefValue = "";
+            $this->token_id->TooltipValue = "";
 
-            // field_id
-            $this->field_id->HrefValue = "";
-            $this->field_id->TooltipValue = "";
+            // user_id
+            $this->user_id->HrefValue = "";
+            $this->user_id->TooltipValue = "";
 
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
+            // token
+            $this->_token->HrefValue = "";
+            $this->_token->TooltipValue = "";
 
-            // field_name
-            $this->field_name->HrefValue = "";
-            $this->field_name->TooltipValue = "";
-
-            // field_label
-            $this->field_label->HrefValue = "";
-            $this->field_label->TooltipValue = "";
-
-            // field_type
-            $this->field_type->HrefValue = "";
-            $this->field_type->TooltipValue = "";
-
-            // is_required
-            $this->is_required->HrefValue = "";
-            $this->is_required->TooltipValue = "";
-
-            // field_order
-            $this->field_order->HrefValue = "";
-            $this->field_order->TooltipValue = "";
-
-            // field_width
-            $this->field_width->HrefValue = "";
-            $this->field_width->TooltipValue = "";
-
-            // is_visible
-            $this->is_visible->HrefValue = "";
-            $this->is_visible->TooltipValue = "";
-
-            // section_name
-            $this->section_name->HrefValue = "";
-            $this->section_name->TooltipValue = "";
-
-            // x_position
-            $this->x_position->HrefValue = "";
-            $this->x_position->TooltipValue = "";
-
-            // y_position
-            $this->y_position->HrefValue = "";
-            $this->y_position->TooltipValue = "";
-
-            // group_name
-            $this->group_name->HrefValue = "";
-            $this->group_name->TooltipValue = "";
+            // expires_at
+            $this->expires_at->HrefValue = "";
+            $this->expires_at->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
             $this->created_at->TooltipValue = "";
-
-            // section_id
-            $this->section_id->HrefValue = "";
-            $this->section_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -2429,7 +2073,7 @@ class TemplateFieldsList extends TemplateFields
         // Search button
         $item = &$this->SearchOptions->add("searchtoggle");
         $searchToggleClass = ($this->SearchWhere != "") ? " active" : " active";
-        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"ftemplate_fieldssrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
+        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"frefresh_tokenssrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
         $item->Visible = true;
 
         // Show all button
@@ -2498,10 +2142,6 @@ class TemplateFieldsList extends TemplateFields
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_required":
-                    break;
-                case "x_is_visible":
-                    break;
                 default:
                     $lookupFilter = "";
                     break;

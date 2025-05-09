@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class DocumentTemplatesDelete extends DocumentTemplates
+class RefreshTokensDelete extends RefreshTokens
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "DocumentTemplatesDelete";
+    public $PageObjName = "RefreshTokensDelete";
 
     // View file path
     public $View = null;
@@ -38,7 +38,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "DocumentTemplatesDelete";
+    public $CurrentPageName = "RefreshTokensDelete";
 
     // Page headings
     public $Heading = "";
@@ -121,28 +121,11 @@ class DocumentTemplatesDelete extends DocumentTemplates
     // Set field visibility
     public function setVisibility()
     {
-        $this->template_id->setVisibility();
-        $this->template_name->setVisibility();
-        $this->template_code->setVisibility();
-        $this->category_id->setVisibility();
-        $this->description->Visible = false;
-        $this->html_content->Visible = false;
-        $this->is_active->setVisibility();
+        $this->token_id->setVisibility();
+        $this->user_id->setVisibility();
+        $this->_token->setVisibility();
+        $this->expires_at->setVisibility();
         $this->created_at->setVisibility();
-        $this->created_by->setVisibility();
-        $this->updated_at->setVisibility();
-        $this->updated_by->setVisibility();
-        $this->version->setVisibility();
-        $this->notary_required->setVisibility();
-        $this->fee_amount->setVisibility();
-        $this->approval_workflow->Visible = false;
-        $this->template_type->setVisibility();
-        $this->header_text->Visible = false;
-        $this->footer_text->Visible = false;
-        $this->preview_image_path->setVisibility();
-        $this->is_system->setVisibility();
-        $this->owner_id->setVisibility();
-        $this->original_template_id->setVisibility();
     }
 
     // Constructor
@@ -150,8 +133,8 @@ class DocumentTemplatesDelete extends DocumentTemplates
     {
         parent::__construct();
         global $Language, $DashboardReport, $DebugTimer, $UserTable;
-        $this->TableVar = 'document_templates';
-        $this->TableName = 'document_templates';
+        $this->TableVar = 'refresh_tokens';
+        $this->TableName = 'refresh_tokens';
 
         // Table CSS class
         $this->TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -162,14 +145,14 @@ class DocumentTemplatesDelete extends DocumentTemplates
         // Language object
         $Language = Container("app.language");
 
-        // Table object (document_templates)
-        if (!isset($GLOBALS["document_templates"]) || $GLOBALS["document_templates"]::class == PROJECT_NAMESPACE . "document_templates") {
-            $GLOBALS["document_templates"] = &$this;
+        // Table object (refresh_tokens)
+        if (!isset($GLOBALS["refresh_tokens"]) || $GLOBALS["refresh_tokens"]::class == PROJECT_NAMESPACE . "refresh_tokens") {
+            $GLOBALS["refresh_tokens"] = &$this;
         }
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'document_templates');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'refresh_tokens');
         }
 
         // Start timer
@@ -351,7 +334,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['template_id'];
+            $key .= @$ar['token_id'];
         }
         return $key;
     }
@@ -364,7 +347,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->template_id->Visible = false;
+            $this->token_id->Visible = false;
         }
     }
     public $DbMasterFilter = "";
@@ -431,11 +414,6 @@ class DocumentTemplatesDelete extends DocumentTemplates
             $this->InlineDelete = true;
         }
 
-        // Set up lookup cache
-        $this->setupLookupOptions($this->is_active);
-        $this->setupLookupOptions($this->notary_required);
-        $this->setupLookupOptions($this->is_system);
-
         // Set up Breadcrumb
         $this->setupBreadcrumb();
 
@@ -443,7 +421,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
         $this->RecKeys = $this->getRecordKeys(); // Load record keys
         $filter = $this->getFilterFromRecordKeys();
         if ($filter == "") {
-            $this->terminate("DocumentTemplatesList"); // Prevent SQL injection, return to list
+            $this->terminate("RefreshTokensList"); // Prevent SQL injection, return to list
             return;
         }
 
@@ -497,7 +475,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
             $this->Recordset = $this->loadRecordset();
             if ($this->TotalRecords <= 0) { // No record found, exit
                 $this->Recordset?->free();
-                $this->terminate("DocumentTemplatesList"); // Return to list
+                $this->terminate("RefreshTokensList"); // Return to list
                 return;
             }
         }
@@ -618,56 +596,22 @@ class DocumentTemplatesDelete extends DocumentTemplates
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->template_name->setDbValue($row['template_name']);
-        $this->template_code->setDbValue($row['template_code']);
-        $this->category_id->setDbValue($row['category_id']);
-        $this->description->setDbValue($row['description']);
-        $this->html_content->setDbValue($row['html_content']);
-        $this->is_active->setDbValue((ConvertToBool($row['is_active']) ? "1" : "0"));
+        $this->token_id->setDbValue($row['token_id']);
+        $this->user_id->setDbValue($row['user_id']);
+        $this->_token->setDbValue($row['token']);
+        $this->expires_at->setDbValue($row['expires_at']);
         $this->created_at->setDbValue($row['created_at']);
-        $this->created_by->setDbValue($row['created_by']);
-        $this->updated_at->setDbValue($row['updated_at']);
-        $this->updated_by->setDbValue($row['updated_by']);
-        $this->version->setDbValue($row['version']);
-        $this->notary_required->setDbValue((ConvertToBool($row['notary_required']) ? "1" : "0"));
-        $this->fee_amount->setDbValue($row['fee_amount']);
-        $this->approval_workflow->setDbValue($row['approval_workflow']);
-        $this->template_type->setDbValue($row['template_type']);
-        $this->header_text->setDbValue($row['header_text']);
-        $this->footer_text->setDbValue($row['footer_text']);
-        $this->preview_image_path->setDbValue($row['preview_image_path']);
-        $this->is_system->setDbValue((ConvertToBool($row['is_system']) ? "1" : "0"));
-        $this->owner_id->setDbValue($row['owner_id']);
-        $this->original_template_id->setDbValue($row['original_template_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['template_name'] = $this->template_name->DefaultValue;
-        $row['template_code'] = $this->template_code->DefaultValue;
-        $row['category_id'] = $this->category_id->DefaultValue;
-        $row['description'] = $this->description->DefaultValue;
-        $row['html_content'] = $this->html_content->DefaultValue;
-        $row['is_active'] = $this->is_active->DefaultValue;
+        $row['token_id'] = $this->token_id->DefaultValue;
+        $row['user_id'] = $this->user_id->DefaultValue;
+        $row['token'] = $this->_token->DefaultValue;
+        $row['expires_at'] = $this->expires_at->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
-        $row['created_by'] = $this->created_by->DefaultValue;
-        $row['updated_at'] = $this->updated_at->DefaultValue;
-        $row['updated_by'] = $this->updated_by->DefaultValue;
-        $row['version'] = $this->version->DefaultValue;
-        $row['notary_required'] = $this->notary_required->DefaultValue;
-        $row['fee_amount'] = $this->fee_amount->DefaultValue;
-        $row['approval_workflow'] = $this->approval_workflow->DefaultValue;
-        $row['template_type'] = $this->template_type->DefaultValue;
-        $row['header_text'] = $this->header_text->DefaultValue;
-        $row['footer_text'] = $this->footer_text->DefaultValue;
-        $row['preview_image_path'] = $this->preview_image_path->DefaultValue;
-        $row['is_system'] = $this->is_system->DefaultValue;
-        $row['owner_id'] = $this->owner_id->DefaultValue;
-        $row['original_template_id'] = $this->original_template_id->DefaultValue;
         return $row;
     }
 
@@ -683,191 +627,55 @@ class DocumentTemplatesDelete extends DocumentTemplates
 
         // Common render codes for all row types
 
-        // template_id
+        // token_id
 
-        // template_name
+        // user_id
 
-        // template_code
+        // token
 
-        // category_id
-
-        // description
-
-        // html_content
-
-        // is_active
+        // expires_at
 
         // created_at
 
-        // created_by
-
-        // updated_at
-
-        // updated_by
-
-        // version
-
-        // notary_required
-
-        // fee_amount
-
-        // approval_workflow
-
-        // template_type
-
-        // header_text
-
-        // footer_text
-
-        // preview_image_path
-
-        // is_system
-
-        // owner_id
-
-        // original_template_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
+            // token_id
+            $this->token_id->ViewValue = $this->token_id->CurrentValue;
 
-            // template_name
-            $this->template_name->ViewValue = $this->template_name->CurrentValue;
+            // user_id
+            $this->user_id->ViewValue = $this->user_id->CurrentValue;
+            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
 
-            // template_code
-            $this->template_code->ViewValue = $this->template_code->CurrentValue;
+            // token
+            $this->_token->ViewValue = $this->_token->CurrentValue;
 
-            // category_id
-            $this->category_id->ViewValue = $this->category_id->CurrentValue;
-            $this->category_id->ViewValue = FormatNumber($this->category_id->ViewValue, $this->category_id->formatPattern());
-
-            // is_active
-            if (ConvertToBool($this->is_active->CurrentValue)) {
-                $this->is_active->ViewValue = $this->is_active->tagCaption(1) != "" ? $this->is_active->tagCaption(1) : "Yes";
-            } else {
-                $this->is_active->ViewValue = $this->is_active->tagCaption(2) != "" ? $this->is_active->tagCaption(2) : "No";
-            }
+            // expires_at
+            $this->expires_at->ViewValue = $this->expires_at->CurrentValue;
+            $this->expires_at->ViewValue = FormatDateTime($this->expires_at->ViewValue, $this->expires_at->formatPattern());
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
             $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
 
-            // created_by
-            $this->created_by->ViewValue = $this->created_by->CurrentValue;
-            $this->created_by->ViewValue = FormatNumber($this->created_by->ViewValue, $this->created_by->formatPattern());
+            // token_id
+            $this->token_id->HrefValue = "";
+            $this->token_id->TooltipValue = "";
 
-            // updated_at
-            $this->updated_at->ViewValue = $this->updated_at->CurrentValue;
-            $this->updated_at->ViewValue = FormatDateTime($this->updated_at->ViewValue, $this->updated_at->formatPattern());
+            // user_id
+            $this->user_id->HrefValue = "";
+            $this->user_id->TooltipValue = "";
 
-            // updated_by
-            $this->updated_by->ViewValue = $this->updated_by->CurrentValue;
-            $this->updated_by->ViewValue = FormatNumber($this->updated_by->ViewValue, $this->updated_by->formatPattern());
+            // token
+            $this->_token->HrefValue = "";
+            $this->_token->TooltipValue = "";
 
-            // version
-            $this->version->ViewValue = $this->version->CurrentValue;
-            $this->version->ViewValue = FormatNumber($this->version->ViewValue, $this->version->formatPattern());
-
-            // notary_required
-            if (ConvertToBool($this->notary_required->CurrentValue)) {
-                $this->notary_required->ViewValue = $this->notary_required->tagCaption(1) != "" ? $this->notary_required->tagCaption(1) : "Yes";
-            } else {
-                $this->notary_required->ViewValue = $this->notary_required->tagCaption(2) != "" ? $this->notary_required->tagCaption(2) : "No";
-            }
-
-            // fee_amount
-            $this->fee_amount->ViewValue = $this->fee_amount->CurrentValue;
-            $this->fee_amount->ViewValue = FormatNumber($this->fee_amount->ViewValue, $this->fee_amount->formatPattern());
-
-            // template_type
-            $this->template_type->ViewValue = $this->template_type->CurrentValue;
-
-            // preview_image_path
-            $this->preview_image_path->ViewValue = $this->preview_image_path->CurrentValue;
-
-            // is_system
-            if (ConvertToBool($this->is_system->CurrentValue)) {
-                $this->is_system->ViewValue = $this->is_system->tagCaption(1) != "" ? $this->is_system->tagCaption(1) : "Yes";
-            } else {
-                $this->is_system->ViewValue = $this->is_system->tagCaption(2) != "" ? $this->is_system->tagCaption(2) : "No";
-            }
-
-            // owner_id
-            $this->owner_id->ViewValue = $this->owner_id->CurrentValue;
-            $this->owner_id->ViewValue = FormatNumber($this->owner_id->ViewValue, $this->owner_id->formatPattern());
-
-            // original_template_id
-            $this->original_template_id->ViewValue = $this->original_template_id->CurrentValue;
-            $this->original_template_id->ViewValue = FormatNumber($this->original_template_id->ViewValue, $this->original_template_id->formatPattern());
-
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
-
-            // template_name
-            $this->template_name->HrefValue = "";
-            $this->template_name->TooltipValue = "";
-
-            // template_code
-            $this->template_code->HrefValue = "";
-            $this->template_code->TooltipValue = "";
-
-            // category_id
-            $this->category_id->HrefValue = "";
-            $this->category_id->TooltipValue = "";
-
-            // is_active
-            $this->is_active->HrefValue = "";
-            $this->is_active->TooltipValue = "";
+            // expires_at
+            $this->expires_at->HrefValue = "";
+            $this->expires_at->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
             $this->created_at->TooltipValue = "";
-
-            // created_by
-            $this->created_by->HrefValue = "";
-            $this->created_by->TooltipValue = "";
-
-            // updated_at
-            $this->updated_at->HrefValue = "";
-            $this->updated_at->TooltipValue = "";
-
-            // updated_by
-            $this->updated_by->HrefValue = "";
-            $this->updated_by->TooltipValue = "";
-
-            // version
-            $this->version->HrefValue = "";
-            $this->version->TooltipValue = "";
-
-            // notary_required
-            $this->notary_required->HrefValue = "";
-            $this->notary_required->TooltipValue = "";
-
-            // fee_amount
-            $this->fee_amount->HrefValue = "";
-            $this->fee_amount->TooltipValue = "";
-
-            // template_type
-            $this->template_type->HrefValue = "";
-            $this->template_type->TooltipValue = "";
-
-            // preview_image_path
-            $this->preview_image_path->HrefValue = "";
-            $this->preview_image_path->TooltipValue = "";
-
-            // is_system
-            $this->is_system->HrefValue = "";
-            $this->is_system->TooltipValue = "";
-
-            // owner_id
-            $this->owner_id->HrefValue = "";
-            $this->owner_id->TooltipValue = "";
-
-            // original_template_id
-            $this->original_template_id->HrefValue = "";
-            $this->original_template_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -904,7 +712,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
             if ($thisKey != "") {
                 $thisKey .= Config("COMPOSITE_KEY_SEPARATOR");
             }
-            $thisKey .= $row['template_id'];
+            $thisKey .= $row['token_id'];
 
             // Call row deleting event
             $deleteRow = $this->rowDeleting($row);
@@ -981,7 +789,7 @@ class DocumentTemplatesDelete extends DocumentTemplates
         global $Breadcrumb, $Language;
         $Breadcrumb = new Breadcrumb("index");
         $url = CurrentUrl();
-        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("DocumentTemplatesList"), "", $this->TableVar, true);
+        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("RefreshTokensList"), "", $this->TableVar, true);
         $pageId = "delete";
         $Breadcrumb->add("delete", $pageId, $url);
     }
@@ -999,12 +807,6 @@ class DocumentTemplatesDelete extends DocumentTemplates
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_active":
-                    break;
-                case "x_notary_required":
-                    break;
-                case "x_is_system":
-                    break;
                 default:
                     $lookupFilter = "";
                     break;

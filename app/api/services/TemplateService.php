@@ -55,6 +55,7 @@ class TemplateService {
             // Filter parameters
             $categoryId = isset($params['category_id']) ? (int)$params['category_id'] : null;
             $search = isset($params['search']) ? trim($params['search']) : null;
+            $ownerIdFilter = isset($params['owner_id']) ? $params['owner_id'] : null;
             
             // Build WHERE clause
             $where = "dt.is_active = true";
@@ -69,6 +70,22 @@ class TemplateService {
                     dt.template_code ILIKE " . QuotedValue('%' . $search . '%', DataType::STRING) . " OR
                     tc.category_name ILIKE " . QuotedValue('%' . $search . '%', DataType::STRING) . "
                 )";
+            }
+            
+            // Apply owner_id filter if present
+            // This handles the case where we want to filter by current user's templates
+            if ($ownerIdFilter === true || $ownerIdFilter === 'true' || $ownerIdFilter === '1') {
+                // When owner_id=true, filter by current user's ID
+                // The user_id will be attached to the request by the JWT middleware
+                global $Request;
+                $userId = $Request->getAttribute('user_id');
+                
+                if ($userId) {
+                    $where .= " AND dt.owner_id = " . QuotedValue($userId, DataType::NUMBER);
+                }
+            } else if (is_numeric($ownerIdFilter)) {
+                // When owner_id is a specific user ID
+                $where .= " AND dt.owner_id = " . QuotedValue($ownerIdFilter, DataType::NUMBER);
             }
             
             // Query templates
@@ -941,6 +958,78 @@ class TemplateService {
     }
     
     /**
+     * Get templates owned by a user
+     * @param int $userId User ID
+     * @param array $params Query parameters
+     * @return array Response data
+     */
+    public function getUserOwnedTemplates($userId, $params = []) {
+        try {
+            // Pagination parameters
+            $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
+            $perPage = isset($params['per_page']) ? min(max(1, (int)$params['per_page']), 100) : 20;
+            $offset = ($page - 1) * $perPage;
+            
+            // Query user-owned templates from document_templates
+            $sql = "SELECT
+                    dt.template_id,
+                    dt.template_name,
+                    dt.template_code,
+                    dt.category_id,
+                    tc.category_name,
+                    dt.description,
+                    dt.is_active,
+                    dt.template_type,
+                    dt.fee_amount,
+                    dt.created_at,
+                    dt.updated_at,
+                    dt.is_system,
+                    dt.owner_id,
+                    dt.created_by
+                FROM
+                    document_templates dt
+                LEFT JOIN
+                    template_categories tc ON dt.category_id = tc.category_id
+                WHERE
+                    dt.owner_id = " . QuotedValue($userId, DataType::NUMBER) . "
+                ORDER BY
+                    dt.updated_at DESC
+                LIMIT " . $perPage . " OFFSET " . $offset;
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            // Get total count
+            $sqlCount = "SELECT COUNT(*) AS total FROM document_templates WHERE owner_id = " . QuotedValue($userId, DataType::NUMBER);
+            $resultCount = ExecuteRows($sqlCount, "DB");
+            $total = $resultCount[0]['total'] ?? 0;
+            
+            // Calculate pagination metadata
+            $totalPages = ceil($total / $perPage);
+            
+            // Return success response
+            return [
+                'success' => true,
+                'data' => $result,
+                'meta' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => $totalPages
+                ]
+            ];
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to get user templates: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
      * Get details of a user's saved template
      * @param int $userTemplateId User Template ID
      * @return array Response data
@@ -1380,7 +1469,8 @@ class TemplateService {
             $sql = "SELECT 
                     template_id, 
                     owner_id,
-                    is_system
+                    is_system,
+                    created_by
                 FROM 
                     document_templates 
                 WHERE 
@@ -1397,9 +1487,20 @@ class TemplateService {
             
             $template = $result[0];
             
-            // If this is a system template, only admins can edit it
-            // If this is a user template, only the owner can edit it
-            // TODO: Add proper permission checking here
+            // Check if user has permission to edit this template
+            if ($template['is_system'] && !$this->hasAdminAccess($userId)) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to edit system templates'
+                ];
+            }
+            
+            if (!$template['is_system'] && $template['owner_id'] != $userId && !$this->hasAdminAccess($userId)) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to edit this template'
+                ];
+            }
             
             // Begin transaction
             Execute("BEGIN", "DB");
@@ -1440,28 +1541,77 @@ class TemplateService {
                     $updateFields[] = "notary_required = " . ($templateData['notary_required'] ? "TRUE" : "FALSE");
                 }
                 
-                if (isset($templateData['is_system'])) {
+                if (isset($templateData['is_system']) && $this->hasAdminAccess($userId)) {
+                    // Only admin can change is_system flag
                     $updateFields[] = "is_system = " . ($templateData['is_system'] ? "TRUE" : "FALSE");
                 }
                 
-                // Skip update if no fields to update
-                if (empty($updateFields)) {
-                    Execute("COMMIT", "DB");
+                // Perform update if there are fields to update
+                if (!empty($updateFields)) {
+                    $sql = "UPDATE document_templates SET 
+                            " . implode(", ", $updateFields) . ",
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE 
+                            template_id = " . QuotedValue($templateId, DataType::NUMBER);
                     
-                    return [
-                        'success' => true,
-                        'message' => 'No changes to update'
-                    ];
+                    Execute($sql, "DB");
                 }
                 
-                // Perform update
-                $sql = "UPDATE document_templates SET 
-                        " . implode(", ", $updateFields) . ",
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE 
-                        template_id = " . QuotedValue($templateId, DataType::NUMBER);
-                
-                Execute($sql, "DB");
+                // Handle fields if they were provided
+                if (!empty($templateData['fields']) && is_array($templateData['fields'])) {
+                    // First, delete existing fields for the template
+                    $sql = "DELETE FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                    Execute($sql, "DB");
+                    
+                    // Then add the new fields
+                    foreach ($templateData['fields'] as $index => $field) {
+                        // Prepare field options
+                        $fieldOptions = null;
+                        if (!empty($field['field_options'])) {
+                            if (is_array($field['field_options'])) {
+                                $fieldOptions = json_encode($field['field_options']);
+                            } else {
+                                $fieldOptions = $field['field_options'];
+                            }
+                        }
+                        
+                        // Determine section name
+                        $sectionName = !empty($field['section_name']) ? $field['section_name'] : 'Default';
+                        
+                        // Insert the field
+                        $sql = "INSERT INTO template_fields (
+                                template_id,
+                                field_name,
+                                field_label,
+                                field_type,
+                                field_options,
+                                is_required,
+                                placeholder,
+                                default_value,
+                                field_order,
+                                validation_rules,
+                                help_text,
+                                field_width,
+                                section_name
+                            ) VALUES (
+                                " . QuotedValue($templateId, DataType::NUMBER) . ",
+                                " . QuotedValue($field['field_name'] ?? 'field_' . $index, DataType::STRING) . ",
+                                " . QuotedValue($field['field_label'] ?? 'Field ' . ($index + 1), DataType::STRING) . ",
+                                " . QuotedValue($field['field_type'] ?? 'text', DataType::STRING) . ",
+                                " . ($fieldOptions ? QuotedValue($fieldOptions, DataType::STRING) : "NULL") . ",
+                                " . (isset($field['is_required']) && $field['is_required'] ? "TRUE" : "FALSE") . ",
+                                " . QuotedValue($field['placeholder'] ?? '', DataType::STRING) . ",
+                                " . QuotedValue($field['default_value'] ?? '', DataType::STRING) . ",
+                                " . QuotedValue($index, DataType::NUMBER) . ",
+                                " . QuotedValue($field['validation_rules'] ?? '', DataType::STRING) . ",
+                                " . QuotedValue($field['help_text'] ?? '', DataType::STRING) . ",
+                                " . QuotedValue($field['field_width'] ?? 'full', DataType::STRING) . ",
+                                " . QuotedValue($sectionName, DataType::STRING) . "
+                            )";
+                        
+                        Execute($sql, "DB");
+                    }
+                }
                 
                 // Commit transaction
                 Execute("COMMIT", "DB");
@@ -1489,6 +1639,115 @@ class TemplateService {
                 'message' => 'Failed to update template: ' . $e->getMessage()
             ];
         }
+    }
+    
+    /**
+     * Delete a template
+     * @param int $userId User ID requesting the deletion
+     * @param int $templateId Template ID to delete
+     * @return array Response data
+     */
+    public function deleteTemplate($userId, $templateId) {
+        try {
+            // Check if template exists and user has permission to delete it
+            $sql = "SELECT 
+                    template_id, 
+                    owner_id,
+                    is_system,
+                    created_by,
+                    html_content
+                FROM 
+                    document_templates 
+                WHERE 
+                    template_id = " . QuotedValue($templateId, DataType::NUMBER);
+            
+            $result = ExecuteRows($sql, "DB");
+            
+            if (empty($result)) {
+                return [
+                    'success' => false,
+                    'message' => 'Template not found'
+                ];
+            }
+            
+            $template = $result[0];
+            
+            // Check if user has permission to delete this template
+            if ($template['is_system'] && !$this->hasAdminAccess($userId)) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete system templates'
+                ];
+            }
+            
+            if (!$template['is_system'] && $template['owner_id'] != $userId && !$this->hasAdminAccess($userId)) {
+                return [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete this template'
+                ];
+            }
+            
+            // Begin transaction
+            Execute("BEGIN", "DB");
+            
+            try {
+                // First check if this template is being used in user_templates (legacy)
+                $sql = "SELECT user_template_id FROM user_templates WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                $userTemplates = ExecuteRows($sql, "DB");
+                
+                // Delete related user_templates records first if any exist
+                if (!empty($userTemplates)) {
+                    $sql = "DELETE FROM user_templates WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                    Execute($sql, "DB");
+                }
+                
+                // Delete template fields
+                $sql = "DELETE FROM template_fields WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                Execute($sql, "DB");
+                
+                // Delete the template record
+                $sql = "DELETE FROM document_templates WHERE template_id = " . QuotedValue($templateId, DataType::NUMBER);
+                Execute($sql, "DB");
+                
+                // If it has a file path in html_content, delete the file
+                if (!empty($template['html_content']) && file_exists($template['html_content'])) {
+                    unlink($template['html_content']);
+                }
+                
+                // Commit transaction
+                Execute("COMMIT", "DB");
+                
+                // Return success response
+                return [
+                    'success' => true,
+                    'message' => 'Template deleted successfully'
+                ];
+            } catch (\Exception $e) {
+                // Rollback transaction on error
+                Execute("ROLLBACK", "DB");
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            // Log error
+            LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to delete template: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Helper method to check if a user has admin access
+     * @param int $userId User ID
+     * @return bool True if user has admin access, false otherwise
+     */
+    private function hasAdminAccess($userId) {
+        // TODO: Implement proper admin access checking
+        // For now, we'll assume only user ID 1 has admin access
+        return $userId == 1;
     }
     
     /**

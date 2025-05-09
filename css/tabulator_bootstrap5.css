@@ -1187,8 +1187,8 @@ body.tabulator-print-fullscreen-hide > *:not(.tabulator-print-fullscreen) {
   border-bottom-right-radius: 4px;
 }
 .tabulator .tabulator-footer .tabulator-page.active {
-  border-color: #1E3A78;
-  background-color: #1E3A78;
+  border-color: #0A3F70;
+  background-color: #0A3F70;
   color: #FFFFFF;
 }
 .tabulator .tabulator-footer .tabulator-page:disabled {
@@ -1308,7 +1308,7 @@ body.tabulator-print-fullscreen-hide > *:not(.tabulator-print-fullscreen) {
   padding: 0;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.table-primary {
-  background: #d2d8e4 !important;
+  background: #ced9e2 !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.table-secondary {
   background: #e2e3e5 !important;
@@ -1335,7 +1335,7 @@ body.tabulator-print-fullscreen-hide > *:not(.tabulator-print-fullscreen) {
   background: rgba(var(--bs-emphasis-color-rgb), 0.1) !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.bg-primary {
-  background: #d2d8e4 !important;
+  background: #ced9e2 !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.bg-secondary {
   background: #e2e3e5 !important;
@@ -1362,7 +1362,7 @@ body.tabulator-print-fullscreen-hide > *:not(.tabulator-print-fullscreen) {
   background: rgba(var(--bs-emphasis-color-rgb), 0.1) !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell.table-primary {
-  background: #d2d8e4 !important;
+  background: #ced9e2 !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell.table-secondary {
   background: #e2e3e5 !important;
@@ -1389,7 +1389,7 @@ body.tabulator-print-fullscreen-hide > *:not(.tabulator-print-fullscreen) {
   background: rgba(var(--bs-emphasis-color-rgb), 0.1) !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell.bg-primary {
-  background: #d2d8e4 !important;
+  background: #ced9e2 !important;
 }
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell.bg-secondary {
   background: #e2e3e5 !important;

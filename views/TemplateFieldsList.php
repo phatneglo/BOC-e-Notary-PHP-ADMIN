@@ -189,6 +189,9 @@ $Page->ListOptions->render("header", "left");
 <?php if ($Page->created_at->Visible) { // created_at ?>
         <th data-name="created_at" class="<?= $Page->created_at->headerCellClass() ?>"><div id="elh_template_fields_created_at" class="template_fields_created_at"><?= $Page->renderFieldHeader($Page->created_at) ?></div></th>
 <?php } ?>
+<?php if ($Page->section_id->Visible) { // section_id ?>
+        <th data-name="section_id" class="<?= $Page->section_id->headerCellClass() ?>"><div id="elh_template_fields_section_id" class="template_fields_section_id"><?= $Page->renderFieldHeader($Page->section_id) ?></div></th>
+<?php } ?>
 <?php
 // Render list options (header, right)
 $Page->ListOptions->render("header", "right");
@@ -328,6 +331,14 @@ $Page->ListOptions->render("body", "left", $Page->RowCount);
 <span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_template_fields_created_at" class="el_template_fields_created_at">
 <span<?= $Page->created_at->viewAttributes() ?>>
 <?= $Page->created_at->getViewValue() ?></span>
+</span>
+</td>
+    <?php } ?>
+    <?php if ($Page->section_id->Visible) { // section_id ?>
+        <td data-name="section_id"<?= $Page->section_id->cellAttributes() ?>>
+<span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_template_fields_section_id" class="el_template_fields_section_id">
+<span<?= $Page->section_id->viewAttributes() ?>>
+<?= $Page->section_id->getViewValue() ?></span>
 </span>
 </td>
     <?php } ?>

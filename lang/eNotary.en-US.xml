@@ -1,7 +1,10 @@
-<ew-language date="2025/5/7" id="en-US" author="e.World Technology Limited">
+<ew-language date="2025/5/9" id="en-US" author="e.World Technology Limited">
   <project>
     <phrase id="bodytitle" value="BOC - eNotary" />
     <phrase id="footertext" value="&amp;copy;2024 BOC eNotarize - ITBS Corporation. All rights reserved." />
+    <menu id="75">
+      <phrase id="menutext" value="refresh tokens" />
+    </menu>
     <menu id="9">
       <phrase id="menutext" value="Dashboard" />
     </menu>
@@ -608,6 +611,19 @@
       </field>
       <field id="preview_image_path">
         <phrase id="fldcaption" value="preview image path" />
+      </field>
+      <field id="is_system">
+        <phrase id="fldcaption" value="is system" />
+        <phrase id="fldtagvalue1" value="1" />
+        <phrase id="fldtagcaption1" value="Yes" />
+        <phrase id="fldtagvalue2" value="0" />
+        <phrase id="fldtagcaption2" value="No" />
+      </field>
+      <field id="owner_id">
+        <phrase id="fldcaption" value="owner id" />
+      </field>
+      <field id="original_template_id">
+        <phrase id="fldcaption" value="original template id" />
       </field>
     </table>
     <table id="document_verification">
@@ -1386,6 +1402,9 @@
       <field id="created_at">
         <phrase id="fldcaption" value="created at" />
       </field>
+      <field id="section_id">
+        <phrase id="fldcaption" value="section id" />
+      </field>
     </table>
     <table id="user_templates">
       <phrase id="tblcaption" value="user templates" />
@@ -1459,6 +1478,24 @@
       </field>
       <field id="browser_info">
         <phrase id="fldcaption" value="browser info" />
+      </field>
+    </table>
+    <table id="refresh_tokens">
+      <phrase id="tblcaption" value="refresh tokens" />
+      <field id="token_id">
+        <phrase id="fldcaption" value="token id" />
+      </field>
+      <field id="user_id">
+        <phrase id="fldcaption" value="user id" />
+      </field>
+      <field id="_token">
+        <phrase id="fldcaption" value="token" />
+      </field>
+      <field id="expires_at">
+        <phrase id="fldcaption" value="expires at" />
+      </field>
+      <field id="created_at">
+        <phrase id="fldcaption" value="created at" />
       </field>
     </table>
   </project>

@@ -158,6 +158,9 @@ class DocumentTemplatesView extends DocumentTemplates
         $this->header_text->setVisibility();
         $this->footer_text->setVisibility();
         $this->preview_image_path->setVisibility();
+        $this->is_system->setVisibility();
+        $this->owner_id->setVisibility();
+        $this->original_template_id->setVisibility();
     }
 
     // Constructor
@@ -561,6 +564,7 @@ class DocumentTemplatesView extends DocumentTemplates
         // Set up lookup cache
         $this->setupLookupOptions($this->is_active);
         $this->setupLookupOptions($this->notary_required);
+        $this->setupLookupOptions($this->is_system);
 
         // Check modal
         if ($this->IsModal) {
@@ -779,6 +783,9 @@ class DocumentTemplatesView extends DocumentTemplates
         $this->header_text->setDbValue($row['header_text']);
         $this->footer_text->setDbValue($row['footer_text']);
         $this->preview_image_path->setDbValue($row['preview_image_path']);
+        $this->is_system->setDbValue((ConvertToBool($row['is_system']) ? "1" : "0"));
+        $this->owner_id->setDbValue($row['owner_id']);
+        $this->original_template_id->setDbValue($row['original_template_id']);
     }
 
     // Return a row with default values
@@ -804,6 +811,9 @@ class DocumentTemplatesView extends DocumentTemplates
         $row['header_text'] = $this->header_text->DefaultValue;
         $row['footer_text'] = $this->footer_text->DefaultValue;
         $row['preview_image_path'] = $this->preview_image_path->DefaultValue;
+        $row['is_system'] = $this->is_system->DefaultValue;
+        $row['owner_id'] = $this->owner_id->DefaultValue;
+        $row['original_template_id'] = $this->original_template_id->DefaultValue;
         return $row;
     }
 
@@ -862,6 +872,12 @@ class DocumentTemplatesView extends DocumentTemplates
         // footer_text
 
         // preview_image_path
+
+        // is_system
+
+        // owner_id
+
+        // original_template_id
 
         // View row
         if ($this->RowType == RowType::VIEW) {
@@ -936,6 +952,21 @@ class DocumentTemplatesView extends DocumentTemplates
 
             // preview_image_path
             $this->preview_image_path->ViewValue = $this->preview_image_path->CurrentValue;
+
+            // is_system
+            if (ConvertToBool($this->is_system->CurrentValue)) {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(1) != "" ? $this->is_system->tagCaption(1) : "Yes";
+            } else {
+                $this->is_system->ViewValue = $this->is_system->tagCaption(2) != "" ? $this->is_system->tagCaption(2) : "No";
+            }
+
+            // owner_id
+            $this->owner_id->ViewValue = $this->owner_id->CurrentValue;
+            $this->owner_id->ViewValue = FormatNumber($this->owner_id->ViewValue, $this->owner_id->formatPattern());
+
+            // original_template_id
+            $this->original_template_id->ViewValue = $this->original_template_id->CurrentValue;
+            $this->original_template_id->ViewValue = FormatNumber($this->original_template_id->ViewValue, $this->original_template_id->formatPattern());
 
             // template_id
             $this->template_id->HrefValue = "";
@@ -1012,6 +1043,18 @@ class DocumentTemplatesView extends DocumentTemplates
             // preview_image_path
             $this->preview_image_path->HrefValue = "";
             $this->preview_image_path->TooltipValue = "";
+
+            // is_system
+            $this->is_system->HrefValue = "";
+            $this->is_system->TooltipValue = "";
+
+            // owner_id
+            $this->owner_id->HrefValue = "";
+            $this->owner_id->TooltipValue = "";
+
+            // original_template_id
+            $this->original_template_id->HrefValue = "";
+            $this->original_template_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -1047,6 +1090,8 @@ class DocumentTemplatesView extends DocumentTemplates
                 case "x_is_active":
                     break;
                 case "x_notary_required":
+                    break;
+                case "x_is_system":
                     break;
                 default:
                     $lookupFilter = "";

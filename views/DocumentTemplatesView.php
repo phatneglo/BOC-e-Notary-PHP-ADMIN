@@ -262,6 +262,40 @@ loadjs.ready("head", function () {
 </td>
     </tr>
 <?php } ?>
+<?php if ($Page->is_system->Visible) { // is_system ?>
+    <tr id="r_is_system"<?= $Page->is_system->rowAttributes() ?>>
+        <td class="<?= $Page->TableLeftColumnClass ?>"><span id="elh_document_templates_is_system"><?= $Page->is_system->caption() ?></span></td>
+        <td data-name="is_system"<?= $Page->is_system->cellAttributes() ?>>
+<span id="el_document_templates_is_system">
+<span<?= $Page->is_system->viewAttributes() ?>>
+<i class="fa-regular fa-square<?php if (ConvertToBool($Page->is_system->CurrentValue)) { ?>-check<?php } ?> ew-icon ew-boolean"></i>
+</span>
+</span>
+</td>
+    </tr>
+<?php } ?>
+<?php if ($Page->owner_id->Visible) { // owner_id ?>
+    <tr id="r_owner_id"<?= $Page->owner_id->rowAttributes() ?>>
+        <td class="<?= $Page->TableLeftColumnClass ?>"><span id="elh_document_templates_owner_id"><?= $Page->owner_id->caption() ?></span></td>
+        <td data-name="owner_id"<?= $Page->owner_id->cellAttributes() ?>>
+<span id="el_document_templates_owner_id">
+<span<?= $Page->owner_id->viewAttributes() ?>>
+<?= $Page->owner_id->getViewValue() ?></span>
+</span>
+</td>
+    </tr>
+<?php } ?>
+<?php if ($Page->original_template_id->Visible) { // original_template_id ?>
+    <tr id="r_original_template_id"<?= $Page->original_template_id->rowAttributes() ?>>
+        <td class="<?= $Page->TableLeftColumnClass ?>"><span id="elh_document_templates_original_template_id"><?= $Page->original_template_id->caption() ?></span></td>
+        <td data-name="original_template_id"<?= $Page->original_template_id->cellAttributes() ?>>
+<span id="el_document_templates_original_template_id">
+<span<?= $Page->original_template_id->viewAttributes() ?>>
+<?= $Page->original_template_id->getViewValue() ?></span>
+</span>
+</td>
+    </tr>
+<?php } ?>
 </table>
 </form>
 </main>

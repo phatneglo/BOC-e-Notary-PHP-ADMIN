@@ -40,7 +40,8 @@ loadjs.ready(["wrapper", "head"], function () {
             ["y_position", [fields.y_position.visible && fields.y_position.required ? ew.Validators.required(fields.y_position.caption) : null, ew.Validators.integer], fields.y_position.isInvalid],
             ["group_name", [fields.group_name.visible && fields.group_name.required ? ew.Validators.required(fields.group_name.caption) : null], fields.group_name.isInvalid],
             ["conditional_display", [fields.conditional_display.visible && fields.conditional_display.required ? ew.Validators.required(fields.conditional_display.caption) : null], fields.conditional_display.isInvalid],
-            ["created_at", [fields.created_at.visible && fields.created_at.required ? ew.Validators.required(fields.created_at.caption) : null, ew.Validators.datetime(fields.created_at.clientFormatPattern)], fields.created_at.isInvalid]
+            ["created_at", [fields.created_at.visible && fields.created_at.required ? ew.Validators.required(fields.created_at.caption) : null, ew.Validators.datetime(fields.created_at.clientFormatPattern)], fields.created_at.isInvalid],
+            ["section_id", [fields.section_id.visible && fields.section_id.required ? ew.Validators.required(fields.section_id.caption) : null, ew.Validators.integer], fields.section_id.isInvalid]
         ])
 
         // Form_CustomValidate
@@ -344,6 +345,18 @@ loadjs.ready(["ftemplate_fieldsadd", "datetimepicker"], function () {
 });
 </script>
 <?php } ?>
+</span>
+</div></div>
+    </div>
+<?php } ?>
+<?php if ($Page->section_id->Visible) { // section_id ?>
+    <div id="r_section_id"<?= $Page->section_id->rowAttributes() ?>>
+        <label id="elh_template_fields_section_id" for="x_section_id" class="<?= $Page->LeftColumnClass ?>"><?= $Page->section_id->caption() ?><?= $Page->section_id->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->section_id->cellAttributes() ?>>
+<span id="el_template_fields_section_id">
+<input type="<?= $Page->section_id->getInputTextType() ?>" name="x_section_id" id="x_section_id" data-table="template_fields" data-field="x_section_id" value="<?= $Page->section_id->EditValue ?>" size="30" placeholder="<?= HtmlEncode($Page->section_id->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->section_id->formatPattern()) ?>"<?= $Page->section_id->editAttributes() ?> aria-describedby="x_section_id_help">
+<?= $Page->section_id->getCustomMessage() ?>
+<div class="invalid-feedback"><?= $Page->section_id->getErrorMessage() ?></div>
 </span>
 </div></div>
     </div>

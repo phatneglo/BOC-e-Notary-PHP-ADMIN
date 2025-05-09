@@ -88,6 +88,15 @@ class DocumentTemplate extends AbstractEntity
     #[Column(name: "preview_image_path", type: "string", nullable: true)]
     private ?string $previewImagePath;
 
+    #[Column(name: "is_system", type: "boolean", nullable: true)]
+    private ?bool $isSystem;
+
+    #[Column(name: "owner_id", type: "integer", nullable: true)]
+    private ?int $ownerId;
+
+    #[Column(name: "original_template_id", type: "integer", nullable: true)]
+    private ?int $originalTemplateId;
+
     public function __construct()
     {
         $this->version = 1;
@@ -299,6 +308,39 @@ class DocumentTemplate extends AbstractEntity
     public function setPreviewImagePath(?string $value): static
     {
         $this->previewImagePath = RemoveXss($value);
+        return $this;
+    }
+
+    public function getIsSystem(): ?bool
+    {
+        return $this->isSystem;
+    }
+
+    public function setIsSystem(?bool $value): static
+    {
+        $this->isSystem = $value;
+        return $this;
+    }
+
+    public function getOwnerId(): ?int
+    {
+        return $this->ownerId;
+    }
+
+    public function setOwnerId(?int $value): static
+    {
+        $this->ownerId = $value;
+        return $this;
+    }
+
+    public function getOriginalTemplateId(): ?int
+    {
+        return $this->originalTemplateId;
+    }
+
+    public function setOriginalTemplateId(?int $value): static
+    {
+        $this->originalTemplateId = $value;
         return $this;
     }
 }

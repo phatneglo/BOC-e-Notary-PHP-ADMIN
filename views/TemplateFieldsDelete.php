@@ -92,6 +92,9 @@ $Page->showMessage();
 <?php if ($Page->created_at->Visible) { // created_at ?>
         <th class="<?= $Page->created_at->headerCellClass() ?>"><span id="elh_template_fields_created_at" class="template_fields_created_at"><?= $Page->created_at->caption() ?></span></th>
 <?php } ?>
+<?php if ($Page->section_id->Visible) { // section_id ?>
+        <th class="<?= $Page->section_id->headerCellClass() ?>"><span id="elh_template_fields_section_id" class="template_fields_section_id"><?= $Page->section_id->caption() ?></span></th>
+<?php } ?>
     </tr>
     </thead>
     <tbody>
@@ -224,6 +227,14 @@ while ($Page->fetch()) {
 <span id="">
 <span<?= $Page->created_at->viewAttributes() ?>>
 <?= $Page->created_at->getViewValue() ?></span>
+</span>
+</td>
+<?php } ?>
+<?php if ($Page->section_id->Visible) { // section_id ?>
+        <td<?= $Page->section_id->cellAttributes() ?>>
+<span id="">
+<span<?= $Page->section_id->viewAttributes() ?>>
+<?= $Page->section_id->getViewValue() ?></span>
 </span>
 </td>
 <?php } ?>

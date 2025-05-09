@@ -28,6 +28,7 @@ echo $topMenu->toScript();
 
 // Sidebar menu
 $sideMenu = new Menu("menu", true, false);
+$sideMenu->addMenuItem(75, "mi_refresh_tokens", $Language->menuPhrase("75", "MenuText"), "RefreshTokensList", -1, "", AllowListMenu('{eNotary}refresh_tokens'), false, false, "", "", false, true);
 $sideMenu->addMenuItem(9, "mi_MainDashboard", $Language->menuPhrase("9", "MenuText"), "MainDashboard", -1, "", AllowListMenu('{eNotary}MainDashboard.php'), false, false, "fas fa-tachometer-alt", "", false, true);
 $sideMenu->addMenuItem(69, "mci_DOCUMENT_MANAGEMENT", $Language->menuPhrase("69", "MenuText"), "", -1, "", true, true, true, "", "", false, true);
 $sideMenu->addMenuItem(34, "mi_template_categories", $Language->menuPhrase("34", "MenuText"), "TemplateCategoriesList", 69, "", AllowListMenu('{eNotary}template_categories'), false, false, "fas fa-folder", "", false, true);

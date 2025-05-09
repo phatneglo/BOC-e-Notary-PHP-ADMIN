@@ -275,15 +275,6 @@ ew.ready("head", [
                 <?php } ?>
             </div>
             <?php } ?>
-            <!-- SidebarSearch Form -->
-            <div class="mt-3">
-                <div class="input-group" data-widget="sidebar-search" data-not-found-text="<?= $Language->phrase("NoMenuItem") ?>">
-                    <input class="form-control form-control-sidebar" type="search" placeholder="<?= $Language->phrase("Search") ?>" aria-label="<?= $Language->phrase("Search") ?>">
-                    <button class="btn btn-sidebar">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </div>
-            </div>
             <!-- Sidebar Menu -->
             <nav id="ew-menu" class="mt-2"></nav>
             <!-- /.sidebar-menu -->

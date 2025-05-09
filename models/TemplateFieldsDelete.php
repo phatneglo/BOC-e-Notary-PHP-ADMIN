@@ -141,6 +141,7 @@ class TemplateFieldsDelete extends TemplateFields
         $this->group_name->setVisibility();
         $this->conditional_display->Visible = false;
         $this->created_at->setVisibility();
+        $this->section_id->setVisibility();
     }
 
     // Constructor
@@ -635,6 +636,7 @@ class TemplateFieldsDelete extends TemplateFields
         $this->group_name->setDbValue($row['group_name']);
         $this->conditional_display->setDbValue($row['conditional_display']);
         $this->created_at->setDbValue($row['created_at']);
+        $this->section_id->setDbValue($row['section_id']);
     }
 
     // Return a row with default values
@@ -661,6 +663,7 @@ class TemplateFieldsDelete extends TemplateFields
         $row['group_name'] = $this->group_name->DefaultValue;
         $row['conditional_display'] = $this->conditional_display->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
+        $row['section_id'] = $this->section_id->DefaultValue;
         return $row;
     }
 
@@ -715,6 +718,8 @@ class TemplateFieldsDelete extends TemplateFields
         // conditional_display
 
         // created_at
+
+        // section_id
 
         // View row
         if ($this->RowType == RowType::VIEW) {
@@ -773,6 +778,10 @@ class TemplateFieldsDelete extends TemplateFields
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
             $this->created_at->ViewValue = FormatDateTime($this->created_at->ViewValue, $this->created_at->formatPattern());
 
+            // section_id
+            $this->section_id->ViewValue = $this->section_id->CurrentValue;
+            $this->section_id->ViewValue = FormatNumber($this->section_id->ViewValue, $this->section_id->formatPattern());
+
             // field_id
             $this->field_id->HrefValue = "";
             $this->field_id->TooltipValue = "";
@@ -828,6 +837,10 @@ class TemplateFieldsDelete extends TemplateFields
             // created_at
             $this->created_at->HrefValue = "";
             $this->created_at->TooltipValue = "";
+
+            // section_id
+            $this->section_id->HrefValue = "";
+            $this->section_id->TooltipValue = "";
         }
 
         // Call Row Rendered event

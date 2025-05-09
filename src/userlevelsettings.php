@@ -93,7 +93,9 @@ $USER_LEVEL_PRIVS = [["{eNotary}audit_logs","-2","0"],
     ["{eNotary}user_templates","-2","0"],
     ["{eNotary}user_templates","0","0"],
     ["{eNotary}verification_attempts","-2","0"],
-    ["{eNotary}verification_attempts","0","0"]];
+    ["{eNotary}verification_attempts","0","0"],
+    ["{eNotary}refresh_tokens","-2","0"],
+    ["{eNotary}refresh_tokens","0","0"]];
 
 /**
  * Tables
@@ -141,4 +143,5 @@ $USER_LEVEL_TABLES = [["audit_logs","audit_logs","audit logs",false,"{eNotary}",
     ["template_categories","template_categories","template categories",true,"{eNotary}","TemplateCategoriesList"],
     ["template_fields","template_fields","template fields",true,"{eNotary}","TemplateFieldsList"],
     ["user_templates","user_templates","user templates",true,"{eNotary}","UserTemplatesList"],
-    ["verification_attempts","verification_attempts","verification attempts",true,"{eNotary}","VerificationAttemptsList"]];
+    ["verification_attempts","verification_attempts","verification attempts",true,"{eNotary}","VerificationAttemptsList"],
+    ["refresh_tokens","refresh_tokens","refresh tokens",true,"{eNotary}","RefreshTokensList"]];

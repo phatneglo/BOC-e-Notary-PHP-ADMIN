@@ -189,6 +189,15 @@ $Page->ListOptions->render("header", "left");
 <?php if ($Page->preview_image_path->Visible) { // preview_image_path ?>
         <th data-name="preview_image_path" class="<?= $Page->preview_image_path->headerCellClass() ?>"><div id="elh_document_templates_preview_image_path" class="document_templates_preview_image_path"><?= $Page->renderFieldHeader($Page->preview_image_path) ?></div></th>
 <?php } ?>
+<?php if ($Page->is_system->Visible) { // is_system ?>
+        <th data-name="is_system" class="<?= $Page->is_system->headerCellClass() ?>"><div id="elh_document_templates_is_system" class="document_templates_is_system"><?= $Page->renderFieldHeader($Page->is_system) ?></div></th>
+<?php } ?>
+<?php if ($Page->owner_id->Visible) { // owner_id ?>
+        <th data-name="owner_id" class="<?= $Page->owner_id->headerCellClass() ?>"><div id="elh_document_templates_owner_id" class="document_templates_owner_id"><?= $Page->renderFieldHeader($Page->owner_id) ?></div></th>
+<?php } ?>
+<?php if ($Page->original_template_id->Visible) { // original_template_id ?>
+        <th data-name="original_template_id" class="<?= $Page->original_template_id->headerCellClass() ?>"><div id="elh_document_templates_original_template_id" class="document_templates_original_template_id"><?= $Page->renderFieldHeader($Page->original_template_id) ?></div></th>
+<?php } ?>
 <?php
 // Render list options (header, right)
 $Page->ListOptions->render("header", "right");
@@ -328,6 +337,31 @@ $Page->ListOptions->render("body", "left", $Page->RowCount);
 <span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_document_templates_preview_image_path" class="el_document_templates_preview_image_path">
 <span<?= $Page->preview_image_path->viewAttributes() ?>>
 <?= $Page->preview_image_path->getViewValue() ?></span>
+</span>
+</td>
+    <?php } ?>
+    <?php if ($Page->is_system->Visible) { // is_system ?>
+        <td data-name="is_system"<?= $Page->is_system->cellAttributes() ?>>
+<span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_document_templates_is_system" class="el_document_templates_is_system">
+<span<?= $Page->is_system->viewAttributes() ?>>
+<i class="fa-regular fa-square<?php if (ConvertToBool($Page->is_system->CurrentValue)) { ?>-check<?php } ?> ew-icon ew-boolean"></i>
+</span>
+</span>
+</td>
+    <?php } ?>
+    <?php if ($Page->owner_id->Visible) { // owner_id ?>
+        <td data-name="owner_id"<?= $Page->owner_id->cellAttributes() ?>>
+<span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_document_templates_owner_id" class="el_document_templates_owner_id">
+<span<?= $Page->owner_id->viewAttributes() ?>>
+<?= $Page->owner_id->getViewValue() ?></span>
+</span>
+</td>
+    <?php } ?>
+    <?php if ($Page->original_template_id->Visible) { // original_template_id ?>
+        <td data-name="original_template_id"<?= $Page->original_template_id->cellAttributes() ?>>
+<span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_document_templates_original_template_id" class="el_document_templates_original_template_id">
+<span<?= $Page->original_template_id->viewAttributes() ?>>
+<?= $Page->original_template_id->getViewValue() ?></span>
 </span>
 </td>
     <?php } ?>
