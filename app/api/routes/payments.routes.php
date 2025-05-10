@@ -3,6 +3,53 @@
 namespace PHPMaker2024\eNotary;
 
 /**
+ * @api {get} /payments/test-maya Test Maya API
+ * @apiName TestMaya
+ * @apiGroup Payments
+ */
+$app->get("/payments/test-maya", function ($request, $response, $args) {
+    // Create a Maya Payment Service instance
+    $service = new MayaPaymentService();
+    
+    // Log the test
+    LogError('Running Maya API test');
+    
+    // Get the current URL base
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
+    LogError('Base URL: ' . $baseUrl);
+    
+    // Test data
+    $testData = [
+        'amount' => 100.00,
+        'currency' => 'PHP',
+        'description' => 'E-Notary Test Payment',
+        'requestReferenceNumber' => 'TEST' . time(),
+        'successUrl' => $baseUrl . 'payments/success?test=1',
+        'failureUrl' => $baseUrl . 'payments/failure?test=1',
+        'cancelUrl' => $baseUrl . 'payments/cancel?test=1',
+        'metadata' => [
+            'transaction_id' => 'TEST' . time(),
+        ],
+        'buyer' => [
+            'firstName' => 'Test',
+            'middleName' => '',
+            'lastName' => 'User',
+            'contact' => [
+                'email' => 'test@example.com',
+                'phone' => '09123456789'
+            ]
+        ]
+    ];
+    
+    // Call the Maya API
+    $result = $service->createCheckout($testData);
+    
+    // Return the result
+    return $response->withJson($result);
+});
+
+/**
  * @api {get} /payments/methods Get payment methods
  * @apiName GetPaymentMethods
  * @apiGroup Payments

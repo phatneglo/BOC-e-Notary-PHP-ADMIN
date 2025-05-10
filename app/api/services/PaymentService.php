@@ -324,10 +324,21 @@ class PaymentService {
                         $mayaService = new MayaPaymentService();
                         
                         // Construct the base URL for redirection
-                        $baseUrl = Config("BASE_URL");
+                        $baseUrl = '';
+                        if (function_exists('Config')) {
+                            $baseUrl = Config("BASE_URL");
+                        } else {
+                            // Fallback method to get base URL
+                            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+                            $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
+                        }
+                        
                         if (substr($baseUrl, -1) !== '/') {
                             $baseUrl .= '/';
                         }
+                        
+                        // Log the Base URL we're using
+                        LogError('Base URL for redirects: ' . $baseUrl);
                         
                         // Payment details for Maya
                         $mayaPaymentData = [
@@ -355,9 +366,11 @@ class PaymentService {
                             ]
                         ];
                         
+                        LogError('Calling Maya API with data: ' . json_encode($mayaPaymentData));
                         $mayaResponse = $mayaService->createCheckout($mayaPaymentData);
+                        LogError('Maya API response: ' . json_encode($mayaResponse));
                         
-                        if ($mayaResponse['success']) {
+                        if ($mayaResponse['success'] && isset($mayaResponse['data']['paymentUrl'])) {
                             // Update transaction with Maya checkout ID
                             $sql = "UPDATE payment_transactions SET
                                     gateway_reference = " . QuotedValue($mayaResponse['data']['checkoutId'], DataType::STRING) . "
@@ -367,9 +380,12 @@ class PaymentService {
                             
                             // Add Maya payment URL to response
                             $paymentResponse['payment_url'] = $mayaResponse['data']['paymentUrl'];
+                            LogError('Setting payment_url: ' . $mayaResponse['data']['paymentUrl']);
                         } else {
-                            // Log error and continue without redirection
+                            // Log error and THROW EXCEPTION to rollback transaction
                             LogError('Maya payment error: ' . json_encode($mayaResponse));
+                            throw new \Exception('Failed to create Maya payment checkout: ' . 
+                                  ($mayaResponse['message'] ?? 'Connection error to payment gateway'));
                         }
                         break;
                         

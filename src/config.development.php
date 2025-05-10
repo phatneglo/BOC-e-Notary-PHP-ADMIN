@@ -39,6 +39,6 @@ return [
     ],
     "UPLOAD_TEMP_PATH" => "D:/Projects/BOC/e-Notarize/public/temp_uploads/", // Upload temp path (absolute local physical path)
     "UPLOAD_TEMP_HREF_PATH" => "//boc-enotary.local/temp_uploads/", // Upload temp href path (absolute URL path for download)
-    "UPLOAD_DEST_PATH" => "s3://pg-itbs-dev/BOC-ENOTARY/" // Upload destination path (relative to app root)
-
+    "UPLOAD_DEST_PATH" => "s3://pg-itbs-dev/BOC-ENOTARY/", // Upload destination path (relative to app root)
+    "BASE_URL" => "http://localhost:9000/", // Base URL (absolute URL path for download)
 ];

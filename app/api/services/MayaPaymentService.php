@@ -17,14 +17,15 @@ class MayaPaymentService {
         
         // Set API keys based on environment
         if ($this->isProduction) {
-            $this->publicKey = "YOUR_PRODUCTION_PUBLIC_KEY"; // Replace with actual production key
-            $this->secretKey = "YOUR_PRODUCTION_SECRET_KEY"; // Replace with actual production key
-            $this->baseUrl = "https://pg.maya.ph/payments/v1";
+        $this->publicKey = "YOUR_PRODUCTION_PUBLIC_KEY"; // Replace with actual production key
+        $this->secretKey = "YOUR_PRODUCTION_SECRET_KEY"; // Replace with actual production key
+        $this->baseUrl = "https://pg.maya.ph/payments/v1";
         } else {
-            $this->publicKey = "pk-Z0OSzLvIcOI2UIvDhdTGVVfRSSeiGStnceqwUE7n0Ah"; // Sandbox public key
-            $this->secretKey = "sk-X8xZ21CcTPLlb1mrquhJOEpGXvFQJ5qqAVIIiKPTZQQ"; // Sandbox secret key
+        // These are updated test/sandbox keys for Maya - replace with your own correct sandbox keys
+        $this->publicKey = "pk-MOfNKu3FmHMVHtjyjG7vhr7vFAiSQC0ysUYV0VHVFVd"; // Sandbox public key
+        $this->secretKey = "sk-NMda608qF64Ey3UJE9GVK5e8W6WsbfNtAj2UrxJYWSb"; // Sandbox secret key
             $this->baseUrl = "https://pg-sandbox.paymaya.com/payments/v1";
-        }
+            }
     }
     
     /**
@@ -46,8 +47,32 @@ class MayaPaymentService {
                 ];
             }
             
+            // Get base URL for redirects
+            $baseUrl = '';
+            if (function_exists('Config')) {
+                $baseUrl = Config("BASE_URL");
+            } else {
+                // Fallback method to get base URL
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+                $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
+            }
+            
+            // Ensure the baseUrl ends with a slash
+            if (substr($baseUrl, -1) !== '/') {
+                $baseUrl .= '/';
+            }
+            
+            // Log the base URL for debugging
+            LogError('Maya API Base URL for redirects: ' . $baseUrl);
+            
             // Format amount correctly (Maya expects string with 2 decimal places)
             $amount = number_format((float)$paymentData['amount'], 2, '.', '');
+            
+            // Get transaction ID from metadata if available
+            $transactionId = '';
+            if (!empty($paymentData['metadata']) && !empty($paymentData['metadata']['transaction_id'])) {
+                $transactionId = $paymentData['metadata']['transaction_id'];
+            }
             
             // Build checkout request body
             $checkoutData = [
@@ -57,9 +82,9 @@ class MayaPaymentService {
                 ],
                 'requestReferenceNumber' => $paymentData['requestReferenceNumber'],
                 'redirectUrl' => [
-                    'success' => $paymentData['successUrl'] ?? Config("BASE_URL") . "payments/success", 
-                    'failure' => $paymentData['failureUrl'] ?? Config("BASE_URL") . "payments/failure",
-                    'cancel' => $paymentData['cancelUrl'] ?? Config("BASE_URL") . "payments/cancel"
+                    'success' => $paymentData['successUrl'] ?? $baseUrl . "payments/success" . ($transactionId ? "?transaction_id=" . $transactionId : ""), 
+                    'failure' => $paymentData['failureUrl'] ?? $baseUrl . "payments/failure" . ($transactionId ? "?transaction_id=" . $transactionId : ""),
+                    'cancel' => $paymentData['cancelUrl'] ?? $baseUrl . "payments/cancel" . ($transactionId ? "?transaction_id=" . $transactionId : "")
                 ],
                 'items' => [
                     [
@@ -299,6 +324,11 @@ class MayaPaymentService {
      * @return array Response data
      */
     private function sendApiRequest($endpoint, $method = 'GET', $data = null) {
+        // Log request data for debugging
+        if ($data) {
+            LogError('Maya API Request: ' . $this->baseUrl . $endpoint . ' - ' . json_encode($data));
+        }
+        
         // Initialize cURL session
         $curl = curl_init();
         
@@ -306,6 +336,8 @@ class MayaPaymentService {
         curl_setopt($curl, CURLOPT_URL, $this->baseUrl . $endpoint);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); // Disable SSL verification for testing
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);     // Disable host verification for testing
         
         // Set HTTP method
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
@@ -330,8 +362,12 @@ class MayaPaymentService {
         if ($response === false) {
             $error = curl_error($curl);
             curl_close($curl);
+            LogError('Maya API cURL Error: ' . $error);
             throw new \Exception('cURL error: ' . $error);
         }
+        
+        // Log response for debugging
+        LogError('Maya API Response: ' . $response . ' (HTTP ' . $httpCode . ')');
         
         // Close cURL session
         curl_close($curl);
