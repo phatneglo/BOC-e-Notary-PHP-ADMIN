@@ -492,7 +492,7 @@ class NotarizedDocumentService {
             $sql = "SELECT
                     COUNT(*) AS total_scans,
                     COUNT(DISTINCT ip_address) AS unique_scans,
-                    MAX(created_at) AS last_scan
+                    MAX(verification_date) AS last_scan
                 FROM
                     verification_attempts
                 WHERE

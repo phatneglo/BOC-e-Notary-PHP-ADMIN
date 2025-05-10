@@ -694,7 +694,7 @@ class QrCodeService {
                         AND dv.keycode = " . QuotedValue($keycode, DataType::STRING);
             
             $result = ExecuteRows($sql, "DB");
-            
+            Log("Verfify Document" . json_encode($result));
             // No verification found
             if (empty($result)) {
                 // Record failed attempt
@@ -856,26 +856,27 @@ class QrCodeService {
         try {
             // Insert verification attempt record
             $sql = "INSERT INTO verification_attempts (
-                        verification_id,
-                        document_number,
-                        keycode,
-                        ip_address,
-                        user_agent,
-                        verification_date,
-                        is_successful,
-                        failure_reason
-                    ) VALUES (
-                        " . ($verificationId ? QuotedValue($verificationId, DataType::NUMBER) : "NULL") . ",
-                        " . QuotedValue($documentNumber, DataType::STRING) . ",
-                        " . QuotedValue($keycode, DataType::STRING) . ",
-                        " . QuotedValue($ipAddress, DataType::STRING) . ",
-                        " . QuotedValue($userAgent, DataType::STRING) . ",
-                        NOW(),
-                        " . ($isSuccessful ? "1" : "0") . ",
-                        " . QuotedValue($failureReason, DataType::STRING) . "
-                    )";
-            
+                    verification_id,
+                    document_number,
+                    keycode,
+                    ip_address,
+                    user_agent,
+                    verification_date,
+                    is_successful,
+                    failure_reason
+                ) VALUES (
+                    " . ($verificationId ? QuotedValue($verificationId, DataType::NUMBER) : "NULL") . ",
+                    " . QuotedValue($documentNumber, DataType::STRING) . ",
+                    " . QuotedValue($keycode, DataType::STRING) . ",
+                    " . QuotedValue($ipAddress, DataType::STRING) . ",
+                    " . QuotedValue($userAgent, DataType::STRING) . ",
+                    NOW(),
+                    " . QuotedValue($isSuccessful, DataType::BOOLEAN) . ", 
+                    " . QuotedValue($failureReason, DataType::STRING) . "
+                )";
+        
             Execute($sql, "DB");
+
             
             // If verification ID exists and attempt failed, update failed attempts count
             if ($verificationId && !$isSuccessful) {
