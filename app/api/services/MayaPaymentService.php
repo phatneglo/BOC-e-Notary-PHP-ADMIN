@@ -22,8 +22,8 @@ class MayaPaymentService {
             $this->baseUrl = "https://pg.maya.ph/checkout/v1";
         } else {
         // These are updated test/sandbox keys for Maya - replace with your own correct sandbox keys
-            $this->publicKey = "pk-Z0OSzLvIcOI2UIvDhdTGVVfRSSeiGStnceqwUE7n0Ah"; // Sandbox public key from docs
-            $this->secretKey = "sk-X8qolYjy62kIzEbr0QRK1h4b4KDVHaNcwMYk39jInSl"; // Sandbox secret key from docs
+            $this->publicKey = "pk-lNAUk1jk7VPnf7koOT1uoGJoZJjmAxrbjpj6urB8EIA"; // Sandbox public key from docs
+            $this->secretKey = "pk-yaj6GVzYkce52R193RIWpuRR5tTZKqzBWsUeCkP9EAf"; // Sandbox secret key from docs
             $this->baseUrl = "https://pg-sandbox.paymaya.com/checkout/v1";
         }
     }
