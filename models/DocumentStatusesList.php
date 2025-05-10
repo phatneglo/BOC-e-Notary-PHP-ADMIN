@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class DocumentsList extends Documents
+class DocumentStatusesList extends DocumentStatuses
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class DocumentsList extends Documents
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "DocumentsList";
+    public $PageObjName = "DocumentStatusesList";
 
     // View file path
     public $View = null;
@@ -38,13 +38,13 @@ class DocumentsList extends Documents
     public $RenderingView = false;
 
     // Grid form hidden field names
-    public $FormName = "fdocumentslist";
+    public $FormName = "fdocument_statuseslist";
     public $FormActionName = "";
     public $FormBlankRowName = "";
     public $FormKeyCountName = "";
 
     // CSS class/style
-    public $CurrentPageName = "DocumentsList";
+    public $CurrentPageName = "DocumentStatusesList";
 
     // Page URLs
     public $AddUrl;
@@ -145,27 +145,13 @@ class DocumentsList extends Documents
     // Set field visibility
     public function setVisibility()
     {
-        $this->document_id->setVisibility();
-        $this->user_id->setVisibility();
-        $this->template_id->setVisibility();
-        $this->document_title->setVisibility();
-        $this->document_reference->setVisibility();
-        $this->status->setVisibility();
+        $this->status_id->setVisibility();
+        $this->status_code->setVisibility();
+        $this->status_name->setVisibility();
+        $this->description->Visible = false;
+        $this->is_active->setVisibility();
         $this->created_at->setVisibility();
         $this->updated_at->setVisibility();
-        $this->submitted_at->setVisibility();
-        $this->company_name->setVisibility();
-        $this->customs_entry_number->setVisibility();
-        $this->date_of_entry->setVisibility();
-        $this->document_html->Visible = false;
-        $this->document_data->Visible = false;
-        $this->is_deleted->setVisibility();
-        $this->deletion_date->setVisibility();
-        $this->deleted_by->setVisibility();
-        $this->parent_document_id->setVisibility();
-        $this->version->setVisibility();
-        $this->notes->Visible = false;
-        $this->status_id->setVisibility();
     }
 
     // Constructor
@@ -176,8 +162,8 @@ class DocumentsList extends Documents
         $this->FormActionName = Config("FORM_ROW_ACTION_NAME");
         $this->FormBlankRowName = Config("FORM_BLANK_ROW_NAME");
         $this->FormKeyCountName = Config("FORM_KEY_COUNT_NAME");
-        $this->TableVar = 'documents';
-        $this->TableName = 'documents';
+        $this->TableVar = 'document_statuses';
+        $this->TableName = 'document_statuses';
 
         // Table CSS class
         $this->TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -197,26 +183,26 @@ class DocumentsList extends Documents
         // Language object
         $Language = Container("app.language");
 
-        // Table object (documents)
-        if (!isset($GLOBALS["documents"]) || $GLOBALS["documents"]::class == PROJECT_NAMESPACE . "documents") {
-            $GLOBALS["documents"] = &$this;
+        // Table object (document_statuses)
+        if (!isset($GLOBALS["document_statuses"]) || $GLOBALS["document_statuses"]::class == PROJECT_NAMESPACE . "document_statuses") {
+            $GLOBALS["document_statuses"] = &$this;
         }
 
         // Page URL
         $pageUrl = $this->pageUrl(false);
 
         // Initialize URLs
-        $this->AddUrl = "DocumentsAdd";
+        $this->AddUrl = "DocumentStatusesAdd";
         $this->InlineAddUrl = $pageUrl . "action=add";
         $this->GridAddUrl = $pageUrl . "action=gridadd";
         $this->GridEditUrl = $pageUrl . "action=gridedit";
         $this->MultiEditUrl = $pageUrl . "action=multiedit";
-        $this->MultiDeleteUrl = "DocumentsDelete";
-        $this->MultiUpdateUrl = "DocumentsUpdate";
+        $this->MultiDeleteUrl = "DocumentStatusesDelete";
+        $this->MultiUpdateUrl = "DocumentStatusesUpdate";
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'documents');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'document_statuses');
         }
 
         // Start timer
@@ -367,7 +353,7 @@ class DocumentsList extends Documents
                 $result = ["url" => GetUrl($url), "modal" => "1"];  // Assume return to modal for simplicity
                 if (!SameString($pageName, GetPageName($this->getListUrl()))) { // Not List page
                     $result["caption"] = $this->getModalCaption($pageName);
-                    $result["view"] = SameString($pageName, "DocumentsView"); // If View page, no primary button
+                    $result["view"] = SameString($pageName, "DocumentStatusesView"); // If View page, no primary button
                 } else { // List page
                     $result["error"] = $this->getFailureMessage(); // List page should not be shown as modal => error
                     $this->clearFailureMessage();
@@ -458,7 +444,7 @@ class DocumentsList extends Documents
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['document_id'];
+            $key .= @$ar['status_id'];
         }
         return $key;
     }
@@ -471,7 +457,7 @@ class DocumentsList extends Documents
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->document_id->Visible = false;
+            $this->status_id->Visible = false;
         }
     }
 
@@ -719,11 +705,11 @@ class DocumentsList extends Documents
         $this->setupOtherOptions();
 
         // Set up lookup cache
-        $this->setupLookupOptions($this->is_deleted);
+        $this->setupLookupOptions($this->is_active);
 
         // Update form name to avoid conflict
         if ($this->IsModal) {
-            $this->FormName = "fdocumentsgrid";
+            $this->FormName = "fdocument_statusesgrid";
         }
 
         // Set up page action
@@ -1060,29 +1046,15 @@ class DocumentsList extends Documents
 
         // Load server side filters
         if (Config("SEARCH_FILTER_OPTION") == "Server") {
-            $savedFilterList = Profile()->getSearchFilters("fdocumentssrch");
+            $savedFilterList = Profile()->getSearchFilters("fdocument_statusessrch");
         }
-        $filterList = Concat($filterList, $this->document_id->AdvancedSearch->toJson(), ","); // Field document_id
-        $filterList = Concat($filterList, $this->user_id->AdvancedSearch->toJson(), ","); // Field user_id
-        $filterList = Concat($filterList, $this->template_id->AdvancedSearch->toJson(), ","); // Field template_id
-        $filterList = Concat($filterList, $this->document_title->AdvancedSearch->toJson(), ","); // Field document_title
-        $filterList = Concat($filterList, $this->document_reference->AdvancedSearch->toJson(), ","); // Field document_reference
-        $filterList = Concat($filterList, $this->status->AdvancedSearch->toJson(), ","); // Field status
+        $filterList = Concat($filterList, $this->status_id->AdvancedSearch->toJson(), ","); // Field status_id
+        $filterList = Concat($filterList, $this->status_code->AdvancedSearch->toJson(), ","); // Field status_code
+        $filterList = Concat($filterList, $this->status_name->AdvancedSearch->toJson(), ","); // Field status_name
+        $filterList = Concat($filterList, $this->description->AdvancedSearch->toJson(), ","); // Field description
+        $filterList = Concat($filterList, $this->is_active->AdvancedSearch->toJson(), ","); // Field is_active
         $filterList = Concat($filterList, $this->created_at->AdvancedSearch->toJson(), ","); // Field created_at
         $filterList = Concat($filterList, $this->updated_at->AdvancedSearch->toJson(), ","); // Field updated_at
-        $filterList = Concat($filterList, $this->submitted_at->AdvancedSearch->toJson(), ","); // Field submitted_at
-        $filterList = Concat($filterList, $this->company_name->AdvancedSearch->toJson(), ","); // Field company_name
-        $filterList = Concat($filterList, $this->customs_entry_number->AdvancedSearch->toJson(), ","); // Field customs_entry_number
-        $filterList = Concat($filterList, $this->date_of_entry->AdvancedSearch->toJson(), ","); // Field date_of_entry
-        $filterList = Concat($filterList, $this->document_html->AdvancedSearch->toJson(), ","); // Field document_html
-        $filterList = Concat($filterList, $this->document_data->AdvancedSearch->toJson(), ","); // Field document_data
-        $filterList = Concat($filterList, $this->is_deleted->AdvancedSearch->toJson(), ","); // Field is_deleted
-        $filterList = Concat($filterList, $this->deletion_date->AdvancedSearch->toJson(), ","); // Field deletion_date
-        $filterList = Concat($filterList, $this->deleted_by->AdvancedSearch->toJson(), ","); // Field deleted_by
-        $filterList = Concat($filterList, $this->parent_document_id->AdvancedSearch->toJson(), ","); // Field parent_document_id
-        $filterList = Concat($filterList, $this->version->AdvancedSearch->toJson(), ","); // Field version
-        $filterList = Concat($filterList, $this->notes->AdvancedSearch->toJson(), ","); // Field notes
-        $filterList = Concat($filterList, $this->status_id->AdvancedSearch->toJson(), ","); // Field status_id
         if ($this->BasicSearch->Keyword != "") {
             $wrk = "\"" . Config("TABLE_BASIC_SEARCH") . "\":\"" . JsEncode($this->BasicSearch->Keyword) . "\",\"" . Config("TABLE_BASIC_SEARCH_TYPE") . "\":\"" . JsEncode($this->BasicSearch->Type) . "\"";
             $filterList = Concat($filterList, $wrk, ",");
@@ -1103,7 +1075,7 @@ class DocumentsList extends Documents
     {
         if (Post("ajax") == "savefilters") { // Save filter request (Ajax)
             $filters = Post("filters");
-            Profile()->setSearchFilters("fdocumentssrch", $filters);
+            Profile()->setSearchFilters("fdocument_statusessrch", $filters);
             WriteJson([["success" => true]]); // Success
             return true;
         } elseif (Post("cmd") == "resetfilter") {
@@ -1122,53 +1094,45 @@ class DocumentsList extends Documents
         $filter = json_decode(Post("filter"), true);
         $this->Command = "search";
 
-        // Field document_id
-        $this->document_id->AdvancedSearch->SearchValue = @$filter["x_document_id"];
-        $this->document_id->AdvancedSearch->SearchOperator = @$filter["z_document_id"];
-        $this->document_id->AdvancedSearch->SearchCondition = @$filter["v_document_id"];
-        $this->document_id->AdvancedSearch->SearchValue2 = @$filter["y_document_id"];
-        $this->document_id->AdvancedSearch->SearchOperator2 = @$filter["w_document_id"];
-        $this->document_id->AdvancedSearch->save();
+        // Field status_id
+        $this->status_id->AdvancedSearch->SearchValue = @$filter["x_status_id"];
+        $this->status_id->AdvancedSearch->SearchOperator = @$filter["z_status_id"];
+        $this->status_id->AdvancedSearch->SearchCondition = @$filter["v_status_id"];
+        $this->status_id->AdvancedSearch->SearchValue2 = @$filter["y_status_id"];
+        $this->status_id->AdvancedSearch->SearchOperator2 = @$filter["w_status_id"];
+        $this->status_id->AdvancedSearch->save();
 
-        // Field user_id
-        $this->user_id->AdvancedSearch->SearchValue = @$filter["x_user_id"];
-        $this->user_id->AdvancedSearch->SearchOperator = @$filter["z_user_id"];
-        $this->user_id->AdvancedSearch->SearchCondition = @$filter["v_user_id"];
-        $this->user_id->AdvancedSearch->SearchValue2 = @$filter["y_user_id"];
-        $this->user_id->AdvancedSearch->SearchOperator2 = @$filter["w_user_id"];
-        $this->user_id->AdvancedSearch->save();
+        // Field status_code
+        $this->status_code->AdvancedSearch->SearchValue = @$filter["x_status_code"];
+        $this->status_code->AdvancedSearch->SearchOperator = @$filter["z_status_code"];
+        $this->status_code->AdvancedSearch->SearchCondition = @$filter["v_status_code"];
+        $this->status_code->AdvancedSearch->SearchValue2 = @$filter["y_status_code"];
+        $this->status_code->AdvancedSearch->SearchOperator2 = @$filter["w_status_code"];
+        $this->status_code->AdvancedSearch->save();
 
-        // Field template_id
-        $this->template_id->AdvancedSearch->SearchValue = @$filter["x_template_id"];
-        $this->template_id->AdvancedSearch->SearchOperator = @$filter["z_template_id"];
-        $this->template_id->AdvancedSearch->SearchCondition = @$filter["v_template_id"];
-        $this->template_id->AdvancedSearch->SearchValue2 = @$filter["y_template_id"];
-        $this->template_id->AdvancedSearch->SearchOperator2 = @$filter["w_template_id"];
-        $this->template_id->AdvancedSearch->save();
+        // Field status_name
+        $this->status_name->AdvancedSearch->SearchValue = @$filter["x_status_name"];
+        $this->status_name->AdvancedSearch->SearchOperator = @$filter["z_status_name"];
+        $this->status_name->AdvancedSearch->SearchCondition = @$filter["v_status_name"];
+        $this->status_name->AdvancedSearch->SearchValue2 = @$filter["y_status_name"];
+        $this->status_name->AdvancedSearch->SearchOperator2 = @$filter["w_status_name"];
+        $this->status_name->AdvancedSearch->save();
 
-        // Field document_title
-        $this->document_title->AdvancedSearch->SearchValue = @$filter["x_document_title"];
-        $this->document_title->AdvancedSearch->SearchOperator = @$filter["z_document_title"];
-        $this->document_title->AdvancedSearch->SearchCondition = @$filter["v_document_title"];
-        $this->document_title->AdvancedSearch->SearchValue2 = @$filter["y_document_title"];
-        $this->document_title->AdvancedSearch->SearchOperator2 = @$filter["w_document_title"];
-        $this->document_title->AdvancedSearch->save();
+        // Field description
+        $this->description->AdvancedSearch->SearchValue = @$filter["x_description"];
+        $this->description->AdvancedSearch->SearchOperator = @$filter["z_description"];
+        $this->description->AdvancedSearch->SearchCondition = @$filter["v_description"];
+        $this->description->AdvancedSearch->SearchValue2 = @$filter["y_description"];
+        $this->description->AdvancedSearch->SearchOperator2 = @$filter["w_description"];
+        $this->description->AdvancedSearch->save();
 
-        // Field document_reference
-        $this->document_reference->AdvancedSearch->SearchValue = @$filter["x_document_reference"];
-        $this->document_reference->AdvancedSearch->SearchOperator = @$filter["z_document_reference"];
-        $this->document_reference->AdvancedSearch->SearchCondition = @$filter["v_document_reference"];
-        $this->document_reference->AdvancedSearch->SearchValue2 = @$filter["y_document_reference"];
-        $this->document_reference->AdvancedSearch->SearchOperator2 = @$filter["w_document_reference"];
-        $this->document_reference->AdvancedSearch->save();
-
-        // Field status
-        $this->status->AdvancedSearch->SearchValue = @$filter["x_status"];
-        $this->status->AdvancedSearch->SearchOperator = @$filter["z_status"];
-        $this->status->AdvancedSearch->SearchCondition = @$filter["v_status"];
-        $this->status->AdvancedSearch->SearchValue2 = @$filter["y_status"];
-        $this->status->AdvancedSearch->SearchOperator2 = @$filter["w_status"];
-        $this->status->AdvancedSearch->save();
+        // Field is_active
+        $this->is_active->AdvancedSearch->SearchValue = @$filter["x_is_active"];
+        $this->is_active->AdvancedSearch->SearchOperator = @$filter["z_is_active"];
+        $this->is_active->AdvancedSearch->SearchCondition = @$filter["v_is_active"];
+        $this->is_active->AdvancedSearch->SearchValue2 = @$filter["y_is_active"];
+        $this->is_active->AdvancedSearch->SearchOperator2 = @$filter["w_is_active"];
+        $this->is_active->AdvancedSearch->save();
 
         // Field created_at
         $this->created_at->AdvancedSearch->SearchValue = @$filter["x_created_at"];
@@ -1185,110 +1149,6 @@ class DocumentsList extends Documents
         $this->updated_at->AdvancedSearch->SearchValue2 = @$filter["y_updated_at"];
         $this->updated_at->AdvancedSearch->SearchOperator2 = @$filter["w_updated_at"];
         $this->updated_at->AdvancedSearch->save();
-
-        // Field submitted_at
-        $this->submitted_at->AdvancedSearch->SearchValue = @$filter["x_submitted_at"];
-        $this->submitted_at->AdvancedSearch->SearchOperator = @$filter["z_submitted_at"];
-        $this->submitted_at->AdvancedSearch->SearchCondition = @$filter["v_submitted_at"];
-        $this->submitted_at->AdvancedSearch->SearchValue2 = @$filter["y_submitted_at"];
-        $this->submitted_at->AdvancedSearch->SearchOperator2 = @$filter["w_submitted_at"];
-        $this->submitted_at->AdvancedSearch->save();
-
-        // Field company_name
-        $this->company_name->AdvancedSearch->SearchValue = @$filter["x_company_name"];
-        $this->company_name->AdvancedSearch->SearchOperator = @$filter["z_company_name"];
-        $this->company_name->AdvancedSearch->SearchCondition = @$filter["v_company_name"];
-        $this->company_name->AdvancedSearch->SearchValue2 = @$filter["y_company_name"];
-        $this->company_name->AdvancedSearch->SearchOperator2 = @$filter["w_company_name"];
-        $this->company_name->AdvancedSearch->save();
-
-        // Field customs_entry_number
-        $this->customs_entry_number->AdvancedSearch->SearchValue = @$filter["x_customs_entry_number"];
-        $this->customs_entry_number->AdvancedSearch->SearchOperator = @$filter["z_customs_entry_number"];
-        $this->customs_entry_number->AdvancedSearch->SearchCondition = @$filter["v_customs_entry_number"];
-        $this->customs_entry_number->AdvancedSearch->SearchValue2 = @$filter["y_customs_entry_number"];
-        $this->customs_entry_number->AdvancedSearch->SearchOperator2 = @$filter["w_customs_entry_number"];
-        $this->customs_entry_number->AdvancedSearch->save();
-
-        // Field date_of_entry
-        $this->date_of_entry->AdvancedSearch->SearchValue = @$filter["x_date_of_entry"];
-        $this->date_of_entry->AdvancedSearch->SearchOperator = @$filter["z_date_of_entry"];
-        $this->date_of_entry->AdvancedSearch->SearchCondition = @$filter["v_date_of_entry"];
-        $this->date_of_entry->AdvancedSearch->SearchValue2 = @$filter["y_date_of_entry"];
-        $this->date_of_entry->AdvancedSearch->SearchOperator2 = @$filter["w_date_of_entry"];
-        $this->date_of_entry->AdvancedSearch->save();
-
-        // Field document_html
-        $this->document_html->AdvancedSearch->SearchValue = @$filter["x_document_html"];
-        $this->document_html->AdvancedSearch->SearchOperator = @$filter["z_document_html"];
-        $this->document_html->AdvancedSearch->SearchCondition = @$filter["v_document_html"];
-        $this->document_html->AdvancedSearch->SearchValue2 = @$filter["y_document_html"];
-        $this->document_html->AdvancedSearch->SearchOperator2 = @$filter["w_document_html"];
-        $this->document_html->AdvancedSearch->save();
-
-        // Field document_data
-        $this->document_data->AdvancedSearch->SearchValue = @$filter["x_document_data"];
-        $this->document_data->AdvancedSearch->SearchOperator = @$filter["z_document_data"];
-        $this->document_data->AdvancedSearch->SearchCondition = @$filter["v_document_data"];
-        $this->document_data->AdvancedSearch->SearchValue2 = @$filter["y_document_data"];
-        $this->document_data->AdvancedSearch->SearchOperator2 = @$filter["w_document_data"];
-        $this->document_data->AdvancedSearch->save();
-
-        // Field is_deleted
-        $this->is_deleted->AdvancedSearch->SearchValue = @$filter["x_is_deleted"];
-        $this->is_deleted->AdvancedSearch->SearchOperator = @$filter["z_is_deleted"];
-        $this->is_deleted->AdvancedSearch->SearchCondition = @$filter["v_is_deleted"];
-        $this->is_deleted->AdvancedSearch->SearchValue2 = @$filter["y_is_deleted"];
-        $this->is_deleted->AdvancedSearch->SearchOperator2 = @$filter["w_is_deleted"];
-        $this->is_deleted->AdvancedSearch->save();
-
-        // Field deletion_date
-        $this->deletion_date->AdvancedSearch->SearchValue = @$filter["x_deletion_date"];
-        $this->deletion_date->AdvancedSearch->SearchOperator = @$filter["z_deletion_date"];
-        $this->deletion_date->AdvancedSearch->SearchCondition = @$filter["v_deletion_date"];
-        $this->deletion_date->AdvancedSearch->SearchValue2 = @$filter["y_deletion_date"];
-        $this->deletion_date->AdvancedSearch->SearchOperator2 = @$filter["w_deletion_date"];
-        $this->deletion_date->AdvancedSearch->save();
-
-        // Field deleted_by
-        $this->deleted_by->AdvancedSearch->SearchValue = @$filter["x_deleted_by"];
-        $this->deleted_by->AdvancedSearch->SearchOperator = @$filter["z_deleted_by"];
-        $this->deleted_by->AdvancedSearch->SearchCondition = @$filter["v_deleted_by"];
-        $this->deleted_by->AdvancedSearch->SearchValue2 = @$filter["y_deleted_by"];
-        $this->deleted_by->AdvancedSearch->SearchOperator2 = @$filter["w_deleted_by"];
-        $this->deleted_by->AdvancedSearch->save();
-
-        // Field parent_document_id
-        $this->parent_document_id->AdvancedSearch->SearchValue = @$filter["x_parent_document_id"];
-        $this->parent_document_id->AdvancedSearch->SearchOperator = @$filter["z_parent_document_id"];
-        $this->parent_document_id->AdvancedSearch->SearchCondition = @$filter["v_parent_document_id"];
-        $this->parent_document_id->AdvancedSearch->SearchValue2 = @$filter["y_parent_document_id"];
-        $this->parent_document_id->AdvancedSearch->SearchOperator2 = @$filter["w_parent_document_id"];
-        $this->parent_document_id->AdvancedSearch->save();
-
-        // Field version
-        $this->version->AdvancedSearch->SearchValue = @$filter["x_version"];
-        $this->version->AdvancedSearch->SearchOperator = @$filter["z_version"];
-        $this->version->AdvancedSearch->SearchCondition = @$filter["v_version"];
-        $this->version->AdvancedSearch->SearchValue2 = @$filter["y_version"];
-        $this->version->AdvancedSearch->SearchOperator2 = @$filter["w_version"];
-        $this->version->AdvancedSearch->save();
-
-        // Field notes
-        $this->notes->AdvancedSearch->SearchValue = @$filter["x_notes"];
-        $this->notes->AdvancedSearch->SearchOperator = @$filter["z_notes"];
-        $this->notes->AdvancedSearch->SearchCondition = @$filter["v_notes"];
-        $this->notes->AdvancedSearch->SearchValue2 = @$filter["y_notes"];
-        $this->notes->AdvancedSearch->SearchOperator2 = @$filter["w_notes"];
-        $this->notes->AdvancedSearch->save();
-
-        // Field status_id
-        $this->status_id->AdvancedSearch->SearchValue = @$filter["x_status_id"];
-        $this->status_id->AdvancedSearch->SearchOperator = @$filter["z_status_id"];
-        $this->status_id->AdvancedSearch->SearchCondition = @$filter["v_status_id"];
-        $this->status_id->AdvancedSearch->SearchValue2 = @$filter["y_status_id"];
-        $this->status_id->AdvancedSearch->SearchOperator2 = @$filter["w_status_id"];
-        $this->status_id->AdvancedSearch->save();
         $this->BasicSearch->setKeyword(@$filter[Config("TABLE_BASIC_SEARCH")]);
         $this->BasicSearch->setType(@$filter[Config("TABLE_BASIC_SEARCH_TYPE")]);
     }
@@ -1328,14 +1188,9 @@ class DocumentsList extends Documents
 
         // Fields to search
         $searchFlds = [];
-        $searchFlds[] = &$this->document_title;
-        $searchFlds[] = &$this->document_reference;
-        $searchFlds[] = &$this->status;
-        $searchFlds[] = &$this->company_name;
-        $searchFlds[] = &$this->customs_entry_number;
-        $searchFlds[] = &$this->document_html;
-        $searchFlds[] = &$this->document_data;
-        $searchFlds[] = &$this->notes;
+        $searchFlds[] = &$this->status_code;
+        $searchFlds[] = &$this->status_name;
+        $searchFlds[] = &$this->description;
         $searchKeyword = $default ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
         $searchType = $default ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
 
@@ -1414,24 +1269,12 @@ class DocumentsList extends Documents
         if (Get("order") !== null) {
             $this->CurrentOrder = Get("order");
             $this->CurrentOrderType = Get("ordertype", "");
-            $this->updateSort($this->document_id); // document_id
-            $this->updateSort($this->user_id); // user_id
-            $this->updateSort($this->template_id); // template_id
-            $this->updateSort($this->document_title); // document_title
-            $this->updateSort($this->document_reference); // document_reference
-            $this->updateSort($this->status); // status
+            $this->updateSort($this->status_id); // status_id
+            $this->updateSort($this->status_code); // status_code
+            $this->updateSort($this->status_name); // status_name
+            $this->updateSort($this->is_active); // is_active
             $this->updateSort($this->created_at); // created_at
             $this->updateSort($this->updated_at); // updated_at
-            $this->updateSort($this->submitted_at); // submitted_at
-            $this->updateSort($this->company_name); // company_name
-            $this->updateSort($this->customs_entry_number); // customs_entry_number
-            $this->updateSort($this->date_of_entry); // date_of_entry
-            $this->updateSort($this->is_deleted); // is_deleted
-            $this->updateSort($this->deletion_date); // deletion_date
-            $this->updateSort($this->deleted_by); // deleted_by
-            $this->updateSort($this->parent_document_id); // parent_document_id
-            $this->updateSort($this->version); // version
-            $this->updateSort($this->status_id); // status_id
             $this->setStartRecordNumber(1); // Reset start position
         }
 
@@ -1456,27 +1299,13 @@ class DocumentsList extends Documents
             if ($this->Command == "resetsort") {
                 $orderBy = "";
                 $this->setSessionOrderBy($orderBy);
-                $this->document_id->setSort("");
-                $this->user_id->setSort("");
-                $this->template_id->setSort("");
-                $this->document_title->setSort("");
-                $this->document_reference->setSort("");
-                $this->status->setSort("");
+                $this->status_id->setSort("");
+                $this->status_code->setSort("");
+                $this->status_name->setSort("");
+                $this->description->setSort("");
+                $this->is_active->setSort("");
                 $this->created_at->setSort("");
                 $this->updated_at->setSort("");
-                $this->submitted_at->setSort("");
-                $this->company_name->setSort("");
-                $this->customs_entry_number->setSort("");
-                $this->date_of_entry->setSort("");
-                $this->document_html->setSort("");
-                $this->document_data->setSort("");
-                $this->is_deleted->setSort("");
-                $this->deletion_date->setSort("");
-                $this->deleted_by->setSort("");
-                $this->parent_document_id->setSort("");
-                $this->version->setSort("");
-                $this->notes->setSort("");
-                $this->status_id->setSort("");
             }
 
             // Reset start position
@@ -1583,7 +1412,7 @@ class DocumentsList extends Documents
             $viewcaption = HtmlTitle($Language->phrase("ViewLink"));
             if ($Security->canView()) {
                 if ($this->ModalView && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-table=\"documents\" data-caption=\"" . $viewcaption . "\" data-ew-action=\"modal\" data-action=\"view\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\" data-btn=\"null\">" . $Language->phrase("ViewLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-table=\"document_statuses\" data-caption=\"" . $viewcaption . "\" data-ew-action=\"modal\" data-action=\"view\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\" data-btn=\"null\">" . $Language->phrase("ViewLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-caption=\"" . $viewcaption . "\" href=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\">" . $Language->phrase("ViewLink") . "</a>";
                 }
@@ -1596,7 +1425,7 @@ class DocumentsList extends Documents
             $editcaption = HtmlTitle($Language->phrase("EditLink"));
             if ($Security->canEdit()) {
                 if ($this->ModalEdit && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-table=\"documents\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-action=\"edit\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\" data-btn=\"SaveBtn\">" . $Language->phrase("EditLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-table=\"document_statuses\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-action=\"edit\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\" data-btn=\"SaveBtn\">" . $Language->phrase("EditLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-caption=\"" . $editcaption . "\" href=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\">" . $Language->phrase("EditLink") . "</a>";
                 }
@@ -1609,7 +1438,7 @@ class DocumentsList extends Documents
             $copycaption = HtmlTitle($Language->phrase("CopyLink"));
             if ($Security->canAdd()) {
                 if ($this->ModalAdd && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-table=\"documents\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("CopyLink") . "</a>";
+                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-table=\"document_statuses\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("CopyLink") . "</a>";
                 } else {
                     $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-caption=\"" . $copycaption . "\" href=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\">" . $Language->phrase("CopyLink") . "</a>";
                 }
@@ -1650,12 +1479,12 @@ class DocumentsList extends Documents
                         $icon = ($listAction->Icon != "") ? "<i class=\"" . HtmlEncode(str_replace(" ew-icon", "", $listAction->Icon)) . "\" data-caption=\"" . $title . "\"></i> " : "";
                         $link = $disabled
                             ? "<li><div class=\"alert alert-light\">" . $icon . " " . $caption . "</div></li>"
-                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocumentslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
+                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocument_statuseslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
                         $links[] = $link;
                         if ($body == "") { // Setup first button
                             $body = $disabled
                             ? "<div class=\"alert alert-light\">" . $icon . " " . $caption . "</div>"
-                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocumentslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
+                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocument_statuseslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
                         }
                     }
                 }
@@ -1673,7 +1502,7 @@ class DocumentsList extends Documents
 
         // "checkbox"
         $opt = $this->ListOptions["checkbox"];
-        $opt->Body = "<div class=\"form-check\"><input type=\"checkbox\" id=\"key_m_" . $this->RowCount . "\" name=\"key_m[]\" class=\"form-check-input ew-multi-select\" value=\"" . HtmlEncode($this->document_id->CurrentValue) . "\" data-ew-action=\"select-key\"></div>";
+        $opt->Body = "<div class=\"form-check\"><input type=\"checkbox\" id=\"key_m_" . $this->RowCount . "\" name=\"key_m[]\" class=\"form-check-input ew-multi-select\" value=\"" . HtmlEncode($this->status_id->CurrentValue) . "\" data-ew-action=\"select-key\"></div>";
         $this->renderListOptionsExt();
 
         // Call ListOptions_Rendered event
@@ -1698,7 +1527,7 @@ class DocumentsList extends Documents
         $item = &$option->add("add");
         $addcaption = HtmlTitle($Language->phrase("AddLink"));
         if ($this->ModalAdd && !IsMobile()) {
-            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-table=\"documents\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("AddLink") . "</a>";
+            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-table=\"document_statuses\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("AddLink") . "</a>";
         } else {
             $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" href=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\">" . $Language->phrase("AddLink") . "</a>";
         }
@@ -1711,24 +1540,12 @@ class DocumentsList extends Documents
             $item = &$option->addGroupOption();
             $item->Body = "";
             $item->Visible = $this->UseColumnVisibility;
-            $this->createColumnOption($option, "document_id");
-            $this->createColumnOption($option, "user_id");
-            $this->createColumnOption($option, "template_id");
-            $this->createColumnOption($option, "document_title");
-            $this->createColumnOption($option, "document_reference");
-            $this->createColumnOption($option, "status");
+            $this->createColumnOption($option, "status_id");
+            $this->createColumnOption($option, "status_code");
+            $this->createColumnOption($option, "status_name");
+            $this->createColumnOption($option, "is_active");
             $this->createColumnOption($option, "created_at");
             $this->createColumnOption($option, "updated_at");
-            $this->createColumnOption($option, "submitted_at");
-            $this->createColumnOption($option, "company_name");
-            $this->createColumnOption($option, "customs_entry_number");
-            $this->createColumnOption($option, "date_of_entry");
-            $this->createColumnOption($option, "is_deleted");
-            $this->createColumnOption($option, "deletion_date");
-            $this->createColumnOption($option, "deleted_by");
-            $this->createColumnOption($option, "parent_document_id");
-            $this->createColumnOption($option, "version");
-            $this->createColumnOption($option, "status_id");
         }
 
         // Set up custom actions
@@ -1753,10 +1570,10 @@ class DocumentsList extends Documents
 
         // Filter button
         $item = &$this->FilterOptions->add("savecurrentfilter");
-        $item->Body = "<a class=\"ew-save-filter\" data-form=\"fdocumentssrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
+        $item->Body = "<a class=\"ew-save-filter\" data-form=\"fdocument_statusessrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
         $item->Visible = true;
         $item = &$this->FilterOptions->add("deletefilter");
-        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"fdocumentssrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
+        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"fdocument_statusessrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
         $item->Visible = true;
         $this->FilterOptions->UseDropDownButton = true;
         $this->FilterOptions->UseButtonGroup = !$this->FilterOptions->UseDropDownButton;
@@ -1816,7 +1633,7 @@ class DocumentsList extends Documents
                 $item = &$option->add("custom_" . $listAction->Action);
                 $caption = $listAction->Caption;
                 $icon = ($listAction->Icon != "") ? '<i class="' . HtmlEncode($listAction->Icon) . '" data-caption="' . HtmlEncode($caption) . '"></i>' . $caption : $caption;
-                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="fdocumentslist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
+                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="fdocument_statuseslist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
                 $item->Visible = $listAction->Allowed;
             }
         }
@@ -1982,7 +1799,7 @@ class DocumentsList extends Documents
 
                 // Set row properties
                 $this->resetAttributes();
-                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_documents", "data-rowtype" => RowType::ADD]);
+                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_document_statuses", "data-rowtype" => RowType::ADD]);
                 $this->RowAttrs->appendClass("ew-template");
                 // Render row
                 $this->RowType = RowType::ADD;
@@ -2043,7 +1860,7 @@ class DocumentsList extends Documents
         $this->RowAttrs->merge([
             "data-rowindex" => $this->RowCount,
             "data-key" => $this->getKey(true),
-            "id" => "r" . $this->RowCount . "_documents",
+            "id" => "r" . $this->RowCount . "_document_statuses",
             "data-rowtype" => $this->RowType,
             "data-inline" => ($this->isAdd() || $this->isCopy() || $this->isEdit()) ? "true" : "false", // Inline-Add/Copy/Edit
             "class" => ($this->RowCount % 2 != 1) ? "ew-table-alt-row" : "",
@@ -2162,54 +1979,26 @@ class DocumentsList extends Documents
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->document_id->setDbValue($row['document_id']);
-        $this->user_id->setDbValue($row['user_id']);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->document_title->setDbValue($row['document_title']);
-        $this->document_reference->setDbValue($row['document_reference']);
-        $this->status->setDbValue($row['status']);
+        $this->status_id->setDbValue($row['status_id']);
+        $this->status_code->setDbValue($row['status_code']);
+        $this->status_name->setDbValue($row['status_name']);
+        $this->description->setDbValue($row['description']);
+        $this->is_active->setDbValue((ConvertToBool($row['is_active']) ? "1" : "0"));
         $this->created_at->setDbValue($row['created_at']);
         $this->updated_at->setDbValue($row['updated_at']);
-        $this->submitted_at->setDbValue($row['submitted_at']);
-        $this->company_name->setDbValue($row['company_name']);
-        $this->customs_entry_number->setDbValue($row['customs_entry_number']);
-        $this->date_of_entry->setDbValue($row['date_of_entry']);
-        $this->document_html->setDbValue($row['document_html']);
-        $this->document_data->setDbValue($row['document_data']);
-        $this->is_deleted->setDbValue((ConvertToBool($row['is_deleted']) ? "1" : "0"));
-        $this->deletion_date->setDbValue($row['deletion_date']);
-        $this->deleted_by->setDbValue($row['deleted_by']);
-        $this->parent_document_id->setDbValue($row['parent_document_id']);
-        $this->version->setDbValue($row['version']);
-        $this->notes->setDbValue($row['notes']);
-        $this->status_id->setDbValue($row['status_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['document_id'] = $this->document_id->DefaultValue;
-        $row['user_id'] = $this->user_id->DefaultValue;
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['document_title'] = $this->document_title->DefaultValue;
-        $row['document_reference'] = $this->document_reference->DefaultValue;
-        $row['status'] = $this->status->DefaultValue;
+        $row['status_id'] = $this->status_id->DefaultValue;
+        $row['status_code'] = $this->status_code->DefaultValue;
+        $row['status_name'] = $this->status_name->DefaultValue;
+        $row['description'] = $this->description->DefaultValue;
+        $row['is_active'] = $this->is_active->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
         $row['updated_at'] = $this->updated_at->DefaultValue;
-        $row['submitted_at'] = $this->submitted_at->DefaultValue;
-        $row['company_name'] = $this->company_name->DefaultValue;
-        $row['customs_entry_number'] = $this->customs_entry_number->DefaultValue;
-        $row['date_of_entry'] = $this->date_of_entry->DefaultValue;
-        $row['document_html'] = $this->document_html->DefaultValue;
-        $row['document_data'] = $this->document_data->DefaultValue;
-        $row['is_deleted'] = $this->is_deleted->DefaultValue;
-        $row['deletion_date'] = $this->deletion_date->DefaultValue;
-        $row['deleted_by'] = $this->deleted_by->DefaultValue;
-        $row['parent_document_id'] = $this->parent_document_id->DefaultValue;
-        $row['version'] = $this->version->DefaultValue;
-        $row['notes'] = $this->notes->DefaultValue;
-        $row['status_id'] = $this->status_id->DefaultValue;
         return $row;
     }
 
@@ -2250,69 +2039,37 @@ class DocumentsList extends Documents
 
         // Common render codes for all row types
 
-        // document_id
+        // status_id
 
-        // user_id
+        // status_code
 
-        // template_id
+        // status_name
 
-        // document_title
+        // description
 
-        // document_reference
-
-        // status
+        // is_active
 
         // created_at
 
         // updated_at
 
-        // submitted_at
-
-        // company_name
-
-        // customs_entry_number
-
-        // date_of_entry
-
-        // document_html
-
-        // document_data
-
-        // is_deleted
-
-        // deletion_date
-
-        // deleted_by
-
-        // parent_document_id
-
-        // version
-
-        // notes
-
-        // status_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // document_id
-            $this->document_id->ViewValue = $this->document_id->CurrentValue;
+            // status_id
+            $this->status_id->ViewValue = $this->status_id->CurrentValue;
 
-            // user_id
-            $this->user_id->ViewValue = $this->user_id->CurrentValue;
-            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
+            // status_code
+            $this->status_code->ViewValue = $this->status_code->CurrentValue;
 
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
-            $this->template_id->ViewValue = FormatNumber($this->template_id->ViewValue, $this->template_id->formatPattern());
+            // status_name
+            $this->status_name->ViewValue = $this->status_name->CurrentValue;
 
-            // document_title
-            $this->document_title->ViewValue = $this->document_title->CurrentValue;
-
-            // document_reference
-            $this->document_reference->ViewValue = $this->document_reference->CurrentValue;
-
-            // status
-            $this->status->ViewValue = $this->status->CurrentValue;
+            // is_active
+            if (ConvertToBool($this->is_active->CurrentValue)) {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(1) != "" ? $this->is_active->tagCaption(1) : "Yes";
+            } else {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(2) != "" ? $this->is_active->tagCaption(2) : "No";
+            }
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
@@ -2322,70 +2079,21 @@ class DocumentsList extends Documents
             $this->updated_at->ViewValue = $this->updated_at->CurrentValue;
             $this->updated_at->ViewValue = FormatDateTime($this->updated_at->ViewValue, $this->updated_at->formatPattern());
 
-            // submitted_at
-            $this->submitted_at->ViewValue = $this->submitted_at->CurrentValue;
-            $this->submitted_at->ViewValue = FormatDateTime($this->submitted_at->ViewValue, $this->submitted_at->formatPattern());
-
-            // company_name
-            $this->company_name->ViewValue = $this->company_name->CurrentValue;
-
-            // customs_entry_number
-            $this->customs_entry_number->ViewValue = $this->customs_entry_number->CurrentValue;
-
-            // date_of_entry
-            $this->date_of_entry->ViewValue = $this->date_of_entry->CurrentValue;
-            $this->date_of_entry->ViewValue = FormatDateTime($this->date_of_entry->ViewValue, $this->date_of_entry->formatPattern());
-
-            // is_deleted
-            if (ConvertToBool($this->is_deleted->CurrentValue)) {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(1) != "" ? $this->is_deleted->tagCaption(1) : "Yes";
-            } else {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(2) != "" ? $this->is_deleted->tagCaption(2) : "No";
-            }
-
-            // deletion_date
-            $this->deletion_date->ViewValue = $this->deletion_date->CurrentValue;
-            $this->deletion_date->ViewValue = FormatDateTime($this->deletion_date->ViewValue, $this->deletion_date->formatPattern());
-
-            // deleted_by
-            $this->deleted_by->ViewValue = $this->deleted_by->CurrentValue;
-            $this->deleted_by->ViewValue = FormatNumber($this->deleted_by->ViewValue, $this->deleted_by->formatPattern());
-
-            // parent_document_id
-            $this->parent_document_id->ViewValue = $this->parent_document_id->CurrentValue;
-            $this->parent_document_id->ViewValue = FormatNumber($this->parent_document_id->ViewValue, $this->parent_document_id->formatPattern());
-
-            // version
-            $this->version->ViewValue = $this->version->CurrentValue;
-            $this->version->ViewValue = FormatNumber($this->version->ViewValue, $this->version->formatPattern());
-
             // status_id
-            $this->status_id->ViewValue = $this->status_id->CurrentValue;
-            $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+            $this->status_id->HrefValue = "";
+            $this->status_id->TooltipValue = "";
 
-            // document_id
-            $this->document_id->HrefValue = "";
-            $this->document_id->TooltipValue = "";
+            // status_code
+            $this->status_code->HrefValue = "";
+            $this->status_code->TooltipValue = "";
 
-            // user_id
-            $this->user_id->HrefValue = "";
-            $this->user_id->TooltipValue = "";
+            // status_name
+            $this->status_name->HrefValue = "";
+            $this->status_name->TooltipValue = "";
 
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
-
-            // document_title
-            $this->document_title->HrefValue = "";
-            $this->document_title->TooltipValue = "";
-
-            // document_reference
-            $this->document_reference->HrefValue = "";
-            $this->document_reference->TooltipValue = "";
-
-            // status
-            $this->status->HrefValue = "";
-            $this->status->TooltipValue = "";
+            // is_active
+            $this->is_active->HrefValue = "";
+            $this->is_active->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
@@ -2394,46 +2102,6 @@ class DocumentsList extends Documents
             // updated_at
             $this->updated_at->HrefValue = "";
             $this->updated_at->TooltipValue = "";
-
-            // submitted_at
-            $this->submitted_at->HrefValue = "";
-            $this->submitted_at->TooltipValue = "";
-
-            // company_name
-            $this->company_name->HrefValue = "";
-            $this->company_name->TooltipValue = "";
-
-            // customs_entry_number
-            $this->customs_entry_number->HrefValue = "";
-            $this->customs_entry_number->TooltipValue = "";
-
-            // date_of_entry
-            $this->date_of_entry->HrefValue = "";
-            $this->date_of_entry->TooltipValue = "";
-
-            // is_deleted
-            $this->is_deleted->HrefValue = "";
-            $this->is_deleted->TooltipValue = "";
-
-            // deletion_date
-            $this->deletion_date->HrefValue = "";
-            $this->deletion_date->TooltipValue = "";
-
-            // deleted_by
-            $this->deleted_by->HrefValue = "";
-            $this->deleted_by->TooltipValue = "";
-
-            // parent_document_id
-            $this->parent_document_id->HrefValue = "";
-            $this->parent_document_id->TooltipValue = "";
-
-            // version
-            $this->version->HrefValue = "";
-            $this->version->TooltipValue = "";
-
-            // status_id
-            $this->status_id->HrefValue = "";
-            $this->status_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -2452,7 +2120,7 @@ class DocumentsList extends Documents
         // Search button
         $item = &$this->SearchOptions->add("searchtoggle");
         $searchToggleClass = ($this->SearchWhere != "") ? " active" : " active";
-        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"fdocumentssrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
+        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"fdocument_statusessrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
         $item->Visible = true;
 
         // Show all button
@@ -2521,7 +2189,7 @@ class DocumentsList extends Documents
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_deleted":
+                case "x_is_active":
                     break;
                 default:
                     $lookupFilter = "";

@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class DocumentsDelete extends Documents
+class DocumentStatusesDelete extends DocumentStatuses
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class DocumentsDelete extends Documents
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "DocumentsDelete";
+    public $PageObjName = "DocumentStatusesDelete";
 
     // View file path
     public $View = null;
@@ -38,7 +38,7 @@ class DocumentsDelete extends Documents
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "DocumentsDelete";
+    public $CurrentPageName = "DocumentStatusesDelete";
 
     // Page headings
     public $Heading = "";
@@ -121,27 +121,13 @@ class DocumentsDelete extends Documents
     // Set field visibility
     public function setVisibility()
     {
-        $this->document_id->setVisibility();
-        $this->user_id->setVisibility();
-        $this->template_id->setVisibility();
-        $this->document_title->setVisibility();
-        $this->document_reference->setVisibility();
-        $this->status->setVisibility();
+        $this->status_id->setVisibility();
+        $this->status_code->setVisibility();
+        $this->status_name->setVisibility();
+        $this->description->Visible = false;
+        $this->is_active->setVisibility();
         $this->created_at->setVisibility();
         $this->updated_at->setVisibility();
-        $this->submitted_at->setVisibility();
-        $this->company_name->setVisibility();
-        $this->customs_entry_number->setVisibility();
-        $this->date_of_entry->setVisibility();
-        $this->document_html->Visible = false;
-        $this->document_data->Visible = false;
-        $this->is_deleted->setVisibility();
-        $this->deletion_date->setVisibility();
-        $this->deleted_by->setVisibility();
-        $this->parent_document_id->setVisibility();
-        $this->version->setVisibility();
-        $this->notes->Visible = false;
-        $this->status_id->setVisibility();
     }
 
     // Constructor
@@ -149,8 +135,8 @@ class DocumentsDelete extends Documents
     {
         parent::__construct();
         global $Language, $DashboardReport, $DebugTimer, $UserTable;
-        $this->TableVar = 'documents';
-        $this->TableName = 'documents';
+        $this->TableVar = 'document_statuses';
+        $this->TableName = 'document_statuses';
 
         // Table CSS class
         $this->TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -161,14 +147,14 @@ class DocumentsDelete extends Documents
         // Language object
         $Language = Container("app.language");
 
-        // Table object (documents)
-        if (!isset($GLOBALS["documents"]) || $GLOBALS["documents"]::class == PROJECT_NAMESPACE . "documents") {
-            $GLOBALS["documents"] = &$this;
+        // Table object (document_statuses)
+        if (!isset($GLOBALS["document_statuses"]) || $GLOBALS["document_statuses"]::class == PROJECT_NAMESPACE . "document_statuses") {
+            $GLOBALS["document_statuses"] = &$this;
         }
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'documents');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'document_statuses');
         }
 
         // Start timer
@@ -350,7 +336,7 @@ class DocumentsDelete extends Documents
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['document_id'];
+            $key .= @$ar['status_id'];
         }
         return $key;
     }
@@ -363,7 +349,7 @@ class DocumentsDelete extends Documents
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->document_id->Visible = false;
+            $this->status_id->Visible = false;
         }
     }
     public $DbMasterFilter = "";
@@ -431,7 +417,7 @@ class DocumentsDelete extends Documents
         }
 
         // Set up lookup cache
-        $this->setupLookupOptions($this->is_deleted);
+        $this->setupLookupOptions($this->is_active);
 
         // Set up Breadcrumb
         $this->setupBreadcrumb();
@@ -440,7 +426,7 @@ class DocumentsDelete extends Documents
         $this->RecKeys = $this->getRecordKeys(); // Load record keys
         $filter = $this->getFilterFromRecordKeys();
         if ($filter == "") {
-            $this->terminate("DocumentsList"); // Prevent SQL injection, return to list
+            $this->terminate("DocumentStatusesList"); // Prevent SQL injection, return to list
             return;
         }
 
@@ -494,7 +480,7 @@ class DocumentsDelete extends Documents
             $this->Recordset = $this->loadRecordset();
             if ($this->TotalRecords <= 0) { // No record found, exit
                 $this->Recordset?->free();
-                $this->terminate("DocumentsList"); // Return to list
+                $this->terminate("DocumentStatusesList"); // Return to list
                 return;
             }
         }
@@ -615,54 +601,26 @@ class DocumentsDelete extends Documents
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->document_id->setDbValue($row['document_id']);
-        $this->user_id->setDbValue($row['user_id']);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->document_title->setDbValue($row['document_title']);
-        $this->document_reference->setDbValue($row['document_reference']);
-        $this->status->setDbValue($row['status']);
+        $this->status_id->setDbValue($row['status_id']);
+        $this->status_code->setDbValue($row['status_code']);
+        $this->status_name->setDbValue($row['status_name']);
+        $this->description->setDbValue($row['description']);
+        $this->is_active->setDbValue((ConvertToBool($row['is_active']) ? "1" : "0"));
         $this->created_at->setDbValue($row['created_at']);
         $this->updated_at->setDbValue($row['updated_at']);
-        $this->submitted_at->setDbValue($row['submitted_at']);
-        $this->company_name->setDbValue($row['company_name']);
-        $this->customs_entry_number->setDbValue($row['customs_entry_number']);
-        $this->date_of_entry->setDbValue($row['date_of_entry']);
-        $this->document_html->setDbValue($row['document_html']);
-        $this->document_data->setDbValue($row['document_data']);
-        $this->is_deleted->setDbValue((ConvertToBool($row['is_deleted']) ? "1" : "0"));
-        $this->deletion_date->setDbValue($row['deletion_date']);
-        $this->deleted_by->setDbValue($row['deleted_by']);
-        $this->parent_document_id->setDbValue($row['parent_document_id']);
-        $this->version->setDbValue($row['version']);
-        $this->notes->setDbValue($row['notes']);
-        $this->status_id->setDbValue($row['status_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['document_id'] = $this->document_id->DefaultValue;
-        $row['user_id'] = $this->user_id->DefaultValue;
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['document_title'] = $this->document_title->DefaultValue;
-        $row['document_reference'] = $this->document_reference->DefaultValue;
-        $row['status'] = $this->status->DefaultValue;
+        $row['status_id'] = $this->status_id->DefaultValue;
+        $row['status_code'] = $this->status_code->DefaultValue;
+        $row['status_name'] = $this->status_name->DefaultValue;
+        $row['description'] = $this->description->DefaultValue;
+        $row['is_active'] = $this->is_active->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
         $row['updated_at'] = $this->updated_at->DefaultValue;
-        $row['submitted_at'] = $this->submitted_at->DefaultValue;
-        $row['company_name'] = $this->company_name->DefaultValue;
-        $row['customs_entry_number'] = $this->customs_entry_number->DefaultValue;
-        $row['date_of_entry'] = $this->date_of_entry->DefaultValue;
-        $row['document_html'] = $this->document_html->DefaultValue;
-        $row['document_data'] = $this->document_data->DefaultValue;
-        $row['is_deleted'] = $this->is_deleted->DefaultValue;
-        $row['deletion_date'] = $this->deletion_date->DefaultValue;
-        $row['deleted_by'] = $this->deleted_by->DefaultValue;
-        $row['parent_document_id'] = $this->parent_document_id->DefaultValue;
-        $row['version'] = $this->version->DefaultValue;
-        $row['notes'] = $this->notes->DefaultValue;
-        $row['status_id'] = $this->status_id->DefaultValue;
         return $row;
     }
 
@@ -678,69 +636,37 @@ class DocumentsDelete extends Documents
 
         // Common render codes for all row types
 
-        // document_id
+        // status_id
 
-        // user_id
+        // status_code
 
-        // template_id
+        // status_name
 
-        // document_title
+        // description
 
-        // document_reference
-
-        // status
+        // is_active
 
         // created_at
 
         // updated_at
 
-        // submitted_at
-
-        // company_name
-
-        // customs_entry_number
-
-        // date_of_entry
-
-        // document_html
-
-        // document_data
-
-        // is_deleted
-
-        // deletion_date
-
-        // deleted_by
-
-        // parent_document_id
-
-        // version
-
-        // notes
-
-        // status_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // document_id
-            $this->document_id->ViewValue = $this->document_id->CurrentValue;
+            // status_id
+            $this->status_id->ViewValue = $this->status_id->CurrentValue;
 
-            // user_id
-            $this->user_id->ViewValue = $this->user_id->CurrentValue;
-            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
+            // status_code
+            $this->status_code->ViewValue = $this->status_code->CurrentValue;
 
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
-            $this->template_id->ViewValue = FormatNumber($this->template_id->ViewValue, $this->template_id->formatPattern());
+            // status_name
+            $this->status_name->ViewValue = $this->status_name->CurrentValue;
 
-            // document_title
-            $this->document_title->ViewValue = $this->document_title->CurrentValue;
-
-            // document_reference
-            $this->document_reference->ViewValue = $this->document_reference->CurrentValue;
-
-            // status
-            $this->status->ViewValue = $this->status->CurrentValue;
+            // is_active
+            if (ConvertToBool($this->is_active->CurrentValue)) {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(1) != "" ? $this->is_active->tagCaption(1) : "Yes";
+            } else {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(2) != "" ? $this->is_active->tagCaption(2) : "No";
+            }
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
@@ -750,70 +676,21 @@ class DocumentsDelete extends Documents
             $this->updated_at->ViewValue = $this->updated_at->CurrentValue;
             $this->updated_at->ViewValue = FormatDateTime($this->updated_at->ViewValue, $this->updated_at->formatPattern());
 
-            // submitted_at
-            $this->submitted_at->ViewValue = $this->submitted_at->CurrentValue;
-            $this->submitted_at->ViewValue = FormatDateTime($this->submitted_at->ViewValue, $this->submitted_at->formatPattern());
-
-            // company_name
-            $this->company_name->ViewValue = $this->company_name->CurrentValue;
-
-            // customs_entry_number
-            $this->customs_entry_number->ViewValue = $this->customs_entry_number->CurrentValue;
-
-            // date_of_entry
-            $this->date_of_entry->ViewValue = $this->date_of_entry->CurrentValue;
-            $this->date_of_entry->ViewValue = FormatDateTime($this->date_of_entry->ViewValue, $this->date_of_entry->formatPattern());
-
-            // is_deleted
-            if (ConvertToBool($this->is_deleted->CurrentValue)) {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(1) != "" ? $this->is_deleted->tagCaption(1) : "Yes";
-            } else {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(2) != "" ? $this->is_deleted->tagCaption(2) : "No";
-            }
-
-            // deletion_date
-            $this->deletion_date->ViewValue = $this->deletion_date->CurrentValue;
-            $this->deletion_date->ViewValue = FormatDateTime($this->deletion_date->ViewValue, $this->deletion_date->formatPattern());
-
-            // deleted_by
-            $this->deleted_by->ViewValue = $this->deleted_by->CurrentValue;
-            $this->deleted_by->ViewValue = FormatNumber($this->deleted_by->ViewValue, $this->deleted_by->formatPattern());
-
-            // parent_document_id
-            $this->parent_document_id->ViewValue = $this->parent_document_id->CurrentValue;
-            $this->parent_document_id->ViewValue = FormatNumber($this->parent_document_id->ViewValue, $this->parent_document_id->formatPattern());
-
-            // version
-            $this->version->ViewValue = $this->version->CurrentValue;
-            $this->version->ViewValue = FormatNumber($this->version->ViewValue, $this->version->formatPattern());
-
             // status_id
-            $this->status_id->ViewValue = $this->status_id->CurrentValue;
-            $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+            $this->status_id->HrefValue = "";
+            $this->status_id->TooltipValue = "";
 
-            // document_id
-            $this->document_id->HrefValue = "";
-            $this->document_id->TooltipValue = "";
+            // status_code
+            $this->status_code->HrefValue = "";
+            $this->status_code->TooltipValue = "";
 
-            // user_id
-            $this->user_id->HrefValue = "";
-            $this->user_id->TooltipValue = "";
+            // status_name
+            $this->status_name->HrefValue = "";
+            $this->status_name->TooltipValue = "";
 
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
-
-            // document_title
-            $this->document_title->HrefValue = "";
-            $this->document_title->TooltipValue = "";
-
-            // document_reference
-            $this->document_reference->HrefValue = "";
-            $this->document_reference->TooltipValue = "";
-
-            // status
-            $this->status->HrefValue = "";
-            $this->status->TooltipValue = "";
+            // is_active
+            $this->is_active->HrefValue = "";
+            $this->is_active->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
@@ -822,46 +699,6 @@ class DocumentsDelete extends Documents
             // updated_at
             $this->updated_at->HrefValue = "";
             $this->updated_at->TooltipValue = "";
-
-            // submitted_at
-            $this->submitted_at->HrefValue = "";
-            $this->submitted_at->TooltipValue = "";
-
-            // company_name
-            $this->company_name->HrefValue = "";
-            $this->company_name->TooltipValue = "";
-
-            // customs_entry_number
-            $this->customs_entry_number->HrefValue = "";
-            $this->customs_entry_number->TooltipValue = "";
-
-            // date_of_entry
-            $this->date_of_entry->HrefValue = "";
-            $this->date_of_entry->TooltipValue = "";
-
-            // is_deleted
-            $this->is_deleted->HrefValue = "";
-            $this->is_deleted->TooltipValue = "";
-
-            // deletion_date
-            $this->deletion_date->HrefValue = "";
-            $this->deletion_date->TooltipValue = "";
-
-            // deleted_by
-            $this->deleted_by->HrefValue = "";
-            $this->deleted_by->TooltipValue = "";
-
-            // parent_document_id
-            $this->parent_document_id->HrefValue = "";
-            $this->parent_document_id->TooltipValue = "";
-
-            // version
-            $this->version->HrefValue = "";
-            $this->version->TooltipValue = "";
-
-            // status_id
-            $this->status_id->HrefValue = "";
-            $this->status_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -898,7 +735,7 @@ class DocumentsDelete extends Documents
             if ($thisKey != "") {
                 $thisKey .= Config("COMPOSITE_KEY_SEPARATOR");
             }
-            $thisKey .= $row['document_id'];
+            $thisKey .= $row['status_id'];
 
             // Call row deleting event
             $deleteRow = $this->rowDeleting($row);
@@ -975,7 +812,7 @@ class DocumentsDelete extends Documents
         global $Breadcrumb, $Language;
         $Breadcrumb = new Breadcrumb("index");
         $url = CurrentUrl();
-        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("DocumentsList"), "", $this->TableVar, true);
+        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("DocumentStatusesList"), "", $this->TableVar, true);
         $pageId = "delete";
         $Breadcrumb->add("delete", $pageId, $url);
     }
@@ -993,7 +830,7 @@ class DocumentsDelete extends Documents
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_deleted":
+                case "x_is_active":
                     break;
                 default:
                     $lookupFilter = "";

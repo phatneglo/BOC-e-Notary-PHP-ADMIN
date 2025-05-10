@@ -1,9 +1,15 @@
-<ew-language date="2025/5/9" id="en-US" author="e.World Technology Limited">
+<ew-language date="2025/5/10" id="en-US" author="e.World Technology Limited">
   <project>
     <phrase id="bodytitle" value="BOC - eNotary" />
     <phrase id="footertext" value="&amp;copy;2024 BOC eNotarize - ITBS Corporation. All rights reserved." />
     <menu id="75">
       <phrase id="menutext" value="refresh tokens" />
+    </menu>
+    <menu id="76">
+      <phrase id="menutext" value="document statuses" />
+    </menu>
+    <menu id="77">
+      <phrase id="menutext" value="document status view" />
     </menu>
     <menu id="9">
       <phrase id="menutext" value="Dashboard" />
@@ -731,6 +737,9 @@
       </field>
       <field id="notes">
         <phrase id="fldcaption" value="notes" />
+      </field>
+      <field id="status_id">
+        <phrase id="fldcaption" value="status id" />
       </field>
     </table>
     <table id="faq_categories">
@@ -1496,6 +1505,110 @@
       </field>
       <field id="created_at">
         <phrase id="fldcaption" value="created at" />
+      </field>
+    </table>
+    <table id="document_statuses">
+      <phrase id="tblcaption" value="document statuses" />
+      <field id="status_id">
+        <phrase id="fldcaption" value="status id" />
+      </field>
+      <field id="status_code">
+        <phrase id="fldcaption" value="status code" />
+      </field>
+      <field id="status_name">
+        <phrase id="fldcaption" value="status name" />
+      </field>
+      <field id="description">
+        <phrase id="fldcaption" value="description" />
+      </field>
+      <field id="is_active">
+        <phrase id="fldcaption" value="is active" />
+        <phrase id="fldtagvalue1" value="1" />
+        <phrase id="fldtagcaption1" value="Yes" />
+        <phrase id="fldtagvalue2" value="0" />
+        <phrase id="fldtagcaption2" value="No" />
+      </field>
+      <field id="created_at">
+        <phrase id="fldcaption" value="created at" />
+      </field>
+      <field id="updated_at">
+        <phrase id="fldcaption" value="updated at" />
+      </field>
+    </table>
+    <table id="document_status_view">
+      <phrase id="tblcaption" value="document status view" />
+      <field id="document_id">
+        <phrase id="fldcaption" value="document id" />
+      </field>
+      <field id="user_id">
+        <phrase id="fldcaption" value="user id" />
+      </field>
+      <field id="template_id">
+        <phrase id="fldcaption" value="template id" />
+      </field>
+      <field id="document_title">
+        <phrase id="fldcaption" value="document title" />
+      </field>
+      <field id="document_reference">
+        <phrase id="fldcaption" value="document reference" />
+      </field>
+      <field id="status">
+        <phrase id="fldcaption" value="status" />
+      </field>
+      <field id="created_at">
+        <phrase id="fldcaption" value="created at" />
+      </field>
+      <field id="updated_at">
+        <phrase id="fldcaption" value="updated at" />
+      </field>
+      <field id="submitted_at">
+        <phrase id="fldcaption" value="submitted at" />
+      </field>
+      <field id="company_name">
+        <phrase id="fldcaption" value="company name" />
+      </field>
+      <field id="customs_entry_number">
+        <phrase id="fldcaption" value="customs entry number" />
+      </field>
+      <field id="date_of_entry">
+        <phrase id="fldcaption" value="date of entry" />
+      </field>
+      <field id="document_html">
+        <phrase id="fldcaption" value="document html" />
+      </field>
+      <field id="document_data">
+        <phrase id="fldcaption" value="document data" />
+      </field>
+      <field id="is_deleted">
+        <phrase id="fldcaption" value="is deleted" />
+        <phrase id="fldtagvalue1" value="1" />
+        <phrase id="fldtagcaption1" value="Yes" />
+        <phrase id="fldtagvalue2" value="0" />
+        <phrase id="fldtagcaption2" value="No" />
+      </field>
+      <field id="deletion_date">
+        <phrase id="fldcaption" value="deletion date" />
+      </field>
+      <field id="deleted_by">
+        <phrase id="fldcaption" value="deleted by" />
+      </field>
+      <field id="parent_document_id">
+        <phrase id="fldcaption" value="parent document id" />
+      </field>
+      <field id="version">
+        <phrase id="fldcaption" value="version" />
+      </field>
+      <field id="notes">
+        <phrase id="fldcaption" value="notes" />
+      </field>
+      <field id="status_id">
+        <phrase id="fldcaption" value="status id" />
+      </field>
+      <field id="status_code">
+        <phrase id="fldcaption" value="status code" />
+      </field>
+      <field id="status_name">
+        <phrase id="fldcaption" value="status name" />
       </field>
     </table>
   </project>

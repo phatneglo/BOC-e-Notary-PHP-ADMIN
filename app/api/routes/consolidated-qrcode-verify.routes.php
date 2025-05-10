@@ -1,6 +1,10 @@
 <?php
-// app/api/routes/qrcode.routes.php
+// app/api/routes/consolidated-qrcode-verify.routes.php
 namespace PHPMaker2024\eNotary;
+
+/**
+ * QR CODE MANAGEMENT ROUTES
+ */
 
 /**
  * @api {get} /notary/qr-settings Get notary QR settings
@@ -149,12 +153,27 @@ $app->post("/notary/document/{notarized_id}/qrcode", function ($request, $respon
 })->add($jwtMiddleware);
 
 /**
- * @api {post} /verify/document Verify document
+ * VERIFICATION ROUTES
+ */
+
+/**
+ * @api {post} /verify Verify document
  * @apiName VerifyDocument
- * @apiGroup QrCode
+ * @apiGroup Verification
+ */
+$app->post("/verify", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $verificationData = $request->getParsedBody();
+    return $response->withJson($service->verifyDocument($verificationData));
+});
+
+/**
+ * @api {post} /verify/document Verify document by number and code
+ * @apiName VerifyDocumentByNumberAndCode
+ * @apiGroup Verification
  */
 $app->post("/verify/document", function ($request, $response, $args) {
-    $service = new QrCodeService();
+    $service = new VerificationService();
     $data = $request->getParsedBody();
     
     if (empty($data['document_number']) || empty($data['keycode'])) {
@@ -164,19 +183,50 @@ $app->post("/verify/document", function ($request, $response, $args) {
         ]);
     }
     
-    return $response->withJson($service->verifyDocument($data['document_number'], $data['keycode']));
+    return $response->withJson($service->verifyDocumentByNumberAndCode($data['document_number'], $data['keycode']));
 });
 
 /**
- * @api {get} /verify/qr/{verification_id} Verify via QR code
- * @apiName VerifyViaQrCode
- * @apiGroup QrCode
+ * @api {get} /verify/qr/{verification_id} Verification by QR code
+ * @apiName VerificationByQRCode
+ * @apiGroup Verification
  */
 $app->get("/verify/qr/{verification_id}", function ($request, $response, $args) {
-    // This endpoint would redirect to the verification page with document info
-    $verificationId = $args['verification_id'];
+    $service = new VerificationService();
+    $verificationId = isset($args['verification_id']) ? $args['verification_id'] : '';
     
-    // In a real implementation, this would look up the verification info and redirect
-    // For now, just redirect to the verification page
+    // Get verification details
+    $result = $service->getVerificationByQrCode($verificationId);
+    
+    // If verification is successful and has redirect info, redirect to verification page with params
+    if ($result['success'] && isset($result['data']['document_number']) && isset($result['data']['keycode'])) {
+        $docNumber = urlencode($result['data']['document_number']);
+        $keycode = urlencode($result['data']['keycode']);
+        return $response->withRedirect("/verify?doc={$docNumber}&code={$keycode}");
+    }
+    
+    // Otherwise just redirect to verify page
     return $response->withRedirect('/verify');
 });
+
+/**
+ * @api {post} /verify/record Record verification attempt
+ * @apiName RecordVerificationAttempt
+ * @apiGroup Verification
+ */
+$app->post("/verify/record", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $attemptData = $request->getParsedBody();
+    return $response->withJson($service->recordVerificationAttempt($attemptData));
+});
+
+/**
+ * @api {post} /verify/qr/test Test QR code scan
+ * @apiName TestQRCodeScan
+ * @apiGroup Verification
+ */
+$app->post("/verify/qr/test", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $qrData = $request->getUploadedFiles();
+    return $response->withJson($service->testQrCodeScan($qrData));
+})->add($jwtMiddleware);

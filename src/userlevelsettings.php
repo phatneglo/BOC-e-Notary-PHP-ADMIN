@@ -95,7 +95,11 @@ $USER_LEVEL_PRIVS = [["{eNotary}audit_logs","-2","0"],
     ["{eNotary}verification_attempts","-2","0"],
     ["{eNotary}verification_attempts","0","0"],
     ["{eNotary}refresh_tokens","-2","0"],
-    ["{eNotary}refresh_tokens","0","0"]];
+    ["{eNotary}refresh_tokens","0","0"],
+    ["{eNotary}document_statuses","-2","0"],
+    ["{eNotary}document_statuses","0","0"],
+    ["{eNotary}document_status_view","-2","0"],
+    ["{eNotary}document_status_view","0","0"]];
 
 /**
  * Tables
@@ -144,4 +148,6 @@ $USER_LEVEL_TABLES = [["audit_logs","audit_logs","audit logs",false,"{eNotary}",
     ["template_fields","template_fields","template fields",true,"{eNotary}","TemplateFieldsList"],
     ["user_templates","user_templates","user templates",true,"{eNotary}","UserTemplatesList"],
     ["verification_attempts","verification_attempts","verification attempts",true,"{eNotary}","VerificationAttemptsList"],
-    ["refresh_tokens","refresh_tokens","refresh tokens",true,"{eNotary}","RefreshTokensList"]];
+    ["refresh_tokens","refresh_tokens","refresh tokens",true,"{eNotary}","RefreshTokensList"],
+    ["document_statuses","document_statuses","document statuses",true,"{eNotary}","DocumentStatusesList"],
+    ["document_status_view","document_status_view","document status view",true,"{eNotary}","DocumentStatusViewList"]];

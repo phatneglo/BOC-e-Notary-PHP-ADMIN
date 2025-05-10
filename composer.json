@@ -53,7 +53,8 @@
         "symfony/polyfill-php84": "^1.30.0",
         "hkvstore/dompdf": "~2.0.0",
         "guzzlehttp/guzzle": "^7.9.2",
-        "aws/aws-sdk-php": "^3.330.0"
+        "aws/aws-sdk-php": "^3.330.0",
+        "endroid/qr-code": "^6.0.7"
     },
     "autoload": {
         "psr-4": {

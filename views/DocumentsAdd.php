@@ -40,7 +40,8 @@ loadjs.ready(["wrapper", "head"], function () {
             ["deleted_by", [fields.deleted_by.visible && fields.deleted_by.required ? ew.Validators.required(fields.deleted_by.caption) : null, ew.Validators.integer], fields.deleted_by.isInvalid],
             ["parent_document_id", [fields.parent_document_id.visible && fields.parent_document_id.required ? ew.Validators.required(fields.parent_document_id.caption) : null, ew.Validators.integer], fields.parent_document_id.isInvalid],
             ["version", [fields.version.visible && fields.version.required ? ew.Validators.required(fields.version.caption) : null, ew.Validators.integer], fields.version.isInvalid],
-            ["notes", [fields.notes.visible && fields.notes.required ? ew.Validators.required(fields.notes.caption) : null], fields.notes.isInvalid]
+            ["notes", [fields.notes.visible && fields.notes.required ? ew.Validators.required(fields.notes.caption) : null], fields.notes.isInvalid],
+            ["status_id", [fields.status_id.visible && fields.status_id.required ? ew.Validators.required(fields.status_id.caption) : null, ew.Validators.integer], fields.status_id.isInvalid]
         ])
 
         // Form_CustomValidate
@@ -457,6 +458,18 @@ loadjs.ready(["fdocumentsadd", "datetimepicker"], function () {
 <textarea data-table="documents" data-field="x_notes" name="x_notes" id="x_notes" cols="35" rows="4" placeholder="<?= HtmlEncode($Page->notes->getPlaceHolder()) ?>"<?= $Page->notes->editAttributes() ?> aria-describedby="x_notes_help"><?= $Page->notes->EditValue ?></textarea>
 <?= $Page->notes->getCustomMessage() ?>
 <div class="invalid-feedback"><?= $Page->notes->getErrorMessage() ?></div>
+</span>
+</div></div>
+    </div>
+<?php } ?>
+<?php if ($Page->status_id->Visible) { // status_id ?>
+    <div id="r_status_id"<?= $Page->status_id->rowAttributes() ?>>
+        <label id="elh_documents_status_id" for="x_status_id" class="<?= $Page->LeftColumnClass ?>"><?= $Page->status_id->caption() ?><?= $Page->status_id->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->status_id->cellAttributes() ?>>
+<span id="el_documents_status_id">
+<input type="<?= $Page->status_id->getInputTextType() ?>" name="x_status_id" id="x_status_id" data-table="documents" data-field="x_status_id" value="<?= $Page->status_id->EditValue ?>" size="30" placeholder="<?= HtmlEncode($Page->status_id->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->status_id->formatPattern()) ?>"<?= $Page->status_id->editAttributes() ?> aria-describedby="x_status_id_help">
+<?= $Page->status_id->getCustomMessage() ?>
+<div class="invalid-feedback"><?= $Page->status_id->getErrorMessage() ?></div>
 </span>
 </div></div>
     </div>

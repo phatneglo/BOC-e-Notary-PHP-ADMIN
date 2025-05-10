@@ -159,6 +159,7 @@ class DocumentsView extends Documents
         $this->parent_document_id->setVisibility();
         $this->version->setVisibility();
         $this->notes->setVisibility();
+        $this->status_id->setVisibility();
     }
 
     // Constructor
@@ -780,6 +781,7 @@ class DocumentsView extends Documents
         $this->parent_document_id->setDbValue($row['parent_document_id']);
         $this->version->setDbValue($row['version']);
         $this->notes->setDbValue($row['notes']);
+        $this->status_id->setDbValue($row['status_id']);
     }
 
     // Return a row with default values
@@ -806,6 +808,7 @@ class DocumentsView extends Documents
         $row['parent_document_id'] = $this->parent_document_id->DefaultValue;
         $row['version'] = $this->version->DefaultValue;
         $row['notes'] = $this->notes->DefaultValue;
+        $row['status_id'] = $this->status_id->DefaultValue;
         return $row;
     }
 
@@ -866,6 +869,8 @@ class DocumentsView extends Documents
         // version
 
         // notes
+
+        // status_id
 
         // View row
         if ($this->RowType == RowType::VIEW) {
@@ -942,6 +947,10 @@ class DocumentsView extends Documents
 
             // notes
             $this->notes->ViewValue = $this->notes->CurrentValue;
+
+            // status_id
+            $this->status_id->ViewValue = $this->status_id->CurrentValue;
+            $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
 
             // document_id
             $this->document_id->HrefValue = "";
@@ -1022,6 +1031,10 @@ class DocumentsView extends Documents
             // notes
             $this->notes->HrefValue = "";
             $this->notes->TooltipValue = "";
+
+            // status_id
+            $this->status_id->HrefValue = "";
+            $this->status_id->TooltipValue = "";
         }
 
         // Call Row Rendered event

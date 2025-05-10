@@ -44,7 +44,7 @@ class PersonalData
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "RefreshTokensDelete";
+    public $CurrentPageName = "DocumentStatusViewList";
 
     // Page headings
     public $Heading = "";

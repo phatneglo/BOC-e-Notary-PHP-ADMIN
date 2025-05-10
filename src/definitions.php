@@ -115,6 +115,8 @@ return [
     "user_templates" => \DI\create(UserTemplates::class),
     "verification_attempts" => \DI\create(VerificationAttempts::class),
     "refresh_tokens" => \DI\create(RefreshTokens::class),
+    "document_statuses" => \DI\create(DocumentStatuses::class),
+    "document_status_view" => \DI\create(DocumentStatusView::class),
 
     // User table
     "usertable" => \DI\get("users"),

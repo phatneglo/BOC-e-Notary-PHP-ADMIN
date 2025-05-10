@@ -101,6 +101,9 @@ $Page->showMessage();
 <?php if ($Page->version->Visible) { // version ?>
         <th class="<?= $Page->version->headerCellClass() ?>"><span id="elh_documents_version" class="documents_version"><?= $Page->version->caption() ?></span></th>
 <?php } ?>
+<?php if ($Page->status_id->Visible) { // status_id ?>
+        <th class="<?= $Page->status_id->headerCellClass() ?>"><span id="elh_documents_status_id" class="documents_status_id"><?= $Page->status_id->caption() ?></span></th>
+<?php } ?>
     </tr>
     </thead>
     <tbody>
@@ -256,6 +259,14 @@ while ($Page->fetch()) {
 <span id="">
 <span<?= $Page->version->viewAttributes() ?>>
 <?= $Page->version->getViewValue() ?></span>
+</span>
+</td>
+<?php } ?>
+<?php if ($Page->status_id->Visible) { // status_id ?>
+        <td<?= $Page->status_id->cellAttributes() ?>>
+<span id="">
+<span<?= $Page->status_id->viewAttributes() ?>>
+<?= $Page->status_id->getViewValue() ?></span>
 </span>
 </td>
 <?php } ?>

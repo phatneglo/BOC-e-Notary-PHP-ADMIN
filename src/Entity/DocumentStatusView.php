@@ -22,17 +22,14 @@ use function PHPMaker2024\eNotary\HtmlDecode;
 use function PHPMaker2024\eNotary\EncryptPassword;
 
 /**
- * Entity class for "documents" table
+ * Entity class for "document_status_view" table
  */
 #[Entity]
-#[Table(name: "documents")]
-class Document extends AbstractEntity
+#[Table(name: "document_status_view")]
+class DocumentStatusView extends AbstractEntity
 {
-    #[Id]
-    #[Column(name: "document_id", type: "integer", unique: true)]
-    #[GeneratedValue(strategy: "SEQUENCE")]
-    #[SequenceGenerator(sequenceName: "documents_document_id_seq")]
-    private int $documentId;
+    #[Column(name: "document_id", type: "integer", nullable: true)]
+    private ?int $documentId;
 
     #[Column(name: "user_id", type: "integer", nullable: true)]
     private ?int $userId;
@@ -40,10 +37,10 @@ class Document extends AbstractEntity
     #[Column(name: "template_id", type: "integer", nullable: true)]
     private ?int $templateId;
 
-    #[Column(name: "document_title", type: "string")]
-    private string $documentTitle;
+    #[Column(name: "document_title", type: "string", nullable: true)]
+    private ?string $documentTitle;
 
-    #[Column(name: "document_reference", type: "string", unique: true, nullable: true)]
+    #[Column(name: "document_reference", type: "string", nullable: true)]
     private ?string $documentReference;
 
     #[Column(type: "string", nullable: true)]
@@ -94,18 +91,18 @@ class Document extends AbstractEntity
     #[Column(name: "status_id", type: "integer", nullable: true)]
     private ?int $statusId;
 
-    public function __construct()
-    {
-        $this->status = "draft";
-        $this->version = 1;
-    }
+    #[Column(name: "status_code", type: "string", nullable: true)]
+    private ?string $statusCode;
 
-    public function getDocumentId(): int
+    #[Column(name: "status_name", type: "string", nullable: true)]
+    private ?string $statusName;
+
+    public function getDocumentId(): ?int
     {
         return $this->documentId;
     }
 
-    public function setDocumentId(int $value): static
+    public function setDocumentId(?int $value): static
     {
         $this->documentId = $value;
         return $this;
@@ -133,12 +130,12 @@ class Document extends AbstractEntity
         return $this;
     }
 
-    public function getDocumentTitle(): string
+    public function getDocumentTitle(): ?string
     {
         return HtmlDecode($this->documentTitle);
     }
 
-    public function setDocumentTitle(string $value): static
+    public function setDocumentTitle(?string $value): static
     {
         $this->documentTitle = RemoveXss($value);
         return $this;
@@ -328,6 +325,28 @@ class Document extends AbstractEntity
     public function setStatusId(?int $value): static
     {
         $this->statusId = $value;
+        return $this;
+    }
+
+    public function getStatusCode(): ?string
+    {
+        return HtmlDecode($this->statusCode);
+    }
+
+    public function setStatusCode(?string $value): static
+    {
+        $this->statusCode = RemoveXss($value);
+        return $this;
+    }
+
+    public function getStatusName(): ?string
+    {
+        return HtmlDecode($this->statusName);
+    }
+
+    public function setStatusName(?string $value): static
+    {
+        $this->statusName = RemoveXss($value);
         return $this;
     }
 }

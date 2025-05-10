@@ -141,6 +141,7 @@ class DocumentsAdd extends Documents
         $this->parent_document_id->setVisibility();
         $this->version->setVisibility();
         $this->notes->setVisibility();
+        $this->status_id->setVisibility();
     }
 
     // Constructor
@@ -895,6 +896,16 @@ class DocumentsAdd extends Documents
             }
         }
 
+        // Check field name 'status_id' first before field var 'x_status_id'
+        $val = $CurrentForm->hasValue("status_id") ? $CurrentForm->getValue("status_id") : $CurrentForm->getValue("x_status_id");
+        if (!$this->status_id->IsDetailKey) {
+            if (IsApi() && $val === null) {
+                $this->status_id->Visible = false; // Disable update for API request
+            } else {
+                $this->status_id->setFormValue($val, true, $validate);
+            }
+        }
+
         // Check field name 'document_id' first before field var 'x_document_id'
         $val = $CurrentForm->hasValue("document_id") ? $CurrentForm->getValue("document_id") : $CurrentForm->getValue("x_document_id");
     }
@@ -927,6 +938,7 @@ class DocumentsAdd extends Documents
         $this->parent_document_id->CurrentValue = $this->parent_document_id->FormValue;
         $this->version->CurrentValue = $this->version->FormValue;
         $this->notes->CurrentValue = $this->notes->FormValue;
+        $this->status_id->CurrentValue = $this->status_id->FormValue;
     }
 
     /**
@@ -987,6 +999,7 @@ class DocumentsAdd extends Documents
         $this->parent_document_id->setDbValue($row['parent_document_id']);
         $this->version->setDbValue($row['version']);
         $this->notes->setDbValue($row['notes']);
+        $this->status_id->setDbValue($row['status_id']);
     }
 
     // Return a row with default values
@@ -1013,6 +1026,7 @@ class DocumentsAdd extends Documents
         $row['parent_document_id'] = $this->parent_document_id->DefaultValue;
         $row['version'] = $this->version->DefaultValue;
         $row['notes'] = $this->notes->DefaultValue;
+        $row['status_id'] = $this->status_id->DefaultValue;
         return $row;
     }
 
@@ -1107,6 +1121,9 @@ class DocumentsAdd extends Documents
         // notes
         $this->notes->RowCssClass = "row";
 
+        // status_id
+        $this->status_id->RowCssClass = "row";
+
         // View row
         if ($this->RowType == RowType::VIEW) {
             // document_id
@@ -1183,6 +1200,10 @@ class DocumentsAdd extends Documents
             // notes
             $this->notes->ViewValue = $this->notes->CurrentValue;
 
+            // status_id
+            $this->status_id->ViewValue = $this->status_id->CurrentValue;
+            $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+
             // user_id
             $this->user_id->HrefValue = "";
 
@@ -1239,6 +1260,9 @@ class DocumentsAdd extends Documents
 
             // notes
             $this->notes->HrefValue = "";
+
+            // status_id
+            $this->status_id->HrefValue = "";
         } elseif ($this->RowType == RowType::ADD) {
             // user_id
             $this->user_id->setupEditAttributes();
@@ -1364,6 +1388,14 @@ class DocumentsAdd extends Documents
             $this->notes->EditValue = HtmlEncode($this->notes->CurrentValue);
             $this->notes->PlaceHolder = RemoveHtml($this->notes->caption());
 
+            // status_id
+            $this->status_id->setupEditAttributes();
+            $this->status_id->EditValue = $this->status_id->CurrentValue;
+            $this->status_id->PlaceHolder = RemoveHtml($this->status_id->caption());
+            if (strval($this->status_id->EditValue) != "" && is_numeric($this->status_id->EditValue)) {
+                $this->status_id->EditValue = FormatNumber($this->status_id->EditValue, null);
+            }
+
             // Add refer script
 
             // user_id
@@ -1422,6 +1454,9 @@ class DocumentsAdd extends Documents
 
             // notes
             $this->notes->HrefValue = "";
+
+            // status_id
+            $this->status_id->HrefValue = "";
         }
         if ($this->RowType == RowType::ADD || $this->RowType == RowType::EDIT || $this->RowType == RowType::SEARCH) { // Add/Edit/Search row
             $this->setupFieldTitles();
@@ -1568,6 +1603,14 @@ class DocumentsAdd extends Documents
                     $this->notes->addErrorMessage(str_replace("%s", $this->notes->caption(), $this->notes->RequiredErrorMessage));
                 }
             }
+            if ($this->status_id->Visible && $this->status_id->Required) {
+                if (!$this->status_id->IsDetailKey && EmptyValue($this->status_id->FormValue)) {
+                    $this->status_id->addErrorMessage(str_replace("%s", $this->status_id->caption(), $this->status_id->RequiredErrorMessage));
+                }
+            }
+            if (!CheckInteger($this->status_id->FormValue)) {
+                $this->status_id->addErrorMessage($this->status_id->getErrorMessage(false));
+            }
 
         // Return validate result
         $validateForm = $validateForm && !$this->hasInvalidFields();
@@ -1709,6 +1752,9 @@ class DocumentsAdd extends Documents
 
         // notes
         $this->notes->setDbValueDef($rsnew, $this->notes->CurrentValue, false);
+
+        // status_id
+        $this->status_id->setDbValueDef($rsnew, $this->status_id->CurrentValue, false);
         return $rsnew;
     }
 
@@ -1774,6 +1820,9 @@ class DocumentsAdd extends Documents
         }
         if (isset($row['notes'])) { // notes
             $this->notes->setFormValue($row['notes']);
+        }
+        if (isset($row['status_id'])) { // status_id
+            $this->status_id->setFormValue($row['status_id']);
         }
     }
 

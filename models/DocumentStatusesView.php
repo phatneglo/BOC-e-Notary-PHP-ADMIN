@@ -15,18 +15,18 @@ use Closure;
 /**
  * Page class
  */
-class DocumentsDelete extends Documents
+class DocumentStatusesView extends DocumentStatuses
 {
     use MessagesTrait;
 
     // Page ID
-    public $PageID = "delete";
+    public $PageID = "view";
 
     // Project ID
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "DocumentsDelete";
+    public $PageObjName = "DocumentStatusesView";
 
     // View file path
     public $View = null;
@@ -38,7 +38,25 @@ class DocumentsDelete extends Documents
     public $RenderingView = false;
 
     // CSS class/style
-    public $CurrentPageName = "DocumentsDelete";
+    public $CurrentPageName = "DocumentStatusesView";
+
+    // Page URLs
+    public $AddUrl;
+    public $EditUrl;
+    public $DeleteUrl;
+    public $ViewUrl;
+    public $CopyUrl;
+    public $ListUrl;
+
+    // Update URLs
+    public $InlineAddUrl;
+    public $InlineCopyUrl;
+    public $InlineEditUrl;
+    public $GridAddUrl;
+    public $GridEditUrl;
+    public $MultiEditUrl;
+    public $MultiDeleteUrl;
+    public $MultiUpdateUrl;
 
     // Page headings
     public $Heading = "";
@@ -121,27 +139,13 @@ class DocumentsDelete extends Documents
     // Set field visibility
     public function setVisibility()
     {
-        $this->document_id->setVisibility();
-        $this->user_id->setVisibility();
-        $this->template_id->setVisibility();
-        $this->document_title->setVisibility();
-        $this->document_reference->setVisibility();
-        $this->status->setVisibility();
+        $this->status_id->setVisibility();
+        $this->status_code->setVisibility();
+        $this->status_name->setVisibility();
+        $this->description->setVisibility();
+        $this->is_active->setVisibility();
         $this->created_at->setVisibility();
         $this->updated_at->setVisibility();
-        $this->submitted_at->setVisibility();
-        $this->company_name->setVisibility();
-        $this->customs_entry_number->setVisibility();
-        $this->date_of_entry->setVisibility();
-        $this->document_html->Visible = false;
-        $this->document_data->Visible = false;
-        $this->is_deleted->setVisibility();
-        $this->deletion_date->setVisibility();
-        $this->deleted_by->setVisibility();
-        $this->parent_document_id->setVisibility();
-        $this->version->setVisibility();
-        $this->notes->Visible = false;
-        $this->status_id->setVisibility();
     }
 
     // Constructor
@@ -149,11 +153,11 @@ class DocumentsDelete extends Documents
     {
         parent::__construct();
         global $Language, $DashboardReport, $DebugTimer, $UserTable;
-        $this->TableVar = 'documents';
-        $this->TableName = 'documents';
+        $this->TableVar = 'document_statuses';
+        $this->TableName = 'document_statuses';
 
         // Table CSS class
-        $this->TableClass = "table table-bordered table-hover table-sm ew-table";
+        $this->TableClass = "table table-striped table-bordered table-hover table-sm ew-view-table";
 
         // Initialize
         $GLOBALS["Page"] = &$this;
@@ -161,14 +165,19 @@ class DocumentsDelete extends Documents
         // Language object
         $Language = Container("app.language");
 
-        // Table object (documents)
-        if (!isset($GLOBALS["documents"]) || $GLOBALS["documents"]::class == PROJECT_NAMESPACE . "documents") {
-            $GLOBALS["documents"] = &$this;
+        // Table object (document_statuses)
+        if (!isset($GLOBALS["document_statuses"]) || $GLOBALS["document_statuses"]::class == PROJECT_NAMESPACE . "document_statuses") {
+            $GLOBALS["document_statuses"] = &$this;
+        }
+
+        // Set up record key
+        if (($keyValue = Get("status_id") ?? Route("status_id")) !== null) {
+            $this->RecKey["status_id"] = $keyValue;
         }
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'documents');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'document_statuses');
         }
 
         // Start timer
@@ -182,6 +191,17 @@ class DocumentsDelete extends Documents
 
         // User table object
         $UserTable = Container("usertable");
+
+        // Export options
+        $this->ExportOptions = new ListOptions(TagClassName: "ew-export-option");
+
+        // Other options
+        $this->OtherOptions = new ListOptionsArray();
+
+        // Detail tables
+        $this->OtherOptions["detail"] = new ListOptions(TagClassName: "ew-detail-option");
+        // Actions
+        $this->OtherOptions["action"] = new ListOptions(TagClassName: "ew-action-option");
     }
 
     // Get content from stream
@@ -270,8 +290,23 @@ class DocumentsDelete extends Documents
             if (!Config("DEBUG") && ob_get_length()) {
                 ob_end_clean();
             }
-            SaveDebugMessage();
-            Redirect(GetUrl($url));
+
+            // Handle modal response
+            if ($this->IsModal) { // Show as modal
+                $pageName = GetPageName($url);
+                $result = ["url" => GetUrl($url), "modal" => "1"];  // Assume return to modal for simplicity
+                if (!SameString($pageName, GetPageName($this->getListUrl()))) { // Not List page
+                    $result["caption"] = $this->getModalCaption($pageName);
+                    $result["view"] = SameString($pageName, "DocumentStatusesView"); // If View page, no primary button
+                } else { // List page
+                    $result["error"] = $this->getFailureMessage(); // List page should not be shown as modal => error
+                    $this->clearFailureMessage();
+                }
+                WriteJson($result);
+            } else {
+                SaveDebugMessage();
+                Redirect(GetUrl($url));
+            }
         }
         return; // Return to controller
     }
@@ -350,7 +385,7 @@ class DocumentsDelete extends Documents
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['document_id'];
+            $key .= @$ar['status_id'];
         }
         return $key;
     }
@@ -363,16 +398,93 @@ class DocumentsDelete extends Documents
     protected function hideFieldsForAddEdit()
     {
         if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->document_id->Visible = false;
+            $this->status_id->Visible = false;
         }
     }
-    public $DbMasterFilter = "";
-    public $DbDetailFilter = "";
+
+    // Lookup data
+    public function lookup(array $req = [], bool $response = true)
+    {
+        global $Language, $Security;
+
+        // Get lookup object
+        $fieldName = $req["field"] ?? null;
+        if (!$fieldName) {
+            return [];
+        }
+        $fld = $this->Fields[$fieldName];
+        $lookup = $fld->Lookup;
+        $name = $req["name"] ?? "";
+        if (ContainsString($name, "query_builder_rule")) {
+            $lookup->FilterFields = []; // Skip parent fields if any
+        }
+
+        // Get lookup parameters
+        $lookupType = $req["ajax"] ?? "unknown";
+        $pageSize = -1;
+        $offset = -1;
+        $searchValue = "";
+        if (SameText($lookupType, "modal") || SameText($lookupType, "filter")) {
+            $searchValue = $req["q"] ?? $req["sv"] ?? "";
+            $pageSize = $req["n"] ?? $req["recperpage"] ?? 10;
+        } elseif (SameText($lookupType, "autosuggest")) {
+            $searchValue = $req["q"] ?? "";
+            $pageSize = $req["n"] ?? -1;
+            $pageSize = is_numeric($pageSize) ? (int)$pageSize : -1;
+            if ($pageSize <= 0) {
+                $pageSize = Config("AUTO_SUGGEST_MAX_ENTRIES");
+            }
+        }
+        $start = $req["start"] ?? -1;
+        $start = is_numeric($start) ? (int)$start : -1;
+        $page = $req["page"] ?? -1;
+        $page = is_numeric($page) ? (int)$page : -1;
+        $offset = $start >= 0 ? $start : ($page > 0 && $pageSize > 0 ? ($page - 1) * $pageSize : 0);
+        $userSelect = Decrypt($req["s"] ?? "");
+        $userFilter = Decrypt($req["f"] ?? "");
+        $userOrderBy = Decrypt($req["o"] ?? "");
+        $keys = $req["keys"] ?? null;
+        $lookup->LookupType = $lookupType; // Lookup type
+        $lookup->FilterValues = []; // Clear filter values first
+        if ($keys !== null) { // Selected records from modal
+            if (is_array($keys)) {
+                $keys = implode(Config("MULTIPLE_OPTION_SEPARATOR"), $keys);
+            }
+            $lookup->FilterFields = []; // Skip parent fields if any
+            $lookup->FilterValues[] = $keys; // Lookup values
+            $pageSize = -1; // Show all records
+        } else { // Lookup values
+            $lookup->FilterValues[] = $req["v0"] ?? $req["lookupValue"] ?? "";
+        }
+        $cnt = is_array($lookup->FilterFields) ? count($lookup->FilterFields) : 0;
+        for ($i = 1; $i <= $cnt; $i++) {
+            $lookup->FilterValues[] = $req["v" . $i] ?? "";
+        }
+        $lookup->SearchValue = $searchValue;
+        $lookup->PageSize = $pageSize;
+        $lookup->Offset = $offset;
+        if ($userSelect != "") {
+            $lookup->UserSelect = $userSelect;
+        }
+        if ($userFilter != "") {
+            $lookup->UserFilter = $userFilter;
+        }
+        if ($userOrderBy != "") {
+            $lookup->UserOrderBy = $userOrderBy;
+        }
+        return $lookup->toJson($this, $response); // Use settings from current page
+    }
+    public $ExportOptions; // Export options
+    public $OtherOptions; // Other options
+    public $DisplayRecords = 1;
+    public $DbMasterFilter;
+    public $DbDetailFilter;
     public $StartRecord;
+    public $StopRecord;
     public $TotalRecords = 0;
-    public $RecordCount;
-    public $RecKeys = [];
-    public $StartRowCount = 1;
+    public $RecordRange = 10;
+    public $RecKey = [];
+    public $IsModal = false;
 
     /**
      * Page run
@@ -381,7 +493,11 @@ class DocumentsDelete extends Documents
      */
     public function run()
     {
-        global $ExportType, $Language, $Security, $CurrentForm;
+        global $ExportType, $Language, $Security, $CurrentForm, $SkipHeaderFooter;
+
+        // Is modal
+        $this->IsModal = ConvertToBool(Param("modal"));
+        $this->UseLayout = $this->UseLayout && !$this->IsModal;
 
         // Use layout
         $this->UseLayout = $this->UseLayout && ConvertToBool(Param(Config("PAGE_LAYOUT"), true));
@@ -431,72 +547,77 @@ class DocumentsDelete extends Documents
         }
 
         // Set up lookup cache
-        $this->setupLookupOptions($this->is_deleted);
+        $this->setupLookupOptions($this->is_active);
 
-        // Set up Breadcrumb
-        $this->setupBreadcrumb();
+        // Check modal
+        if ($this->IsModal) {
+            $SkipHeaderFooter = true;
+        }
 
-        // Load key parameters
-        $this->RecKeys = $this->getRecordKeys(); // Load record keys
-        $filter = $this->getFilterFromRecordKeys();
-        if ($filter == "") {
-            $this->terminate("DocumentsList"); // Prevent SQL injection, return to list
+        // Load current record
+        $loadCurrentRecord = false;
+        $returnUrl = "";
+        $matchRecord = false;
+        if (($keyValue = Get("status_id") ?? Route("status_id")) !== null) {
+            $this->status_id->setQueryStringValue($keyValue);
+            $this->RecKey["status_id"] = $this->status_id->QueryStringValue;
+        } elseif (Post("status_id") !== null) {
+            $this->status_id->setFormValue(Post("status_id"));
+            $this->RecKey["status_id"] = $this->status_id->FormValue;
+        } elseif (IsApi() && ($keyValue = Key(0) ?? Route(2)) !== null) {
+            $this->status_id->setQueryStringValue($keyValue);
+            $this->RecKey["status_id"] = $this->status_id->QueryStringValue;
+        } elseif (!$loadCurrentRecord) {
+            $returnUrl = "DocumentStatusesList"; // Return to list
+        }
+
+        // Get action
+        $this->CurrentAction = "show"; // Display
+        switch ($this->CurrentAction) {
+            case "show": // Get a record to display
+
+                    // Load record based on key
+                    if (IsApi()) {
+                        $filter = $this->getRecordFilter();
+                        $this->CurrentFilter = $filter;
+                        $sql = $this->getCurrentSql();
+                        $conn = $this->getConnection();
+                        $res = ($this->Recordset = ExecuteQuery($sql, $conn));
+                    } else {
+                        $res = $this->loadRow();
+                    }
+                    if (!$res) { // Load record based on key
+                        if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "") {
+                            $this->setFailureMessage($Language->phrase("NoRecord")); // Set no record message
+                        }
+                        $returnUrl = "DocumentStatusesList"; // No matching record, return to list
+                    }
+                break;
+        }
+        if ($returnUrl != "") {
+            $this->terminate($returnUrl);
             return;
         }
 
-        // Set up filter (WHERE Clause)
-        $this->CurrentFilter = $filter;
+        // Set up Breadcrumb
+        if (!$this->isExport()) {
+            $this->setupBreadcrumb();
+        }
 
-        // Get action
+        // Render row
+        $this->RowType = RowType::VIEW;
+        $this->resetAttributes();
+        $this->renderRow();
+
+        // Normal return
         if (IsApi()) {
-            $this->CurrentAction = "delete"; // Delete record directly
-        } elseif (Param("action") !== null) {
-            $this->CurrentAction = Param("action") == "delete" ? "delete" : "show";
-        } else {
-            $this->CurrentAction = $this->InlineDelete ?
-                "delete" : // Delete record directly
-                "show"; // Display record
-        }
-        if ($this->isDelete()) {
-            $this->SendEmail = true; // Send email on delete success
-            if ($this->deleteRows()) { // Delete rows
-                if ($this->getSuccessMessage() == "") {
-                    $this->setSuccessMessage($Language->phrase("DeleteSuccess")); // Set up success message
-                }
-                if (IsJsonResponse()) {
-                    $this->terminate(true);
-                    return;
-                } else {
-                    $this->terminate($this->getReturnUrl()); // Return to caller
-                    return;
-                }
-            } else { // Delete failed
-                if (IsJsonResponse()) {
-                    $this->terminate();
-                    return;
-                }
-                // Return JSON error message if UseAjaxActions
-                if ($this->UseAjaxActions) {
-                    WriteJson(["success" => false, "error" => $this->getFailureMessage()]);
-                    $this->clearFailureMessage();
-                    $this->terminate();
-                    return;
-                }
-                if ($this->InlineDelete) {
-                    $this->terminate($this->getReturnUrl()); // Return to caller
-                    return;
-                } else {
-                    $this->CurrentAction = "show"; // Display record
-                }
-            }
-        }
-        if ($this->isShow()) { // Load records for display
-            $this->Recordset = $this->loadRecordset();
-            if ($this->TotalRecords <= 0) { // No record found, exit
+            if (!$this->isExport()) {
+                $row = $this->getRecordsFromRecordset($this->Recordset, true); // Get current record only
                 $this->Recordset?->free();
-                $this->terminate("DocumentsList"); // Return to list
-                return;
+                WriteJson(["success" => true, "action" => Config("API_VIEW_ACTION"), $this->TableVar => $row]);
+                $this->terminate(true);
             }
+            return;
         }
 
         // Set LoginStatus / Page_Rendering / Page_Render
@@ -522,59 +643,70 @@ class DocumentsDelete extends Documents
         }
     }
 
-    /**
-     * Load result set
-     *
-     * @param int $offset Offset
-     * @param int $rowcnt Maximum number of rows
-     * @return Doctrine\DBAL\Result Result
-     */
-    public function loadRecordset($offset = -1, $rowcnt = -1)
+    // Set up other options
+    protected function setupOtherOptions()
     {
-        // Load List page SQL (QueryBuilder)
-        $sql = $this->getListSql();
+        global $Language, $Security;
 
-        // Load result set
-        if ($offset > -1) {
-            $sql->setFirstResult($offset);
+        // Disable Add/Edit/Copy/Delete for Modal and UseAjaxActions
+        /*
+        if ($this->IsModal && $this->UseAjaxActions) {
+            $this->AddUrl = "";
+            $this->EditUrl = "";
+            $this->CopyUrl = "";
+            $this->DeleteUrl = "";
         }
-        if ($rowcnt > 0) {
-            $sql->setMaxResults($rowcnt);
-        }
-        $result = $sql->executeQuery();
-        if (property_exists($this, "TotalRecords") && $rowcnt < 0) {
-            $this->TotalRecords = $result->rowCount();
-            if ($this->TotalRecords <= 0) { // Handle database drivers that does not return rowCount()
-                $this->TotalRecords = $this->getRecordCount($this->getListSql());
-            }
-        }
+        */
+        $options = &$this->OtherOptions;
+        $option = $options["action"];
 
-        // Call Recordset Selected event
-        $this->recordsetSelected($result);
-        return $result;
-    }
-
-    /**
-     * Load records as associative array
-     *
-     * @param int $offset Offset
-     * @param int $rowcnt Maximum number of rows
-     * @return void
-     */
-    public function loadRows($offset = -1, $rowcnt = -1)
-    {
-        // Load List page SQL (QueryBuilder)
-        $sql = $this->getListSql();
-
-        // Load result set
-        if ($offset > -1) {
-            $sql->setFirstResult($offset);
+        // Add
+        $item = &$option->add("add");
+        $addcaption = HtmlTitle($Language->phrase("ViewPageAddLink"));
+        if ($this->IsModal) {
+            $item->Body = "<a class=\"ew-action ew-add\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\">" . $Language->phrase("ViewPageAddLink") . "</a>";
+        } else {
+            $item->Body = "<a class=\"ew-action ew-add\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" href=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\">" . $Language->phrase("ViewPageAddLink") . "</a>";
         }
-        if ($rowcnt > 0) {
-            $sql->setMaxResults($rowcnt);
+        $item->Visible = $this->AddUrl != "" && $Security->canAdd();
+
+        // Edit
+        $item = &$option->add("edit");
+        $editcaption = HtmlTitle($Language->phrase("ViewPageEditLink"));
+        if ($this->IsModal) {
+            $item->Body = "<a class=\"ew-action ew-edit\" title=\"" . $editcaption . "\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\">" . $Language->phrase("ViewPageEditLink") . "</a>";
+        } else {
+            $item->Body = "<a class=\"ew-action ew-edit\" title=\"" . $editcaption . "\" data-caption=\"" . $editcaption . "\" href=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\">" . $Language->phrase("ViewPageEditLink") . "</a>";
         }
-        $result = $sql->executeQuery();
-        return $result->fetchAllAssociative();
+        $item->Visible = $this->EditUrl != "" && $Security->canEdit();
+
+        // Copy
+        $item = &$option->add("copy");
+        $copycaption = HtmlTitle($Language->phrase("ViewPageCopyLink"));
+        if ($this->IsModal) {
+            $item->Body = "<a class=\"ew-action ew-copy\" title=\"" . $copycaption . "\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("ViewPageCopyLink") . "</a>";
+        } else {
+            $item->Body = "<a class=\"ew-action ew-copy\" title=\"" . $copycaption . "\" data-caption=\"" . $copycaption . "\" href=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\">" . $Language->phrase("ViewPageCopyLink") . "</a>";
+        }
+        $item->Visible = $this->CopyUrl != "" && $Security->canAdd();
+
+        // Delete
+        $item = &$option->add("delete");
+        $url = GetUrl($this->DeleteUrl);
+        $item->Body = "<a class=\"ew-action ew-delete\"" .
+            ($this->InlineDelete || $this->IsModal ? " data-ew-action=\"inline-delete\"" : "") .
+            " title=\"" . HtmlTitle($Language->phrase("ViewPageDeleteLink")) . "\" data-caption=\"" . HtmlTitle($Language->phrase("ViewPageDeleteLink")) .
+            "\" href=\"" . HtmlEncode($url) . "\">" . $Language->phrase("ViewPageDeleteLink") . "</a>";
+        $item->Visible = $this->DeleteUrl != "" && $Security->canDelete();
+
+        // Set up action default
+        $option = $options["action"];
+        $option->DropDownButtonPhrase = $Language->phrase("ButtonActions");
+        $option->UseDropDownButton = !IsJsonResponse() && false;
+        $option->UseButtonGroup = true;
+        $item = &$option->addGroupOption();
+        $item->Body = "";
+        $item->Visible = false;
     }
 
     /**
@@ -615,54 +747,26 @@ class DocumentsDelete extends Documents
 
         // Call Row Selected event
         $this->rowSelected($row);
-        $this->document_id->setDbValue($row['document_id']);
-        $this->user_id->setDbValue($row['user_id']);
-        $this->template_id->setDbValue($row['template_id']);
-        $this->document_title->setDbValue($row['document_title']);
-        $this->document_reference->setDbValue($row['document_reference']);
-        $this->status->setDbValue($row['status']);
+        $this->status_id->setDbValue($row['status_id']);
+        $this->status_code->setDbValue($row['status_code']);
+        $this->status_name->setDbValue($row['status_name']);
+        $this->description->setDbValue($row['description']);
+        $this->is_active->setDbValue((ConvertToBool($row['is_active']) ? "1" : "0"));
         $this->created_at->setDbValue($row['created_at']);
         $this->updated_at->setDbValue($row['updated_at']);
-        $this->submitted_at->setDbValue($row['submitted_at']);
-        $this->company_name->setDbValue($row['company_name']);
-        $this->customs_entry_number->setDbValue($row['customs_entry_number']);
-        $this->date_of_entry->setDbValue($row['date_of_entry']);
-        $this->document_html->setDbValue($row['document_html']);
-        $this->document_data->setDbValue($row['document_data']);
-        $this->is_deleted->setDbValue((ConvertToBool($row['is_deleted']) ? "1" : "0"));
-        $this->deletion_date->setDbValue($row['deletion_date']);
-        $this->deleted_by->setDbValue($row['deleted_by']);
-        $this->parent_document_id->setDbValue($row['parent_document_id']);
-        $this->version->setDbValue($row['version']);
-        $this->notes->setDbValue($row['notes']);
-        $this->status_id->setDbValue($row['status_id']);
     }
 
     // Return a row with default values
     protected function newRow()
     {
         $row = [];
-        $row['document_id'] = $this->document_id->DefaultValue;
-        $row['user_id'] = $this->user_id->DefaultValue;
-        $row['template_id'] = $this->template_id->DefaultValue;
-        $row['document_title'] = $this->document_title->DefaultValue;
-        $row['document_reference'] = $this->document_reference->DefaultValue;
-        $row['status'] = $this->status->DefaultValue;
+        $row['status_id'] = $this->status_id->DefaultValue;
+        $row['status_code'] = $this->status_code->DefaultValue;
+        $row['status_name'] = $this->status_name->DefaultValue;
+        $row['description'] = $this->description->DefaultValue;
+        $row['is_active'] = $this->is_active->DefaultValue;
         $row['created_at'] = $this->created_at->DefaultValue;
         $row['updated_at'] = $this->updated_at->DefaultValue;
-        $row['submitted_at'] = $this->submitted_at->DefaultValue;
-        $row['company_name'] = $this->company_name->DefaultValue;
-        $row['customs_entry_number'] = $this->customs_entry_number->DefaultValue;
-        $row['date_of_entry'] = $this->date_of_entry->DefaultValue;
-        $row['document_html'] = $this->document_html->DefaultValue;
-        $row['document_data'] = $this->document_data->DefaultValue;
-        $row['is_deleted'] = $this->is_deleted->DefaultValue;
-        $row['deletion_date'] = $this->deletion_date->DefaultValue;
-        $row['deleted_by'] = $this->deleted_by->DefaultValue;
-        $row['parent_document_id'] = $this->parent_document_id->DefaultValue;
-        $row['version'] = $this->version->DefaultValue;
-        $row['notes'] = $this->notes->DefaultValue;
-        $row['status_id'] = $this->status_id->DefaultValue;
         return $row;
     }
 
@@ -672,75 +776,52 @@ class DocumentsDelete extends Documents
         global $Security, $Language, $CurrentLanguage;
 
         // Initialize URLs
+        $this->AddUrl = $this->getAddUrl();
+        $this->EditUrl = $this->getEditUrl();
+        $this->CopyUrl = $this->getCopyUrl();
+        $this->DeleteUrl = $this->getDeleteUrl();
+        $this->ListUrl = $this->getListUrl();
+        $this->setupOtherOptions();
 
         // Call Row_Rendering event
         $this->rowRendering();
 
         // Common render codes for all row types
 
-        // document_id
+        // status_id
 
-        // user_id
+        // status_code
 
-        // template_id
+        // status_name
 
-        // document_title
+        // description
 
-        // document_reference
-
-        // status
+        // is_active
 
         // created_at
 
         // updated_at
 
-        // submitted_at
-
-        // company_name
-
-        // customs_entry_number
-
-        // date_of_entry
-
-        // document_html
-
-        // document_data
-
-        // is_deleted
-
-        // deletion_date
-
-        // deleted_by
-
-        // parent_document_id
-
-        // version
-
-        // notes
-
-        // status_id
-
         // View row
         if ($this->RowType == RowType::VIEW) {
-            // document_id
-            $this->document_id->ViewValue = $this->document_id->CurrentValue;
+            // status_id
+            $this->status_id->ViewValue = $this->status_id->CurrentValue;
 
-            // user_id
-            $this->user_id->ViewValue = $this->user_id->CurrentValue;
-            $this->user_id->ViewValue = FormatNumber($this->user_id->ViewValue, $this->user_id->formatPattern());
+            // status_code
+            $this->status_code->ViewValue = $this->status_code->CurrentValue;
 
-            // template_id
-            $this->template_id->ViewValue = $this->template_id->CurrentValue;
-            $this->template_id->ViewValue = FormatNumber($this->template_id->ViewValue, $this->template_id->formatPattern());
+            // status_name
+            $this->status_name->ViewValue = $this->status_name->CurrentValue;
 
-            // document_title
-            $this->document_title->ViewValue = $this->document_title->CurrentValue;
+            // description
+            $this->description->ViewValue = $this->description->CurrentValue;
 
-            // document_reference
-            $this->document_reference->ViewValue = $this->document_reference->CurrentValue;
-
-            // status
-            $this->status->ViewValue = $this->status->CurrentValue;
+            // is_active
+            if (ConvertToBool($this->is_active->CurrentValue)) {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(1) != "" ? $this->is_active->tagCaption(1) : "Yes";
+            } else {
+                $this->is_active->ViewValue = $this->is_active->tagCaption(2) != "" ? $this->is_active->tagCaption(2) : "No";
+            }
 
             // created_at
             $this->created_at->ViewValue = $this->created_at->CurrentValue;
@@ -750,70 +831,25 @@ class DocumentsDelete extends Documents
             $this->updated_at->ViewValue = $this->updated_at->CurrentValue;
             $this->updated_at->ViewValue = FormatDateTime($this->updated_at->ViewValue, $this->updated_at->formatPattern());
 
-            // submitted_at
-            $this->submitted_at->ViewValue = $this->submitted_at->CurrentValue;
-            $this->submitted_at->ViewValue = FormatDateTime($this->submitted_at->ViewValue, $this->submitted_at->formatPattern());
-
-            // company_name
-            $this->company_name->ViewValue = $this->company_name->CurrentValue;
-
-            // customs_entry_number
-            $this->customs_entry_number->ViewValue = $this->customs_entry_number->CurrentValue;
-
-            // date_of_entry
-            $this->date_of_entry->ViewValue = $this->date_of_entry->CurrentValue;
-            $this->date_of_entry->ViewValue = FormatDateTime($this->date_of_entry->ViewValue, $this->date_of_entry->formatPattern());
-
-            // is_deleted
-            if (ConvertToBool($this->is_deleted->CurrentValue)) {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(1) != "" ? $this->is_deleted->tagCaption(1) : "Yes";
-            } else {
-                $this->is_deleted->ViewValue = $this->is_deleted->tagCaption(2) != "" ? $this->is_deleted->tagCaption(2) : "No";
-            }
-
-            // deletion_date
-            $this->deletion_date->ViewValue = $this->deletion_date->CurrentValue;
-            $this->deletion_date->ViewValue = FormatDateTime($this->deletion_date->ViewValue, $this->deletion_date->formatPattern());
-
-            // deleted_by
-            $this->deleted_by->ViewValue = $this->deleted_by->CurrentValue;
-            $this->deleted_by->ViewValue = FormatNumber($this->deleted_by->ViewValue, $this->deleted_by->formatPattern());
-
-            // parent_document_id
-            $this->parent_document_id->ViewValue = $this->parent_document_id->CurrentValue;
-            $this->parent_document_id->ViewValue = FormatNumber($this->parent_document_id->ViewValue, $this->parent_document_id->formatPattern());
-
-            // version
-            $this->version->ViewValue = $this->version->CurrentValue;
-            $this->version->ViewValue = FormatNumber($this->version->ViewValue, $this->version->formatPattern());
-
             // status_id
-            $this->status_id->ViewValue = $this->status_id->CurrentValue;
-            $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+            $this->status_id->HrefValue = "";
+            $this->status_id->TooltipValue = "";
 
-            // document_id
-            $this->document_id->HrefValue = "";
-            $this->document_id->TooltipValue = "";
+            // status_code
+            $this->status_code->HrefValue = "";
+            $this->status_code->TooltipValue = "";
 
-            // user_id
-            $this->user_id->HrefValue = "";
-            $this->user_id->TooltipValue = "";
+            // status_name
+            $this->status_name->HrefValue = "";
+            $this->status_name->TooltipValue = "";
 
-            // template_id
-            $this->template_id->HrefValue = "";
-            $this->template_id->TooltipValue = "";
+            // description
+            $this->description->HrefValue = "";
+            $this->description->TooltipValue = "";
 
-            // document_title
-            $this->document_title->HrefValue = "";
-            $this->document_title->TooltipValue = "";
-
-            // document_reference
-            $this->document_reference->HrefValue = "";
-            $this->document_reference->TooltipValue = "";
-
-            // status
-            $this->status->HrefValue = "";
-            $this->status->TooltipValue = "";
+            // is_active
+            $this->is_active->HrefValue = "";
+            $this->is_active->TooltipValue = "";
 
             // created_at
             $this->created_at->HrefValue = "";
@@ -822,46 +858,6 @@ class DocumentsDelete extends Documents
             // updated_at
             $this->updated_at->HrefValue = "";
             $this->updated_at->TooltipValue = "";
-
-            // submitted_at
-            $this->submitted_at->HrefValue = "";
-            $this->submitted_at->TooltipValue = "";
-
-            // company_name
-            $this->company_name->HrefValue = "";
-            $this->company_name->TooltipValue = "";
-
-            // customs_entry_number
-            $this->customs_entry_number->HrefValue = "";
-            $this->customs_entry_number->TooltipValue = "";
-
-            // date_of_entry
-            $this->date_of_entry->HrefValue = "";
-            $this->date_of_entry->TooltipValue = "";
-
-            // is_deleted
-            $this->is_deleted->HrefValue = "";
-            $this->is_deleted->TooltipValue = "";
-
-            // deletion_date
-            $this->deletion_date->HrefValue = "";
-            $this->deletion_date->TooltipValue = "";
-
-            // deleted_by
-            $this->deleted_by->HrefValue = "";
-            $this->deleted_by->TooltipValue = "";
-
-            // parent_document_id
-            $this->parent_document_id->HrefValue = "";
-            $this->parent_document_id->TooltipValue = "";
-
-            // version
-            $this->version->HrefValue = "";
-            $this->version->TooltipValue = "";
-
-            // status_id
-            $this->status_id->HrefValue = "";
-            $this->status_id->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -870,114 +866,15 @@ class DocumentsDelete extends Documents
         }
     }
 
-    // Delete records based on current filter
-    protected function deleteRows()
-    {
-        global $Language, $Security;
-        if (!$Security->canDelete()) {
-            $this->setFailureMessage($Language->phrase("NoDeletePermission")); // No delete permission
-            return false;
-        }
-        $sql = $this->getCurrentSql();
-        $conn = $this->getConnection();
-        $rows = $conn->fetchAllAssociative($sql);
-        if (count($rows) == 0) {
-            $this->setFailureMessage($Language->phrase("NoRecord")); // No record found
-            return false;
-        }
-        if ($this->UseTransaction) {
-            $conn->beginTransaction();
-        }
-
-        // Clone old rows
-        $rsold = $rows;
-        $successKeys = [];
-        $failKeys = [];
-        foreach ($rsold as $row) {
-            $thisKey = "";
-            if ($thisKey != "") {
-                $thisKey .= Config("COMPOSITE_KEY_SEPARATOR");
-            }
-            $thisKey .= $row['document_id'];
-
-            // Call row deleting event
-            $deleteRow = $this->rowDeleting($row);
-            if ($deleteRow) { // Delete
-                $deleteRow = $this->delete($row);
-                if (!$deleteRow && !EmptyValue($this->DbErrorMessage)) { // Show database error
-                    $this->setFailureMessage($this->DbErrorMessage);
-                }
-            }
-            if ($deleteRow === false) {
-                if ($this->UseTransaction) {
-                    $successKeys = []; // Reset success keys
-                    break;
-                }
-                $failKeys[] = $thisKey;
-            } else {
-                if (Config("DELETE_UPLOADED_FILES")) { // Delete old files
-                    $this->deleteUploadedFiles($row);
-                }
-
-                // Call Row Deleted event
-                $this->rowDeleted($row);
-                $successKeys[] = $thisKey;
-            }
-        }
-
-        // Any records deleted
-        $deleteRows = count($successKeys) > 0;
-        if (!$deleteRows) {
-            // Set up error message
-            if ($this->getSuccessMessage() != "" || $this->getFailureMessage() != "") {
-                // Use the message, do nothing
-            } elseif ($this->CancelMessage != "") {
-                $this->setFailureMessage($this->CancelMessage);
-                $this->CancelMessage = "";
-            } else {
-                $this->setFailureMessage($Language->phrase("DeleteCancelled"));
-            }
-        }
-        if ($deleteRows) {
-            if ($this->UseTransaction) { // Commit transaction
-                if ($conn->isTransactionActive()) {
-                    $conn->commit();
-                }
-            }
-
-            // Set warning message if delete some records failed
-            if (count($failKeys) > 0) {
-                $this->setWarningMessage(str_replace("%k", explode(", ", $failKeys), $Language->phrase("DeleteRecordsFailed")));
-            }
-        } else {
-            if ($this->UseTransaction) { // Rollback transaction
-                if ($conn->isTransactionActive()) {
-                    $conn->rollback();
-                }
-            }
-        }
-
-        // Write JSON response
-        if ((IsJsonResponse() || ConvertToBool(Param("infinitescroll"))) && $deleteRows) {
-            $rows = $this->getRecordsFromRecordset($rsold);
-            $table = $this->TableVar;
-            if (Param("key_m") === null) { // Single delete
-                $rows = $rows[0]; // Return object
-            }
-            WriteJson(["success" => true, "action" => Config("API_DELETE_ACTION"), $table => $rows]);
-        }
-        return $deleteRows;
-    }
-
     // Set up Breadcrumb
     protected function setupBreadcrumb()
     {
         global $Breadcrumb, $Language;
         $Breadcrumb = new Breadcrumb("index");
         $url = CurrentUrl();
-        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("DocumentsList"), "", $this->TableVar, true);
-        $pageId = "delete";
-        $Breadcrumb->add("delete", $pageId, $url);
+        $Breadcrumb->add("list", $this->TableVar, $this->addMasterUrl("DocumentStatusesList"), "", $this->TableVar, true);
+        $pageId = "view";
+        $Breadcrumb->add("view", $pageId, $url);
     }
 
     // Setup lookup options
@@ -993,7 +890,7 @@ class DocumentsDelete extends Documents
 
             // Set up lookup SQL and connection
             switch ($fld->FieldVar) {
-                case "x_is_deleted":
+                case "x_is_active":
                     break;
                 default:
                     $lookupFilter = "";
@@ -1022,6 +919,40 @@ class DocumentsDelete extends Documents
                 $fld->Lookup->Options = $ar;
             }
         }
+    }
+
+    // Set up starting record parameters
+    public function setupStartRecord()
+    {
+        if ($this->DisplayRecords == 0) {
+            return;
+        }
+        $pageNo = Get(Config("TABLE_PAGE_NUMBER"));
+        $startRec = Get(Config("TABLE_START_REC"));
+        $infiniteScroll = false;
+        $recordNo = $pageNo ?? $startRec; // Record number = page number or start record
+        if ($recordNo !== null && is_numeric($recordNo)) {
+            $this->StartRecord = $recordNo;
+        } else {
+            $this->StartRecord = $this->getStartRecordNumber();
+        }
+
+        // Check if correct start record counter
+        if (!is_numeric($this->StartRecord) || intval($this->StartRecord) <= 0) { // Avoid invalid start record counter
+            $this->StartRecord = 1; // Reset start record counter
+        } elseif ($this->StartRecord > $this->TotalRecords) { // Avoid starting record > total records
+            $this->StartRecord = (int)(($this->TotalRecords - 1) / $this->DisplayRecords) * $this->DisplayRecords + 1; // Point to last page first record
+        } elseif (($this->StartRecord - 1) % $this->DisplayRecords != 0) {
+            $this->StartRecord = (int)(($this->StartRecord - 1) / $this->DisplayRecords) * $this->DisplayRecords + 1; // Point to page boundary
+        }
+        if (!$infiniteScroll) {
+            $this->setStartRecordNumber($this->StartRecord);
+        }
+    }
+
+    // Get page count
+    public function pageCount() {
+        return ceil($this->TotalRecords / $this->DisplayRecords);
     }
 
     // Page Load event
@@ -1084,5 +1015,29 @@ class DocumentsDelete extends Documents
         // Example:
         //$break = false; // Skip page break, or
         //$content = "<div style=\"break-after:page;\"></div>"; // Modify page break content
+    }
+
+    // Page Exporting event
+    // $doc = export object
+    public function pageExporting(&$doc)
+    {
+        //$doc->Text = "my header"; // Export header
+        //return false; // Return false to skip default export and use Row_Export event
+        return true; // Return true to use default export and skip Row_Export event
+    }
+
+    // Row Export event
+    // $doc = export document object
+    public function rowExport($doc, $rs)
+    {
+        //$doc->Text .= "my content"; // Build HTML with field value: $rs["MyField"] or $this->MyField->ViewValue
+    }
+
+    // Page Exported event
+    // $doc = export document object
+    public function pageExported($doc)
+    {
+        //$doc->Text .= "my footer"; // Export footer
+        //Log($doc->Text);
     }
 }

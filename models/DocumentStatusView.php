@@ -13,9 +13,9 @@ use Slim\App;
 use Closure;
 
 /**
- * Table class for documents
+ * Table class for document_status_view
  */
-class Documents extends DbTable
+class DocumentStatusView extends DbTable
 {
     protected $SqlFrom = "";
     protected $SqlSelect = null;
@@ -67,6 +67,8 @@ class Documents extends DbTable
     public $version;
     public $notes;
     public $status_id;
+    public $status_code;
+    public $status_name;
 
     // Page ID
     public $PageID = ""; // To be overridden by subclass
@@ -79,14 +81,14 @@ class Documents extends DbTable
 
         // Language object
         $Language = Container("app.language");
-        $this->TableVar = "documents";
-        $this->TableName = 'documents';
-        $this->TableType = "TABLE";
+        $this->TableVar = "document_status_view";
+        $this->TableName = 'document_status_view';
+        $this->TableType = "VIEW";
         $this->ImportUseTransaction = $this->supportsTransaction() && Config("IMPORT_USE_TRANSACTION");
         $this->UseTransaction = $this->supportsTransaction() && Config("USE_TRANSACTION");
 
         // Update Table
-        $this->UpdateTable = "documents";
+        $this->UpdateTable = "document_status_view";
         $this->Dbid = 'DB';
         $this->ExportAll = true;
         $this->ExportPageBreakCount = 0; // Page break per every n record (PDF only)
@@ -129,15 +131,12 @@ class Documents extends DbTable
             false, // Force selection
             false, // Is Virtual search
             'FORMATTED TEXT', // View Tag
-            'NO' // Edit Tag
+            'TEXT' // Edit Tag
         );
         $this->document_id->InputTextType = "text";
         $this->document_id->Raw = true;
-        $this->document_id->IsAutoIncrement = true; // Autoincrement field
-        $this->document_id->IsPrimaryKey = true; // Primary key field
-        $this->document_id->Nullable = false; // NOT NULL field
         $this->document_id->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
-        $this->document_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN"];
+        $this->document_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
         $this->Fields['document_id'] = &$this->document_id;
 
         // user_id
@@ -207,9 +206,7 @@ class Documents extends DbTable
             'TEXT' // Edit Tag
         );
         $this->document_title->InputTextType = "text";
-        $this->document_title->Nullable = false; // NOT NULL field
-        $this->document_title->Required = true; // Required field
-        $this->document_title->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY"];
+        $this->document_title->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
         $this->Fields['document_title'] = &$this->document_title;
 
         // document_reference
@@ -252,7 +249,6 @@ class Documents extends DbTable
             'FORMATTED TEXT', // View Tag
             'TEXT' // Edit Tag
         );
-        $this->status->addMethod("getDefault", fn() => "draft");
         $this->status->InputTextType = "text";
         $this->status->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
         $this->Fields['status'] = &$this->status;
@@ -462,7 +458,7 @@ class Documents extends DbTable
         $this->is_deleted->InputTextType = "text";
         $this->is_deleted->Raw = true;
         $this->is_deleted->setDataType(DataType::BOOLEAN);
-        $this->is_deleted->Lookup = new Lookup($this->is_deleted, 'documents', false, '', ["","","",""], '', '', [], [], [], [], [], [], false, '', '', "");
+        $this->is_deleted->Lookup = new Lookup($this->is_deleted, 'document_status_view', false, '', ["","","",""], '', '', [], [], [], [], [], [], false, '', '', "");
         $this->is_deleted->OptionCount = 2;
         $this->is_deleted->SearchOperators = ["=", "<>", "IS NULL", "IS NOT NULL"];
         $this->Fields['is_deleted'] = &$this->is_deleted;
@@ -557,7 +553,6 @@ class Documents extends DbTable
             'FORMATTED TEXT', // View Tag
             'TEXT' // Edit Tag
         );
-        $this->version->addMethod("getDefault", fn() => 1);
         $this->version->InputTextType = "text";
         $this->version->Raw = true;
         $this->version->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
@@ -609,6 +604,50 @@ class Documents extends DbTable
         $this->status_id->DefaultErrorMessage = $Language->phrase("IncorrectInteger");
         $this->status_id->SearchOperators = ["=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL"];
         $this->Fields['status_id'] = &$this->status_id;
+
+        // status_code
+        $this->status_code = new DbField(
+            $this, // Table
+            'x_status_code', // Variable name
+            'status_code', // Name
+            '"status_code"', // Expression
+            '"status_code"', // Basic search expression
+            200, // Type
+            50, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"status_code"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'TEXT' // Edit Tag
+        );
+        $this->status_code->InputTextType = "text";
+        $this->status_code->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
+        $this->Fields['status_code'] = &$this->status_code;
+
+        // status_name
+        $this->status_name = new DbField(
+            $this, // Table
+            'x_status_name', // Variable name
+            'status_name', // Name
+            '"status_name"', // Expression
+            '"status_name"', // Basic search expression
+            200, // Type
+            100, // Size
+            -1, // Date/Time format
+            false, // Is upload field
+            '"status_name"', // Virtual expression
+            false, // Is virtual
+            false, // Force selection
+            false, // Is Virtual search
+            'FORMATTED TEXT', // View Tag
+            'TEXT' // Edit Tag
+        );
+        $this->status_name->InputTextType = "text";
+        $this->status_name->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
+        $this->Fields['status_name'] = &$this->status_name;
 
         // Add Doctrine Cache
         $this->Cache = new \Symfony\Component\Cache\Adapter\ArrayAdapter();
@@ -677,7 +716,7 @@ class Documents extends DbTable
     // Get FROM clause
     public function getSqlFrom()
     {
-        return ($this->SqlFrom != "") ? $this->SqlFrom : "documents";
+        return ($this->SqlFrom != "") ? $this->SqlFrom : "document_status_view";
     }
 
     // Get FROM clause (for backward compatibility)
@@ -1013,21 +1052,15 @@ class Documents extends DbTable
         $conn = $this->getConnection();
         try {
             $queryBuilder = $this->insertSql($rs);
-            $result = $conn->executeQuery(
-                $queryBuilder->getSQL() . " RETURNING document_id",
-                $queryBuilder->getParameters(),
-                $queryBuilder->getParameterTypes()
-            )->fetchOne();
+            $result = $queryBuilder->executeStatement();
             $this->DbErrorMessage = "";
         } catch (\Exception $e) {
             $result = false;
             $this->DbErrorMessage = $e->getMessage();
         }
         if ($result) {
-            $this->document_id->setDbValue($result);
-            $rs['document_id'] = $this->document_id->DbValue;
         }
-        return $result !== false ? 1 : false;
+        return $result;
     }
 
     /**
@@ -1075,13 +1108,6 @@ class Documents extends DbTable
             $success = false;
             $this->DbErrorMessage = $e->getMessage();
         }
-
-        // Return auto increment field
-        if ($success) {
-            if (!isset($rs['document_id']) && !EmptyValue($this->document_id->CurrentValue)) {
-                $rs['document_id'] = $this->document_id->CurrentValue;
-            }
-        }
         return $success;
     }
 
@@ -1101,9 +1127,6 @@ class Documents extends DbTable
             $where = $this->arrayToFilter($where);
         }
         if ($rs) {
-            if (array_key_exists('document_id', $rs)) {
-                AddFilter($where, QuotedName('document_id', $this->Dbid) . '=' . QuotedValue($rs['document_id'], $this->document_id->DataType, $this->Dbid));
-            }
         }
         $filter = $curfilter ? $this->CurrentFilter : "";
         AddFilter($filter, $where);
@@ -1153,6 +1176,8 @@ class Documents extends DbTable
         $this->version->DbValue = $row['version'];
         $this->notes->DbValue = $row['notes'];
         $this->status_id->DbValue = $row['status_id'];
+        $this->status_code->DbValue = $row['status_code'];
+        $this->status_name->DbValue = $row['status_name'];
     }
 
     // Delete uploaded files
@@ -1164,19 +1189,13 @@ class Documents extends DbTable
     // Record filter WHERE clause
     protected function sqlKeyFilter()
     {
-        return "\"document_id\" = @document_id@";
+        return "";
     }
 
     // Get Key
     public function getKey($current = false, $keySeparator = null)
     {
         $keys = [];
-        $val = $current ? $this->document_id->CurrentValue : $this->document_id->OldValue;
-        if (EmptyValue($val)) {
-            return "";
-        } else {
-            $keys[] = $val;
-        }
         $keySeparator ??= Config("COMPOSITE_KEY_SEPARATOR");
         return implode($keySeparator, $keys);
     }
@@ -1187,12 +1206,7 @@ class Documents extends DbTable
         $keySeparator ??= Config("COMPOSITE_KEY_SEPARATOR");
         $this->OldKey = strval($key);
         $keys = explode($keySeparator, $this->OldKey);
-        if (count($keys) == 1) {
-            if ($current) {
-                $this->document_id->CurrentValue = $keys[0];
-            } else {
-                $this->document_id->OldValue = $keys[0];
-            }
+        if (count($keys) == 0) {
         }
     }
 
@@ -1200,19 +1214,6 @@ class Documents extends DbTable
     public function getRecordFilter($row = null, $current = false)
     {
         $keyFilter = $this->sqlKeyFilter();
-        if (is_array($row)) {
-            $val = array_key_exists('document_id', $row) ? $row['document_id'] : null;
-        } else {
-            $val = !EmptyValue($this->document_id->OldValue) && !$current ? $this->document_id->OldValue : $this->document_id->CurrentValue;
-        }
-        if (!is_numeric($val)) {
-            return "0=1"; // Invalid key
-        }
-        if ($val === null) {
-            return "0=1"; // Invalid key
-        } else {
-            $keyFilter = str_replace("@document_id@", AdjustSql($val, $this->Dbid), $keyFilter); // Replace key value
-        }
         return $keyFilter;
     }
 
@@ -1226,7 +1227,7 @@ class Documents extends DbTable
         if ($referUrl != "" && $referPageName != CurrentPageName() && $referPageName != "login") { // Referer not same page or login page
             $_SESSION[$name] = $referUrl; // Save to Session
         }
-        return $_SESSION[$name] ?? GetUrl("DocumentsList");
+        return $_SESSION[$name] ?? GetUrl("DocumentStatusViewList");
     }
 
     // Set return page URL
@@ -1240,9 +1241,9 @@ class Documents extends DbTable
     {
         global $Language;
         return match ($pageName) {
-            "DocumentsView" => $Language->phrase("View"),
-            "DocumentsEdit" => $Language->phrase("Edit"),
-            "DocumentsAdd" => $Language->phrase("Add"),
+            "DocumentStatusViewView" => $Language->phrase("View"),
+            "DocumentStatusViewEdit" => $Language->phrase("Edit"),
+            "DocumentStatusViewAdd" => $Language->phrase("Add"),
             default => ""
         };
     }
@@ -1250,18 +1251,18 @@ class Documents extends DbTable
     // Default route URL
     public function getDefaultRouteUrl()
     {
-        return "DocumentsList";
+        return "DocumentStatusViewList";
     }
 
     // API page name
     public function getApiPageName($action)
     {
         return match (strtolower($action)) {
-            Config("API_VIEW_ACTION") => "DocumentsView",
-            Config("API_ADD_ACTION") => "DocumentsAdd",
-            Config("API_EDIT_ACTION") => "DocumentsEdit",
-            Config("API_DELETE_ACTION") => "DocumentsDelete",
-            Config("API_LIST_ACTION") => "DocumentsList",
+            Config("API_VIEW_ACTION") => "DocumentStatusViewView",
+            Config("API_ADD_ACTION") => "DocumentStatusViewAdd",
+            Config("API_EDIT_ACTION") => "DocumentStatusViewEdit",
+            Config("API_DELETE_ACTION") => "DocumentStatusViewDelete",
+            Config("API_LIST_ACTION") => "DocumentStatusViewList",
             default => ""
         };
     }
@@ -1281,16 +1282,16 @@ class Documents extends DbTable
     // List URL
     public function getListUrl()
     {
-        return "DocumentsList";
+        return "DocumentStatusViewList";
     }
 
     // View URL
     public function getViewUrl($parm = "")
     {
         if ($parm != "") {
-            $url = $this->keyUrl("DocumentsView", $parm);
+            $url = $this->keyUrl("DocumentStatusViewView", $parm);
         } else {
-            $url = $this->keyUrl("DocumentsView", Config("TABLE_SHOW_DETAIL") . "=");
+            $url = $this->keyUrl("DocumentStatusViewView", Config("TABLE_SHOW_DETAIL") . "=");
         }
         return $this->addMasterUrl($url);
     }
@@ -1299,9 +1300,9 @@ class Documents extends DbTable
     public function getAddUrl($parm = "")
     {
         if ($parm != "") {
-            $url = "DocumentsAdd?" . $parm;
+            $url = "DocumentStatusViewAdd?" . $parm;
         } else {
-            $url = "DocumentsAdd";
+            $url = "DocumentStatusViewAdd";
         }
         return $this->addMasterUrl($url);
     }
@@ -1309,28 +1310,28 @@ class Documents extends DbTable
     // Edit URL
     public function getEditUrl($parm = "")
     {
-        $url = $this->keyUrl("DocumentsEdit", $parm);
+        $url = $this->keyUrl("DocumentStatusViewEdit", $parm);
         return $this->addMasterUrl($url);
     }
 
     // Inline edit URL
     public function getInlineEditUrl()
     {
-        $url = $this->keyUrl("DocumentsList", "action=edit");
+        $url = $this->keyUrl("DocumentStatusViewList", "action=edit");
         return $this->addMasterUrl($url);
     }
 
     // Copy URL
     public function getCopyUrl($parm = "")
     {
-        $url = $this->keyUrl("DocumentsAdd", $parm);
+        $url = $this->keyUrl("DocumentStatusViewAdd", $parm);
         return $this->addMasterUrl($url);
     }
 
     // Inline copy URL
     public function getInlineCopyUrl()
     {
-        $url = $this->keyUrl("DocumentsList", "action=copy");
+        $url = $this->keyUrl("DocumentStatusViewList", "action=copy");
         return $this->addMasterUrl($url);
     }
 
@@ -1340,7 +1341,7 @@ class Documents extends DbTable
         if ($this->UseAjaxActions && ConvertToBool(Param("infinitescroll")) && CurrentPageID() == "list") {
             return $this->keyUrl(GetApiUrl(Config("API_DELETE_ACTION") . "/" . $this->TableVar));
         } else {
-            return $this->keyUrl("DocumentsDelete", $parm);
+            return $this->keyUrl("DocumentStatusViewDelete", $parm);
         }
     }
 
@@ -1353,7 +1354,6 @@ class Documents extends DbTable
     public function keyToJson($htmlEncode = false)
     {
         $json = "";
-        $json .= "\"document_id\":" . VarToJson($this->document_id->CurrentValue, "number");
         $json = "{" . $json . "}";
         if ($htmlEncode) {
             $json = HtmlEncode($json);
@@ -1364,11 +1364,6 @@ class Documents extends DbTable
     // Add key value to URL
     public function keyUrl($url, $parm = "")
     {
-        if ($this->document_id->CurrentValue !== null) {
-            $url .= "/" . $this->encodeKeyValue($this->document_id->CurrentValue);
-        } else {
-            return "javascript:ew.alert(ew.language.phrase('InvalidRecord'));";
-        }
         if ($parm != "") {
             $url .= "?" . $parm;
         }
@@ -1438,24 +1433,14 @@ class Documents extends DbTable
             $isApi = IsApi();
             $keyValues = $isApi
                 ? (Route(0) == "export"
-                    ? array_map(fn ($i) => Route($i + 3), range(0, 0))  // Export API
-                    : array_map(fn ($i) => Route($i + 2), range(0, 0))) // Other API
+                    ? array_map(fn ($i) => Route($i + 3), range(0, -1))  // Export API
+                    : array_map(fn ($i) => Route($i + 2), range(0, -1))) // Other API
                 : []; // Non-API
-            if (($keyValue = Param("document_id") ?? Route("document_id")) !== null) {
-                $arKeys[] = $keyValue;
-            } elseif ($isApi && (($keyValue = Key(0) ?? $keyValues[0] ?? null) !== null)) {
-                $arKeys[] = $keyValue;
-            } else {
-                $arKeys = null; // Do not setup
-            }
         }
         // Check keys
         $ar = [];
         if (is_array($arKeys)) {
             foreach ($arKeys as $key) {
-                if (!is_numeric($key)) {
-                    continue;
-                }
                 $ar[] = $key;
             }
         }
@@ -1476,11 +1461,6 @@ class Documents extends DbTable
         foreach ($arKeys as $key) {
             if ($keyFilter != "") {
                 $keyFilter .= " OR ";
-            }
-            if ($setCurrent) {
-                $this->document_id->CurrentValue = $key;
-            } else {
-                $this->document_id->OldValue = $key;
             }
             $keyFilter .= "(" . $this->getRecordFilter() . ")";
         }
@@ -1526,13 +1506,15 @@ class Documents extends DbTable
         $this->version->setDbValue($row['version']);
         $this->notes->setDbValue($row['notes']);
         $this->status_id->setDbValue($row['status_id']);
+        $this->status_code->setDbValue($row['status_code']);
+        $this->status_name->setDbValue($row['status_name']);
     }
 
     // Render list content
     public function renderListContent($filter)
     {
         global $Response;
-        $listPage = "DocumentsList";
+        $listPage = "DocumentStatusViewList";
         $listClass = PROJECT_NAMESPACE . $listPage;
         $page = new $listClass();
         $page->loadRecordsetFromFilter($filter);
@@ -1598,8 +1580,13 @@ class Documents extends DbTable
 
         // status_id
 
+        // status_code
+
+        // status_name
+
         // document_id
         $this->document_id->ViewValue = $this->document_id->CurrentValue;
+        $this->document_id->ViewValue = FormatNumber($this->document_id->ViewValue, $this->document_id->formatPattern());
 
         // user_id
         $this->user_id->ViewValue = $this->user_id->CurrentValue;
@@ -1675,6 +1662,12 @@ class Documents extends DbTable
         // status_id
         $this->status_id->ViewValue = $this->status_id->CurrentValue;
         $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+
+        // status_code
+        $this->status_code->ViewValue = $this->status_code->CurrentValue;
+
+        // status_name
+        $this->status_name->ViewValue = $this->status_name->CurrentValue;
 
         // document_id
         $this->document_id->HrefValue = "";
@@ -1760,6 +1753,14 @@ class Documents extends DbTable
         $this->status_id->HrefValue = "";
         $this->status_id->TooltipValue = "";
 
+        // status_code
+        $this->status_code->HrefValue = "";
+        $this->status_code->TooltipValue = "";
+
+        // status_name
+        $this->status_name->HrefValue = "";
+        $this->status_name->TooltipValue = "";
+
         // Call Row Rendered event
         $this->rowRendered();
 
@@ -1778,6 +1779,10 @@ class Documents extends DbTable
         // document_id
         $this->document_id->setupEditAttributes();
         $this->document_id->EditValue = $this->document_id->CurrentValue;
+        $this->document_id->PlaceHolder = RemoveHtml($this->document_id->caption());
+        if (strval($this->document_id->EditValue) != "" && is_numeric($this->document_id->EditValue)) {
+            $this->document_id->EditValue = FormatNumber($this->document_id->EditValue, null);
+        }
 
         // user_id
         $this->user_id->setupEditAttributes();
@@ -1911,6 +1916,22 @@ class Documents extends DbTable
             $this->status_id->EditValue = FormatNumber($this->status_id->EditValue, null);
         }
 
+        // status_code
+        $this->status_code->setupEditAttributes();
+        if (!$this->status_code->Raw) {
+            $this->status_code->CurrentValue = HtmlDecode($this->status_code->CurrentValue);
+        }
+        $this->status_code->EditValue = $this->status_code->CurrentValue;
+        $this->status_code->PlaceHolder = RemoveHtml($this->status_code->caption());
+
+        // status_name
+        $this->status_name->setupEditAttributes();
+        if (!$this->status_name->Raw) {
+            $this->status_name->CurrentValue = HtmlDecode($this->status_name->CurrentValue);
+        }
+        $this->status_name->EditValue = $this->status_name->CurrentValue;
+        $this->status_name->PlaceHolder = RemoveHtml($this->status_name->caption());
+
         // Call Row Rendered event
         $this->rowRendered();
     }
@@ -1960,6 +1981,8 @@ class Documents extends DbTable
                     $doc->exportCaption($this->version);
                     $doc->exportCaption($this->notes);
                     $doc->exportCaption($this->status_id);
+                    $doc->exportCaption($this->status_code);
+                    $doc->exportCaption($this->status_name);
                 } else {
                     $doc->exportCaption($this->document_id);
                     $doc->exportCaption($this->user_id);
@@ -1979,6 +2002,8 @@ class Documents extends DbTable
                     $doc->exportCaption($this->parent_document_id);
                     $doc->exportCaption($this->version);
                     $doc->exportCaption($this->status_id);
+                    $doc->exportCaption($this->status_code);
+                    $doc->exportCaption($this->status_name);
                 }
                 $doc->endExportRow();
             }
@@ -2026,6 +2051,8 @@ class Documents extends DbTable
                         $doc->exportField($this->version);
                         $doc->exportField($this->notes);
                         $doc->exportField($this->status_id);
+                        $doc->exportField($this->status_code);
+                        $doc->exportField($this->status_name);
                     } else {
                         $doc->exportField($this->document_id);
                         $doc->exportField($this->user_id);
@@ -2045,6 +2072,8 @@ class Documents extends DbTable
                         $doc->exportField($this->parent_document_id);
                         $doc->exportField($this->version);
                         $doc->exportField($this->status_id);
+                        $doc->exportField($this->status_code);
+                        $doc->exportField($this->status_name);
                     }
                     $doc->endExportRow($rowCnt);
                 }

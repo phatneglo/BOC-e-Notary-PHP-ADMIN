@@ -15,7 +15,7 @@ use Closure;
 /**
  * Page class
  */
-class DocumentsList extends Documents
+class DocumentStatusViewList extends DocumentStatusView
 {
     use MessagesTrait;
 
@@ -26,7 +26,7 @@ class DocumentsList extends Documents
     public $ProjectID = PROJECT_ID;
 
     // Page object name
-    public $PageObjName = "DocumentsList";
+    public $PageObjName = "DocumentStatusViewList";
 
     // View file path
     public $View = null;
@@ -38,13 +38,13 @@ class DocumentsList extends Documents
     public $RenderingView = false;
 
     // Grid form hidden field names
-    public $FormName = "fdocumentslist";
+    public $FormName = "fdocument_status_viewlist";
     public $FormActionName = "";
     public $FormBlankRowName = "";
     public $FormKeyCountName = "";
 
     // CSS class/style
-    public $CurrentPageName = "DocumentsList";
+    public $CurrentPageName = "DocumentStatusViewList";
 
     // Page URLs
     public $AddUrl;
@@ -166,6 +166,8 @@ class DocumentsList extends Documents
         $this->version->setVisibility();
         $this->notes->Visible = false;
         $this->status_id->setVisibility();
+        $this->status_code->setVisibility();
+        $this->status_name->setVisibility();
     }
 
     // Constructor
@@ -176,8 +178,8 @@ class DocumentsList extends Documents
         $this->FormActionName = Config("FORM_ROW_ACTION_NAME");
         $this->FormBlankRowName = Config("FORM_BLANK_ROW_NAME");
         $this->FormKeyCountName = Config("FORM_KEY_COUNT_NAME");
-        $this->TableVar = 'documents';
-        $this->TableName = 'documents';
+        $this->TableVar = 'document_status_view';
+        $this->TableName = 'document_status_view';
 
         // Table CSS class
         $this->TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -197,26 +199,26 @@ class DocumentsList extends Documents
         // Language object
         $Language = Container("app.language");
 
-        // Table object (documents)
-        if (!isset($GLOBALS["documents"]) || $GLOBALS["documents"]::class == PROJECT_NAMESPACE . "documents") {
-            $GLOBALS["documents"] = &$this;
+        // Table object (document_status_view)
+        if (!isset($GLOBALS["document_status_view"]) || $GLOBALS["document_status_view"]::class == PROJECT_NAMESPACE . "document_status_view") {
+            $GLOBALS["document_status_view"] = &$this;
         }
 
         // Page URL
         $pageUrl = $this->pageUrl(false);
 
         // Initialize URLs
-        $this->AddUrl = "DocumentsAdd";
+        $this->AddUrl = "DocumentStatusViewAdd";
         $this->InlineAddUrl = $pageUrl . "action=add";
         $this->GridAddUrl = $pageUrl . "action=gridadd";
         $this->GridEditUrl = $pageUrl . "action=gridedit";
         $this->MultiEditUrl = $pageUrl . "action=multiedit";
-        $this->MultiDeleteUrl = "DocumentsDelete";
-        $this->MultiUpdateUrl = "DocumentsUpdate";
+        $this->MultiDeleteUrl = "DocumentStatusViewDelete";
+        $this->MultiUpdateUrl = "DocumentStatusViewUpdate";
 
         // Table name (for backward compatibility only)
         if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
-            define(PROJECT_NAMESPACE . "TABLE_NAME", 'documents');
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'document_status_view');
         }
 
         // Start timer
@@ -367,7 +369,7 @@ class DocumentsList extends Documents
                 $result = ["url" => GetUrl($url), "modal" => "1"];  // Assume return to modal for simplicity
                 if (!SameString($pageName, GetPageName($this->getListUrl()))) { // Not List page
                     $result["caption"] = $this->getModalCaption($pageName);
-                    $result["view"] = SameString($pageName, "DocumentsView"); // If View page, no primary button
+                    $result["view"] = SameString($pageName, "DocumentStatusViewView"); // If View page, no primary button
                 } else { // List page
                     $result["error"] = $this->getFailureMessage(); // List page should not be shown as modal => error
                     $this->clearFailureMessage();
@@ -458,7 +460,6 @@ class DocumentsList extends Documents
     {
         $key = "";
         if (is_array($ar)) {
-            $key .= @$ar['document_id'];
         }
         return $key;
     }
@@ -470,9 +471,6 @@ class DocumentsList extends Documents
      */
     protected function hideFieldsForAddEdit()
     {
-        if ($this->isAdd() || $this->isCopy() || $this->isGridAdd()) {
-            $this->document_id->Visible = false;
-        }
     }
 
     // Lookup data
@@ -723,7 +721,7 @@ class DocumentsList extends Documents
 
         // Update form name to avoid conflict
         if ($this->IsModal) {
-            $this->FormName = "fdocumentsgrid";
+            $this->FormName = "fdocument_status_viewgrid";
         }
 
         // Set up page action
@@ -1060,7 +1058,7 @@ class DocumentsList extends Documents
 
         // Load server side filters
         if (Config("SEARCH_FILTER_OPTION") == "Server") {
-            $savedFilterList = Profile()->getSearchFilters("fdocumentssrch");
+            $savedFilterList = Profile()->getSearchFilters("fdocument_status_viewsrch");
         }
         $filterList = Concat($filterList, $this->document_id->AdvancedSearch->toJson(), ","); // Field document_id
         $filterList = Concat($filterList, $this->user_id->AdvancedSearch->toJson(), ","); // Field user_id
@@ -1083,6 +1081,8 @@ class DocumentsList extends Documents
         $filterList = Concat($filterList, $this->version->AdvancedSearch->toJson(), ","); // Field version
         $filterList = Concat($filterList, $this->notes->AdvancedSearch->toJson(), ","); // Field notes
         $filterList = Concat($filterList, $this->status_id->AdvancedSearch->toJson(), ","); // Field status_id
+        $filterList = Concat($filterList, $this->status_code->AdvancedSearch->toJson(), ","); // Field status_code
+        $filterList = Concat($filterList, $this->status_name->AdvancedSearch->toJson(), ","); // Field status_name
         if ($this->BasicSearch->Keyword != "") {
             $wrk = "\"" . Config("TABLE_BASIC_SEARCH") . "\":\"" . JsEncode($this->BasicSearch->Keyword) . "\",\"" . Config("TABLE_BASIC_SEARCH_TYPE") . "\":\"" . JsEncode($this->BasicSearch->Type) . "\"";
             $filterList = Concat($filterList, $wrk, ",");
@@ -1103,7 +1103,7 @@ class DocumentsList extends Documents
     {
         if (Post("ajax") == "savefilters") { // Save filter request (Ajax)
             $filters = Post("filters");
-            Profile()->setSearchFilters("fdocumentssrch", $filters);
+            Profile()->setSearchFilters("fdocument_status_viewsrch", $filters);
             WriteJson([["success" => true]]); // Success
             return true;
         } elseif (Post("cmd") == "resetfilter") {
@@ -1289,6 +1289,22 @@ class DocumentsList extends Documents
         $this->status_id->AdvancedSearch->SearchValue2 = @$filter["y_status_id"];
         $this->status_id->AdvancedSearch->SearchOperator2 = @$filter["w_status_id"];
         $this->status_id->AdvancedSearch->save();
+
+        // Field status_code
+        $this->status_code->AdvancedSearch->SearchValue = @$filter["x_status_code"];
+        $this->status_code->AdvancedSearch->SearchOperator = @$filter["z_status_code"];
+        $this->status_code->AdvancedSearch->SearchCondition = @$filter["v_status_code"];
+        $this->status_code->AdvancedSearch->SearchValue2 = @$filter["y_status_code"];
+        $this->status_code->AdvancedSearch->SearchOperator2 = @$filter["w_status_code"];
+        $this->status_code->AdvancedSearch->save();
+
+        // Field status_name
+        $this->status_name->AdvancedSearch->SearchValue = @$filter["x_status_name"];
+        $this->status_name->AdvancedSearch->SearchOperator = @$filter["z_status_name"];
+        $this->status_name->AdvancedSearch->SearchCondition = @$filter["v_status_name"];
+        $this->status_name->AdvancedSearch->SearchValue2 = @$filter["y_status_name"];
+        $this->status_name->AdvancedSearch->SearchOperator2 = @$filter["w_status_name"];
+        $this->status_name->AdvancedSearch->save();
         $this->BasicSearch->setKeyword(@$filter[Config("TABLE_BASIC_SEARCH")]);
         $this->BasicSearch->setType(@$filter[Config("TABLE_BASIC_SEARCH_TYPE")]);
     }
@@ -1336,6 +1352,8 @@ class DocumentsList extends Documents
         $searchFlds[] = &$this->document_html;
         $searchFlds[] = &$this->document_data;
         $searchFlds[] = &$this->notes;
+        $searchFlds[] = &$this->status_code;
+        $searchFlds[] = &$this->status_name;
         $searchKeyword = $default ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
         $searchType = $default ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
 
@@ -1432,6 +1450,8 @@ class DocumentsList extends Documents
             $this->updateSort($this->parent_document_id); // parent_document_id
             $this->updateSort($this->version); // version
             $this->updateSort($this->status_id); // status_id
+            $this->updateSort($this->status_code); // status_code
+            $this->updateSort($this->status_name); // status_name
             $this->setStartRecordNumber(1); // Reset start position
         }
 
@@ -1477,6 +1497,8 @@ class DocumentsList extends Documents
                 $this->version->setSort("");
                 $this->notes->setSort("");
                 $this->status_id->setSort("");
+                $this->status_code->setSort("");
+                $this->status_name->setSort("");
             }
 
             // Reset start position
@@ -1495,30 +1517,6 @@ class DocumentsList extends Documents
         $item->Body = "";
         $item->OnLeft = true;
         $item->Visible = false;
-
-        // "view"
-        $item = &$this->ListOptions->add("view");
-        $item->CssClass = "text-nowrap";
-        $item->Visible = $Security->canView();
-        $item->OnLeft = true;
-
-        // "edit"
-        $item = &$this->ListOptions->add("edit");
-        $item->CssClass = "text-nowrap";
-        $item->Visible = $Security->canEdit();
-        $item->OnLeft = true;
-
-        // "copy"
-        $item = &$this->ListOptions->add("copy");
-        $item->CssClass = "text-nowrap";
-        $item->Visible = $Security->canAdd();
-        $item->OnLeft = true;
-
-        // "delete"
-        $item = &$this->ListOptions->add("delete");
-        $item->CssClass = "text-nowrap";
-        $item->Visible = $Security->canDelete();
-        $item->OnLeft = true;
 
         // List actions
         $item = &$this->ListOptions->add("listactions");
@@ -1577,61 +1575,7 @@ class DocumentsList extends Documents
         // Call ListOptions_Rendering event
         $this->listOptionsRendering();
         $pageUrl = $this->pageUrl(false);
-        if ($this->CurrentMode == "view") {
-            // "view"
-            $opt = $this->ListOptions["view"];
-            $viewcaption = HtmlTitle($Language->phrase("ViewLink"));
-            if ($Security->canView()) {
-                if ($this->ModalView && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-table=\"documents\" data-caption=\"" . $viewcaption . "\" data-ew-action=\"modal\" data-action=\"view\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\" data-btn=\"null\">" . $Language->phrase("ViewLink") . "</a>";
-                } else {
-                    $opt->Body = "<a class=\"ew-row-link ew-view\" title=\"" . $viewcaption . "\" data-caption=\"" . $viewcaption . "\" href=\"" . HtmlEncode(GetUrl($this->ViewUrl)) . "\">" . $Language->phrase("ViewLink") . "</a>";
-                }
-            } else {
-                $opt->Body = "";
-            }
-
-            // "edit"
-            $opt = $this->ListOptions["edit"];
-            $editcaption = HtmlTitle($Language->phrase("EditLink"));
-            if ($Security->canEdit()) {
-                if ($this->ModalEdit && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-table=\"documents\" data-caption=\"" . $editcaption . "\" data-ew-action=\"modal\" data-action=\"edit\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\" data-btn=\"SaveBtn\">" . $Language->phrase("EditLink") . "</a>";
-                } else {
-                    $opt->Body = "<a class=\"ew-row-link ew-edit\" title=\"" . $editcaption . "\" data-caption=\"" . $editcaption . "\" href=\"" . HtmlEncode(GetUrl($this->EditUrl)) . "\">" . $Language->phrase("EditLink") . "</a>";
-                }
-            } else {
-                $opt->Body = "";
-            }
-
-            // "copy"
-            $opt = $this->ListOptions["copy"];
-            $copycaption = HtmlTitle($Language->phrase("CopyLink"));
-            if ($Security->canAdd()) {
-                if ($this->ModalAdd && !IsMobile()) {
-                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-table=\"documents\" data-caption=\"" . $copycaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("CopyLink") . "</a>";
-                } else {
-                    $opt->Body = "<a class=\"ew-row-link ew-copy\" title=\"" . $copycaption . "\" data-caption=\"" . $copycaption . "\" href=\"" . HtmlEncode(GetUrl($this->CopyUrl)) . "\">" . $Language->phrase("CopyLink") . "</a>";
-                }
-            } else {
-                $opt->Body = "";
-            }
-
-            // "delete"
-            $opt = $this->ListOptions["delete"];
-            if ($Security->canDelete()) {
-                $deleteCaption = $Language->phrase("DeleteLink");
-                $deleteTitle = HtmlTitle($deleteCaption);
-                if ($this->UseAjaxActions) {
-                    $opt->Body = "<a class=\"ew-row-link ew-delete\" data-ew-action=\"inline\" data-action=\"delete\" title=\"" . $deleteTitle . "\" data-caption=\"" . $deleteTitle . "\" data-key= \"" . HtmlEncode($this->getKey(true)) . "\" data-url=\"" . HtmlEncode(GetUrl($this->DeleteUrl)) . "\">" . $deleteCaption . "</a>";
-                } else {
-                    $opt->Body = "<a class=\"ew-row-link ew-delete\"" .
-                        ($this->InlineDelete ? " data-ew-action=\"inline-delete\"" : "") .
-                        " title=\"" . $deleteTitle . "\" data-caption=\"" . $deleteTitle . "\" href=\"" . HtmlEncode(GetUrl($this->DeleteUrl)) . "\">" . $deleteCaption . "</a>";
-                }
-            } else {
-                $opt->Body = "";
-            }
+        if ($this->CurrentMode == "view") { // Check view mode
         } // End View mode
 
         // Set up list action buttons
@@ -1650,12 +1594,12 @@ class DocumentsList extends Documents
                         $icon = ($listAction->Icon != "") ? "<i class=\"" . HtmlEncode(str_replace(" ew-icon", "", $listAction->Icon)) . "\" data-caption=\"" . $title . "\"></i> " : "";
                         $link = $disabled
                             ? "<li><div class=\"alert alert-light\">" . $icon . " " . $caption . "</div></li>"
-                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocumentslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
+                            : "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocument_status_viewlist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button></li>";
                         $links[] = $link;
                         if ($body == "") { // Setup first button
                             $body = $disabled
                             ? "<div class=\"alert alert-light\">" . $icon . " " . $caption . "</div>"
-                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocumentslist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
+                            : "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" . $title . "\" data-caption=\"" . $title . "\" data-ew-action=\"submit\" form=\"fdocument_status_viewlist\" data-key=\"" . $this->keyToJson(true) . "\"" . $listAction->toDataAttributes() . ">" . $icon . " " . $caption . "</button>";
                         }
                     }
                 }
@@ -1673,7 +1617,6 @@ class DocumentsList extends Documents
 
         // "checkbox"
         $opt = $this->ListOptions["checkbox"];
-        $opt->Body = "<div class=\"form-check\"><input type=\"checkbox\" id=\"key_m_" . $this->RowCount . "\" name=\"key_m[]\" class=\"form-check-input ew-multi-select\" value=\"" . HtmlEncode($this->document_id->CurrentValue) . "\" data-ew-action=\"select-key\"></div>";
         $this->renderListOptionsExt();
 
         // Call ListOptions_Rendered event
@@ -1692,17 +1635,6 @@ class DocumentsList extends Documents
     {
         global $Language, $Security;
         $options = &$this->OtherOptions;
-        $option = $options["addedit"];
-
-        // Add
-        $item = &$option->add("add");
-        $addcaption = HtmlTitle($Language->phrase("AddLink"));
-        if ($this->ModalAdd && !IsMobile()) {
-            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-table=\"documents\" data-caption=\"" . $addcaption . "\" data-ew-action=\"modal\" data-action=\"add\" data-ajax=\"" . ($this->UseAjaxActions ? "true" : "false") . "\" data-url=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\" data-btn=\"AddBtn\">" . $Language->phrase("AddLink") . "</a>";
-        } else {
-            $item->Body = "<a class=\"ew-add-edit ew-add\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" href=\"" . HtmlEncode(GetUrl($this->AddUrl)) . "\">" . $Language->phrase("AddLink") . "</a>";
-        }
-        $item->Visible = $this->AddUrl != "" && $Security->canAdd();
         $option = $options["action"];
 
         // Show column list for column visibility
@@ -1729,6 +1661,8 @@ class DocumentsList extends Documents
             $this->createColumnOption($option, "parent_document_id");
             $this->createColumnOption($option, "version");
             $this->createColumnOption($option, "status_id");
+            $this->createColumnOption($option, "status_code");
+            $this->createColumnOption($option, "status_name");
         }
 
         // Set up custom actions
@@ -1753,10 +1687,10 @@ class DocumentsList extends Documents
 
         // Filter button
         $item = &$this->FilterOptions->add("savecurrentfilter");
-        $item->Body = "<a class=\"ew-save-filter\" data-form=\"fdocumentssrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
+        $item->Body = "<a class=\"ew-save-filter\" data-form=\"fdocument_status_viewsrch\" data-ew-action=\"none\">" . $Language->phrase("SaveCurrentFilter") . "</a>";
         $item->Visible = true;
         $item = &$this->FilterOptions->add("deletefilter");
-        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"fdocumentssrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
+        $item->Body = "<a class=\"ew-delete-filter\" data-form=\"fdocument_status_viewsrch\" data-ew-action=\"none\">" . $Language->phrase("DeleteFilter") . "</a>";
         $item->Visible = true;
         $this->FilterOptions->UseDropDownButton = true;
         $this->FilterOptions->UseButtonGroup = !$this->FilterOptions->UseDropDownButton;
@@ -1816,7 +1750,7 @@ class DocumentsList extends Documents
                 $item = &$option->add("custom_" . $listAction->Action);
                 $caption = $listAction->Caption;
                 $icon = ($listAction->Icon != "") ? '<i class="' . HtmlEncode($listAction->Icon) . '" data-caption="' . HtmlEncode($caption) . '"></i>' . $caption : $caption;
-                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="fdocumentslist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
+                $item->Body = '<button type="button" class="btn btn-default ew-action ew-list-action" title="' . HtmlEncode($caption) . '" data-caption="' . HtmlEncode($caption) . '" data-ew-action="submit" form="fdocument_status_viewlist"' . $listAction->toDataAttributes() . '>' . $icon . '</button>';
                 $item->Visible = $listAction->Allowed;
             }
         }
@@ -1982,7 +1916,7 @@ class DocumentsList extends Documents
 
                 // Set row properties
                 $this->resetAttributes();
-                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_documents", "data-rowtype" => RowType::ADD]);
+                $this->RowAttrs->merge(["data-rowindex" => $this->RowIndex, "id" => "r0_document_status_view", "data-rowtype" => RowType::ADD]);
                 $this->RowAttrs->appendClass("ew-template");
                 // Render row
                 $this->RowType = RowType::ADD;
@@ -2043,7 +1977,7 @@ class DocumentsList extends Documents
         $this->RowAttrs->merge([
             "data-rowindex" => $this->RowCount,
             "data-key" => $this->getKey(true),
-            "id" => "r" . $this->RowCount . "_documents",
+            "id" => "r" . $this->RowCount . "_document_status_view",
             "data-rowtype" => $this->RowType,
             "data-inline" => ($this->isAdd() || $this->isCopy() || $this->isEdit()) ? "true" : "false", // Inline-Add/Copy/Edit
             "class" => ($this->RowCount % 2 != 1) ? "ew-table-alt-row" : "",
@@ -2183,6 +2117,8 @@ class DocumentsList extends Documents
         $this->version->setDbValue($row['version']);
         $this->notes->setDbValue($row['notes']);
         $this->status_id->setDbValue($row['status_id']);
+        $this->status_code->setDbValue($row['status_code']);
+        $this->status_name->setDbValue($row['status_name']);
     }
 
     // Return a row with default values
@@ -2210,24 +2146,14 @@ class DocumentsList extends Documents
         $row['version'] = $this->version->DefaultValue;
         $row['notes'] = $this->notes->DefaultValue;
         $row['status_id'] = $this->status_id->DefaultValue;
+        $row['status_code'] = $this->status_code->DefaultValue;
+        $row['status_name'] = $this->status_name->DefaultValue;
         return $row;
     }
 
     // Load old record
     protected function loadOldRecord()
     {
-        // Load old record
-        if ($this->OldKey != "") {
-            $this->setKey($this->OldKey);
-            $this->CurrentFilter = $this->getRecordFilter();
-            $sql = $this->getCurrentSql();
-            $conn = $this->getConnection();
-            $rs = ExecuteQuery($sql, $conn);
-            if ($row = $rs->fetch()) {
-                $this->loadRowValues($row); // Load row values
-                return $row;
-            }
-        }
         $this->loadRowValues(); // Load default row values
         return null;
     }
@@ -2292,10 +2218,15 @@ class DocumentsList extends Documents
 
         // status_id
 
+        // status_code
+
+        // status_name
+
         // View row
         if ($this->RowType == RowType::VIEW) {
             // document_id
             $this->document_id->ViewValue = $this->document_id->CurrentValue;
+            $this->document_id->ViewValue = FormatNumber($this->document_id->ViewValue, $this->document_id->formatPattern());
 
             // user_id
             $this->user_id->ViewValue = $this->user_id->CurrentValue;
@@ -2362,6 +2293,12 @@ class DocumentsList extends Documents
             // status_id
             $this->status_id->ViewValue = $this->status_id->CurrentValue;
             $this->status_id->ViewValue = FormatNumber($this->status_id->ViewValue, $this->status_id->formatPattern());
+
+            // status_code
+            $this->status_code->ViewValue = $this->status_code->CurrentValue;
+
+            // status_name
+            $this->status_name->ViewValue = $this->status_name->CurrentValue;
 
             // document_id
             $this->document_id->HrefValue = "";
@@ -2434,6 +2371,14 @@ class DocumentsList extends Documents
             // status_id
             $this->status_id->HrefValue = "";
             $this->status_id->TooltipValue = "";
+
+            // status_code
+            $this->status_code->HrefValue = "";
+            $this->status_code->TooltipValue = "";
+
+            // status_name
+            $this->status_name->HrefValue = "";
+            $this->status_name->TooltipValue = "";
         }
 
         // Call Row Rendered event
@@ -2452,7 +2397,7 @@ class DocumentsList extends Documents
         // Search button
         $item = &$this->SearchOptions->add("searchtoggle");
         $searchToggleClass = ($this->SearchWhere != "") ? " active" : " active";
-        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"fdocumentssrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
+        $item->Body = "<a class=\"btn btn-default ew-search-toggle" . $searchToggleClass . "\" role=\"button\" title=\"" . $Language->phrase("SearchPanel") . "\" data-caption=\"" . $Language->phrase("SearchPanel") . "\" data-ew-action=\"search-toggle\" data-form=\"fdocument_status_viewsrch\" aria-pressed=\"" . ($searchToggleClass == " active" ? "true" : "false") . "\">" . $Language->phrase("SearchLink") . "</a>";
         $item->Visible = true;
 
         // Show all button

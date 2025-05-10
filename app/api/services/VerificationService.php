@@ -139,6 +139,18 @@ class VerificationService {
     }
     
     /**
+     * Verify document by document number and keycode (adapter for QrCodeService)
+     * @param string $documentNumber Document number
+     * @param string $keycode Verification keycode
+     * @return array Response data
+     */
+    public function verifyDocumentByNumberAndCode($documentNumber, $keycode) {
+        // Create a QrCodeService instance to use its verification method
+        $qrCodeService = new QrCodeService();
+        return $qrCodeService->verifyDocument($documentNumber, $keycode);
+    }
+    
+    /**
      * Get verification from QR code
      * @param string $verificationId Verification ID
      * @return array Response data
