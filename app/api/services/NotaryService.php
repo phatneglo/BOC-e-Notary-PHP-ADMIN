@@ -26,7 +26,7 @@ class NotaryService {
                     user_id,
                     notary_commission_number,
                     notary_commission_expiry,
-                    (digital_seal IS NOT NULL) AS has_digital_seal
+                    digital_signature IS NOT NULL AS has_digital_signature
                 FROM
                     users
                 WHERE
@@ -286,36 +286,36 @@ class NotaryService {
             Execute("BEGIN", "DB");
             
             try {
-                // Process digital seal if provided
-                $digitalSealPath = null;
-                if (!empty($profileData['digital_seal'])) {
-                    $seal = $profileData['digital_seal'];
+                // Process digital signature if provided
+                $digitalSignaturePath = null;
+                if (!empty($profileData['digital_signature'])) {
+                    $signature = $profileData['digital_signature'];
                     
                     // Validate file type
                     $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-                    $fileType = $seal->getClientMediaType();
+                    $fileType = $signature->getClientMediaType();
                     
                     if (!in_array($fileType, $allowedTypes)) {
                         return [
                             'success' => false,
-                            'message' => 'Invalid file type for digital seal. Only JPG, JPEG, and PNG are allowed.',
-                            'errors' => ['digital_seal' => ['Invalid file type. Only JPG, JPEG, and PNG are allowed.']]
+                            'message' => 'Invalid file type for digital signature. Only JPG, JPEG, and PNG are allowed.',
+                            'errors' => ['digital_signature' => ['Invalid file type. Only JPG, JPEG, and PNG are allowed.']]
                         ];
                     }
                     
                     // Generate unique filename
-                    $extension = pathinfo($seal->getClientFilename(), PATHINFO_EXTENSION);
-                    $filename = uniqid('seal_', true) . '.' . $extension;
-                    $digitalSealPath = 'uploads/seals/' . $filename;
+                    $extension = pathinfo($signature->getClientFilename(), PATHINFO_EXTENSION);
+                    $filename = uniqid('signature_', true) . '.' . $extension;
+                    $digitalSignaturePath = 'uploads/signatures/' . $filename;
                     
                     // Ensure upload directory exists
-                    $uploadDir = dirname($digitalSealPath);
+                    $uploadDir = dirname($digitalSignaturePath);
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0755, true);
                     }
                     
                     // Save file
-                    $seal->moveTo($digitalSealPath);
+                    $signature->moveTo($digitalSignaturePath);
                 }
                 
                 // Update notary profile
@@ -323,9 +323,9 @@ class NotaryService {
                         notary_commission_number = " . QuotedValue($profileData['notary_commission_number'], DataType::STRING) . ",
                         notary_commission_expiry = " . QuotedValue($profileData['notary_commission_expiry'], DataType::DATE);
                 
-                // Add digital seal if provided
-                if ($digitalSealPath) {
-                    $sql .= ", digital_seal = " . QuotedValue($digitalSealPath, DataType::STRING);
+                // Add digital signature if provided
+                if ($digitalSignaturePath) {
+                    $sql .= ", digital_signature = " . QuotedValue($digitalSignaturePath, DataType::STRING);
                 }
                 
                 $sql .= " WHERE user_id = " . QuotedValue($userId, DataType::NUMBER) . " AND is_notary = true";
@@ -672,7 +672,6 @@ class NotaryService {
                         notary_location,
                         notarization_date,
                         digital_signature,
-                        digital_seal,
                         certificate_text,
                         certificate_type,
                         revoked
@@ -688,7 +687,6 @@ class NotaryService {
                         " . QuotedValue($notarizationData['notary_location'], DataType::STRING) . ",
                         CURRENT_TIMESTAMP,
                         NULL, -- Digital signature will be added during PDF generation
-                        NULL, -- Digital seal will be added during PDF generation
                         " . QuotedValue($certificateText, DataType::STRING) . ",
                         " . QuotedValue($notarizationData['certificate_type'], DataType::STRING) . ",
                         FALSE
