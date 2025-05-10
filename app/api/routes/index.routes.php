@@ -13,10 +13,10 @@ require_once __DIR__ . '/documents.routes.php';
 require_once __DIR__ . '/requests.routes.php';
 require_once __DIR__ . '/notarized.routes.php';
 require_once __DIR__ . '/payments.routes.php';
-// require_once __DIR__ . '/verify.routes.php'; // Replaced by consolidated file
+require_once __DIR__ . '/verify.routes.php';
 require_once __DIR__ . '/notification.routes.php';
-// require_once __DIR__ . '/qrcode.routes.php'; // Replaced by consolidated file
-require_once __DIR__ . '/consolidated-qrcode-verify.routes.php'; // Consolidated QR code and verification routes
+require_once __DIR__ . '/qrcode.routes.php';
+// require_once __DIR__ . '/consolidated-qrcode-verify.routes.php'; // No longer needed
 require_once __DIR__ . '/system.routes.php';
 require_once __DIR__ . '/fee-schedules.routes.php';
 require_once __DIR__ . '/maya-test.routes.php'; // Maya payment testing route

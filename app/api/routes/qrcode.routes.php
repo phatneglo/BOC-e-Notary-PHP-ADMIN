@@ -147,36 +147,3 @@ $app->post("/notary/document/{notarized_id}/qrcode", function ($request, $respon
     
     return $response->withJson($service->generateDocumentQrCode($notarizedId));
 })->add($jwtMiddleware);
-
-/**
- * @api {post} /verify/document Verify document
- * @apiName VerifyDocument
- * @apiGroup QrCode
- */
-$app->post("/verify/document", function ($request, $response, $args) {
-    $service = new QrCodeService();
-    $data = $request->getParsedBody();
-    
-    if (empty($data['document_number']) || empty($data['keycode'])) {
-        return $response->withJson([
-            'success' => false,
-            'message' => 'Document number and keycode are required'
-        ]);
-    }
-    
-    return $response->withJson($service->verifyDocument($data['document_number'], $data['keycode']));
-});
-
-/**
- * @api {get} /verify/qr/{verification_id} Verify via QR code
- * @apiName VerifyViaQrCode
- * @apiGroup QrCode
- */
-$app->get("/verify/qr/{verification_id}", function ($request, $response, $args) {
-    // This endpoint would redirect to the verification page with document info
-    $verificationId = $args['verification_id'];
-    
-    // In a real implementation, this would look up the verification info and redirect
-    // For now, just redirect to the verification page
-    return $response->withRedirect('/verify');
-});

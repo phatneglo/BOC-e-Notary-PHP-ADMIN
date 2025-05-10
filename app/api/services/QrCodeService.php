@@ -17,7 +17,6 @@ class QrCodeService {
         }
     }
     
-    
     /**
      * Get QR code settings for a notary
      * @param int $notaryId Notary ID
@@ -694,7 +693,7 @@ class QrCodeService {
                         AND dv.keycode = " . QuotedValue($keycode, DataType::STRING);
             
             $result = ExecuteRows($sql, "DB");
-            Log("Verfify Document" . json_encode($result));
+            
             // No verification found
             if (empty($result)) {
                 // Record failed attempt
@@ -850,9 +849,9 @@ class QrCodeService {
      * @param string $userAgent User agent
      * @param bool $isSuccessful Whether the attempt was successful
      * @param string $failureReason Reason for failure
-     * @return void
+     * @return array Response data with success status and attempt details
      */
-    private function recordVerificationAttempt($verificationId, $documentNumber, $keycode, $ipAddress, $userAgent, $isSuccessful, $failureReason) {
+    public function recordVerificationAttempt($verificationId, $documentNumber, $keycode, $ipAddress, $userAgent, $isSuccessful, $failureReason) {
         try {
             // Insert verification attempt record
             $sql = "INSERT INTO verification_attempts (
@@ -907,8 +906,26 @@ class QrCodeService {
                     Execute($sql, "DB");
                 }
             }
+            
+            // Return success with attempt information
+            return [
+                'success' => true,
+                'message' => 'Verification attempt recorded',
+                'data' => [
+                    'is_successful' => $isSuccessful,
+                    'verification_id' => $verificationId,
+                    'document_number' => $documentNumber,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]
+            ];
         } catch (\Exception $e) {
             LogError($e->getMessage());
+            
+            // Return error response
+            return [
+                'success' => false,
+                'message' => 'Failed to record verification attempt: ' . $e->getMessage()
+            ];
         }
     }
     
@@ -929,5 +946,4 @@ class QrCodeService {
         
         return ['r' => $r, 'g' => $g, 'b' => $b];
     }
-
 }

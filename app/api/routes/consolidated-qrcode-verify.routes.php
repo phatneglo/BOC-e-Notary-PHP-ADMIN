@@ -2,8 +2,56 @@
 // app/api/routes/consolidated-qrcode-verify.routes.php
 namespace PHPMaker2024\eNotary;
 
+/*
+ * DOCUMENT VERIFICATION ROUTES
+ */
+
 /**
- * QR CODE MANAGEMENT ROUTES
+ * @api {post} /verify Verify document by document number and keycode
+ * @apiName VerifyDocument
+ * @apiGroup Verification
+ */
+$app->post("/verify", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $verificationData = $request->getParsedBody();
+    return $response->withJson($service->verifyDocument($verificationData));
+});
+
+/**
+ * @api {get} /verify/qr/{verification_id} Verification by QR code
+ * @apiName VerificationByQRCode
+ * @apiGroup Verification
+ */
+$app->get("/verify/qr/{verification_id}", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $verificationId = isset($args['verification_id']) ? $args['verification_id'] : '';
+    return $response->withJson($service->getVerificationByQrCode($verificationId));
+});
+
+/**
+ * @api {post} /verify/record Record verification attempt
+ * @apiName RecordVerificationAttempt
+ * @apiGroup Verification
+ */
+$app->post("/verify/record", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $attemptData = $request->getParsedBody();
+    return $response->withJson($service->recordVerificationAttempt($attemptData));
+});
+
+/**
+ * @api {post} /verify/qr/test Test QR code scan
+ * @apiName TestQRCodeScan
+ * @apiGroup Verification
+ */
+$app->post("/verify/qr/test", function ($request, $response, $args) {
+    $service = new VerificationService();
+    $qrData = $request->getUploadedFiles();
+    return $response->withJson($service->testQrCodeScan($qrData));
+})->add($jwtMiddleware);
+
+/*
+ * QR CODE SETTINGS ROUTES
  */
 
 /**
@@ -49,6 +97,26 @@ $app->post("/notary/qr-appearance", function ($request, $response, $args) {
  * @apiName UploadQrLogo
  * @apiGroup QrCode
  */
+$app->post("/notary/qr-logo", function ($request, $response, $args) {
+    $service = new QrCodeService();
+    $userId = $request->getAttribute('user_id');
+    $uploadedFiles = $request->getUploadedFiles();
+    
+    if (empty($uploadedFiles['logo'])) {
+        return $response->withJson([
+            'success' => false,
+            'message' => 'No logo file provided'
+        ]);
+    }
+    
+    return $response->withJson($service->uploadQrLogo($userId, $uploadedFiles['logo']));
+})->add($jwtMiddleware);
+
+/**
+ * @api {get} /notary/qr-logo Get QR logo
+ * @apiName GetQrLogo
+ * @apiGroup QrCode
+ */
 $app->get("/notary/qr-logo", function ($request, $response, $args) {
     $userId = $request->getAttribute('user_id');
     
@@ -80,22 +148,13 @@ $app->get("/notary/qr-logo", function ($request, $response, $args) {
         $mimeType = 'image/jpeg';
     }
     
-    // Read file and output directly
-    $imageData = file_get_contents($logoPath);
+    // Stream the file
+    $file = fopen($logoPath, 'rb');
     
-    $response = $response->withHeader('Content-Type', $mimeType);
-    $response = $response->withHeader('Content-Length', strlen($imageData));
-    $response->getBody()->write($imageData);
-    
-    return $response;
+    return $response
+        ->withHeader('Content-Type', $mimeType)
+        ->withBody(new \Slim\Psr7\Stream($file));
 })->add($jwtMiddleware);
-
-
-/**
- * @api {get} /notary/qr-logo Get QR logo
- * @apiName GetQrLogo
- * @apiGroup QrCode
- */
 
 /**
  * @api {get} /notary/qr-preview Generate QR preview
@@ -120,22 +179,25 @@ $app->get("/notary/qr-preview", function ($request, $response, $args) {
     if (isset($result['data']['qr_code']) && preg_match('/^data:image\/png;base64,(.*)$/', $result['data']['qr_code'], $matches)) {
         $imageData = base64_decode($matches[1]);
         
-        $response = $response->withHeader('Content-Type', 'image/png');
-        $response = $response->withHeader('Content-Length', strlen($imageData));
-        $response->getBody()->write($imageData);
-        
-        return $response;
+        return $response
+            ->withHeader('Content-Type', 'image/png')
+            ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r+')))
+            ->getBody()->write($imageData);
     }
     
     return $response->withJson($result);
 })->add($jwtMiddleware);
 
+/*
+ * DOCUMENT QR CODE ROUTES
+ */
+
 /**
- * @api {post} /notary/document/{notarized_id}/qrcode Generate document QR code
+ * @api {post} /notarized/{notarized_id}/qrcode Generate document QR code
  * @apiName GenerateDocumentQrCode
  * @apiGroup QrCode
  */
-$app->post("/notary/document/{notarized_id}/qrcode", function ($request, $response, $args) {
+$app->post("/notarized/{notarized_id}/qrcode", function ($request, $response, $args) {
     $service = new QrCodeService();
     $notarizedId = (int)$args['notarized_id'];
     
@@ -143,80 +205,38 @@ $app->post("/notary/document/{notarized_id}/qrcode", function ($request, $respon
 })->add($jwtMiddleware);
 
 /**
- * VERIFICATION ROUTES
+ * @api {get} /notarized/{notarized_id}/qrcode Get notarized document QR code
+ * @apiName GetNotarizedDocumentQrCode
+ * @apiGroup Notarized
  */
-
-/**
- * @api {post} /verify Verify document
- * @apiName VerifyDocument
- * @apiGroup Verification
- */
-$app->post("/verify", function ($request, $response, $args) {
-    $service = new VerificationService();
-    $verificationData = $request->getParsedBody();
-    return $response->withJson($service->verifyDocument($verificationData));
-});
-
-/**
- * @api {post} /verify/document Verify document by number and code
- * @apiName VerifyDocumentByNumberAndCode
- * @apiGroup Verification
- */
-$app->post("/verify/document", function ($request, $response, $args) {
-    $service = new VerificationService();
-    $data = $request->getParsedBody();
+$app->get("/notarized/{notarized_id}/qrcode", function ($request, $response, $args) {
+    $service = new NotarizedDocumentService();
+    $notarizedId = isset($args['notarized_id']) ? (int)$args['notarized_id'] : 0;
     
-    if (empty($data['document_number']) || empty($data['keycode'])) {
-        return $response->withJson([
-            'success' => false,
-            'message' => 'Document number and keycode are required'
-        ]);
+    $result = $service->getQrCode($notarizedId);
+    
+    if (!$result['success']) {
+        return $response->withJson($result);
     }
     
-    return $response->withJson($service->verifyDocumentByNumberAndCode($data['document_number'], $data['keycode']));
-});
+    $fileData = $result['data'];
+    
+    // Return image response
+    $fileStream = fopen($fileData['file_path'], 'rb');
+    return $response
+        ->withHeader('Content-Type', $fileData['mime_type'])
+        ->withHeader('Content-Disposition', 'inline; filename="' . $fileData['file_name'] . '"')
+        ->withHeader('Content-Length', $fileData['file_size'])
+        ->withBody(new \Slim\Http\Stream($fileStream));
+})->add($jwtMiddleware);
 
 /**
- * @api {get} /verify/qr/{verification_id} Verification by QR code
- * @apiName VerificationByQRCode
- * @apiGroup Verification
+ * @api {get} /notarized/{notarized_id}/qr-stats Get QR statistics
+ * @apiName GetQRStatistics
+ * @apiGroup Notarized
  */
-$app->get("/verify/qr/{verification_id}", function ($request, $response, $args) {
-    $service = new VerificationService();
-    $verificationId = isset($args['verification_id']) ? $args['verification_id'] : '';
-    
-    // Get verification details
-    $result = $service->getVerificationByQrCode($verificationId);
-    
-    // If verification is successful and has redirect info, redirect to verification page with params
-    if ($result['success'] && isset($result['data']['document_number']) && isset($result['data']['keycode'])) {
-        $docNumber = urlencode($result['data']['document_number']);
-        $keycode = urlencode($result['data']['keycode']);
-        return $response->withRedirect("/verify?doc={$docNumber}&code={$keycode}");
-    }
-    
-    // Otherwise just redirect to verify page
-    return $response->withRedirect('/verify');
-});
-
-/**
- * @api {post} /verify/record Record verification attempt
- * @apiName RecordVerificationAttempt
- * @apiGroup Verification
- */
-$app->post("/verify/record", function ($request, $response, $args) {
-    $service = new VerificationService();
-    $attemptData = $request->getParsedBody();
-    return $response->withJson($service->recordVerificationAttempt($attemptData));
-});
-
-/**
- * @api {post} /verify/qr/test Test QR code scan
- * @apiName TestQRCodeScan
- * @apiGroup Verification
- */
-$app->post("/verify/qr/test", function ($request, $response, $args) {
-    $service = new VerificationService();
-    $qrData = $request->getUploadedFiles();
-    return $response->withJson($service->testQrCodeScan($qrData));
+$app->get("/notarized/{notarized_id}/qr-stats", function ($request, $response, $args) {
+    $service = new NotarizedDocumentService();
+    $notarizedId = isset($args['notarized_id']) ? (int)$args['notarized_id'] : 0;
+    return $response->withJson($service->getVerificationQrStats($notarizedId));
 })->add($jwtMiddleware);

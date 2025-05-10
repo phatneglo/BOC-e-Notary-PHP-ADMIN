@@ -27,105 +27,9 @@ class VerificationService {
                 ];
             }
             
-            // Get verification record
-            $sql = "SELECT
-                    dv.verification_id,
-                    dv.notarized_id,
-                    dv.document_number,
-                    dv.keycode,
-                    dv.expiry_date,
-                    dv.failed_attempts,
-                    nd.notarization_date,
-                    nd.revoked,
-                    d.document_title,
-                    CONCAT(u.first_name, ' ', u.last_name) AS notary_name,
-                    u.notary_commission_number
-                FROM
-                    document_verification dv
-                JOIN
-                    notarized_documents nd ON dv.notarized_id = nd.notarized_id
-                JOIN
-                    documents d ON nd.document_id = d.document_id
-                JOIN
-                    users u ON nd.notary_id = u.user_id
-                WHERE
-                    dv.document_number = " . QuotedValue($verificationData['document_number'], DataType::STRING) . "
-                    AND dv.keycode = " . QuotedValue($verificationData['keycode'], DataType::STRING);
-            
-            $result = ExecuteRows($sql, "DB");
-            
-            if (empty($result)) {
-                // Record failed verification attempt
-                $this->recordVerificationAttempt([
-                    'document_number' => $verificationData['document_number'],
-                    'keycode' => $verificationData['keycode'],
-                    'is_successful' => false,
-                    'failure_reason' => 'Invalid document number or verification code'
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Invalid document number or verification code'
-                ];
-            }
-            
-            $verification = $result[0];
-            
-            // Check if document is revoked
-            if ($verification['revoked']) {
-                // Record failed verification attempt
-                $this->recordVerificationAttempt([
-                    'verification_id' => $verification['verification_id'],
-                    'document_number' => $verification['document_number'],
-                    'keycode' => $verification['keycode'],
-                    'is_successful' => false,
-                    'failure_reason' => 'Document has been revoked'
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Document has been revoked'
-                ];
-            }
-            
-            // Check if verification has expired
-            if (strtotime($verification['expiry_date']) < time()) {
-                // Record failed verification attempt
-                $this->recordVerificationAttempt([
-                    'verification_id' => $verification['verification_id'],
-                    'document_number' => $verification['document_number'],
-                    'keycode' => $verification['keycode'],
-                    'is_successful' => false,
-                    'failure_reason' => 'Verification has expired'
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Verification has expired'
-                ];
-            }
-            
-            // Record successful verification attempt
-            $this->recordVerificationAttempt([
-                'verification_id' => $verification['verification_id'],
-                'document_number' => $verification['document_number'],
-                'keycode' => $verification['keycode'],
-                'is_successful' => true
-            ]);
-            
-            // Return success response
-            return [
-                'success' => true,
-                'data' => [
-                    'is_authentic' => true,
-                    'document_number' => $verification['document_number'],
-                    'document_title' => $verification['document_title'],
-                    'notarization_date' => $verification['notarization_date'],
-                    'notary_name' => $verification['notary_name'],
-                    'notary_commission_number' => $verification['notary_commission_number'],
-                    'expires_at' => $verification['expiry_date']
-                ]
-            ];
+            // Use QrCodeService for actual verification
+            $qrCodeService = new QrCodeService();
+            return $qrCodeService->verifyDocument($verificationData['document_number'], $verificationData['keycode']);
         } catch (\Exception $e) {
             // Log error
             LogError($e->getMessage());
@@ -136,18 +40,6 @@ class VerificationService {
                 'message' => 'Failed to verify document: ' . $e->getMessage()
             ];
         }
-    }
-    
-    /**
-     * Verify document by document number and keycode (adapter for QrCodeService)
-     * @param string $documentNumber Document number
-     * @param string $keycode Verification keycode
-     * @return array Response data
-     */
-    public function verifyDocumentByNumberAndCode($documentNumber, $keycode) {
-        // Create a QrCodeService instance to use its verification method
-        $qrCodeService = new QrCodeService();
-        return $qrCodeService->verifyDocument($documentNumber, $keycode);
     }
     
     /**
@@ -191,16 +83,21 @@ class VerificationService {
             
             $verification = $result[0];
             
+            // Use QrCodeService for verification attempt recording and status checks
+            $qrCodeService = new QrCodeService();
+            
             // Check if document is revoked
             if ($verification['revoked']) {
                 // Record verification attempt
-                $this->recordVerificationAttempt([
-                    'verification_id' => $verification['verification_id'],
-                    'document_number' => $verification['document_number'],
-                    'keycode' => $verification['keycode'],
-                    'is_successful' => false,
-                    'failure_reason' => 'Document has been revoked'
-                ]);
+                $qrCodeService->recordVerificationAttempt(
+                    $verification['verification_id'],
+                    $verification['document_number'],
+                    $verification['keycode'],
+                    $_SERVER['REMOTE_ADDR'] ?? '',
+                    $_SERVER['HTTP_USER_AGENT'] ?? '',
+                    false,
+                    'Document has been revoked'
+                );
                 
                 return [
                     'success' => false,
@@ -211,13 +108,15 @@ class VerificationService {
             // Check if verification has expired
             if (strtotime($verification['expiry_date']) < time()) {
                 // Record verification attempt
-                $this->recordVerificationAttempt([
-                    'verification_id' => $verification['verification_id'],
-                    'document_number' => $verification['document_number'],
-                    'keycode' => $verification['keycode'],
-                    'is_successful' => false,
-                    'failure_reason' => 'Verification has expired'
-                ]);
+                $qrCodeService->recordVerificationAttempt(
+                    $verification['verification_id'],
+                    $verification['document_number'],
+                    $verification['keycode'],
+                    $_SERVER['REMOTE_ADDR'] ?? '',
+                    $_SERVER['HTTP_USER_AGENT'] ?? '',
+                    false,
+                    'Verification has expired'
+                );
                 
                 return [
                     'success' => false,
@@ -226,12 +125,15 @@ class VerificationService {
             }
             
             // Record successful verification attempt
-            $this->recordVerificationAttempt([
-                'verification_id' => $verification['verification_id'],
-                'document_number' => $verification['document_number'],
-                'keycode' => $verification['keycode'],
-                'is_successful' => true
-            ]);
+            $qrCodeService->recordVerificationAttempt(
+                $verification['verification_id'],
+                $verification['document_number'],
+                $verification['keycode'],
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_USER_AGENT'] ?? '',
+                true,
+                ''
+            );
             
             // Return success response
             return [
@@ -265,118 +167,28 @@ class VerificationService {
      */
     public function recordVerificationAttempt($attemptData) {
         try {
-            // Check if we should limit verification attempts
-            if (!empty($attemptData['verification_id'])) {
-                // Check if there are too many failed attempts already
-                $sql = "SELECT
-                        verification_id,
-                        failed_attempts
-                    FROM
-                        document_verification
-                    WHERE
-                        verification_id = " . QuotedValue($attemptData['verification_id'], DataType::STRING);
-                
-                $result = ExecuteRows($sql, "DB");
-                
-                if (!empty($result)) {
-                    $verification = $result[0];
-                    
-                    // Check if there are too many recent failed attempts
-                    $sql = "SELECT
-                            COUNT(*) AS recent_failures
-                        FROM
-                            verification_attempts
-                        WHERE
-                            verification_id = " . QuotedValue($attemptData['verification_id'], DataType::STRING) . "
-                            AND is_successful = false
-                            AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'";
-                    
-                    $failuresResult = ExecuteRows($sql, "DB");
-                    $recentFailures = $failuresResult[0]['recent_failures'] ?? 0;
-                    
-                    if ($recentFailures >= 3) {
-                        return [
-                            'success' => false,
-                            'message' => 'Too many failed verification attempts. Please try again later.',
-                            'data' => [
-                                'is_successful' => false,
-                                'attempt_count' => $recentFailures,
-                                'attempts_remaining' => 0
-                            ]
-                        ];
-                    }
-                    
-                    // Update failed attempts counter if this attempt is unsuccessful
-                    if (!$attemptData['is_successful']) {
-                        $sql = "UPDATE document_verification SET
-                                failed_attempts = failed_attempts + 1
-                                WHERE verification_id = " . QuotedValue($attemptData['verification_id'], DataType::STRING);
-                        
-                        Execute($sql, "DB");
-                    }
-                }
-            }
+            // Create QrCodeService instance to use its verification method
+            $qrCodeService = new QrCodeService();
             
-            // Insert verification attempt
-            $sql = "INSERT INTO verification_attempts (
-                    verification_id,
-                    document_number,
-                    keycode,
-                    ip_address,
-                    user_agent,
-                    location,
-                    is_successful,
-                    failure_reason,
-                    created_at
-                ) VALUES (
-                    " . (!empty($attemptData['verification_id']) ? QuotedValue($attemptData['verification_id'], DataType::STRING) : "NULL") . ",
-                    " . QuotedValue($attemptData['document_number'], DataType::STRING) . ",
-                    " . QuotedValue($attemptData['keycode'], DataType::STRING) . ",
-                    " . QuotedValue($_SERVER['REMOTE_ADDR'] ?? null, DataType::STRING) . ",
-                    " . QuotedValue($_SERVER['HTTP_USER_AGENT'] ?? null, DataType::STRING) . ",
-                    " . QuotedValue($attemptData['location'] ?? null, DataType::STRING) . ",
-                    " . QuotedValue($attemptData['is_successful'], DataType::BOOLEAN) . ",
-                    " . QuotedValue($attemptData['failure_reason'] ?? null, DataType::STRING) . ",
-                    CURRENT_TIMESTAMP
-                )";
-            
-            Execute($sql, "DB");
-            
-            // Calculate attempts remaining (if verification ID is provided)
-            $attemptsRemaining = 3; // Default max attempts
-            
-            if (!empty($attemptData['verification_id'])) {
-                $sql = "SELECT
-                        COUNT(*) AS recent_failures
-                    FROM
-                        verification_attempts
-                    WHERE
-                        verification_id = " . QuotedValue($attemptData['verification_id'], DataType::STRING) . "
-                        AND is_successful = false
-                        AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'";
-                
-                $failuresResult = ExecuteRows($sql, "DB");
-                $recentFailures = $failuresResult[0]['recent_failures'] ?? 0;
-                
-                $attemptsRemaining = max(0, 3 - $recentFailures);
-            }
-            
-            // Return success response
-            return [
-                'success' => true,
-                'message' => 'Verification attempt recorded',
-                'data' => [
-                    'is_successful' => $attemptData['is_successful'],
-                    'attempt_count' => $attemptsRemaining > 0 ? 3 - $attemptsRemaining : 3,
-                    'attempts_remaining' => $attemptsRemaining
-                ]
-            ];
+            // Forward to QrCodeService to avoid duplication
+            return $qrCodeService->recordVerificationAttempt(
+                $attemptData['verification_id'] ?? null,
+                $attemptData['document_number'] ?? '',
+                $attemptData['keycode'] ?? '',
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_USER_AGENT'] ?? '',
+                $attemptData['is_successful'] ?? false,
+                $attemptData['failure_reason'] ?? ''
+            );
         } catch (\Exception $e) {
             // Log error
             LogError($e->getMessage());
             
             // Return failure silently
-            return false;
+            return [
+                'success' => false,
+                'message' => 'Failed to record verification attempt: ' . $e->getMessage()
+            ];
         }
     }
     
