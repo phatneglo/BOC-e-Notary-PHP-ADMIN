@@ -49,26 +49,6 @@ $app->post("/notary/qr-appearance", function ($request, $response, $args) {
  * @apiName UploadQrLogo
  * @apiGroup QrCode
  */
-$app->post("/notary/qr-logo", function ($request, $response, $args) {
-    $service = new QrCodeService();
-    $userId = $request->getAttribute('user_id');
-    $uploadedFiles = $request->getUploadedFiles();
-    
-    if (empty($uploadedFiles['logo'])) {
-        return $response->withJson([
-            'success' => false,
-            'message' => 'No logo file provided'
-        ]);
-    }
-    
-    return $response->withJson($service->uploadQrLogo($userId, $uploadedFiles['logo']));
-})->add($jwtMiddleware);
-
-/**
- * @api {get} /notary/qr-logo Get QR logo
- * @apiName GetQrLogo
- * @apiGroup QrCode
- */
 $app->get("/notary/qr-logo", function ($request, $response, $args) {
     $userId = $request->getAttribute('user_id');
     
@@ -100,13 +80,22 @@ $app->get("/notary/qr-logo", function ($request, $response, $args) {
         $mimeType = 'image/jpeg';
     }
     
-    // Stream the file
-    $file = fopen($logoPath, 'rb');
+    // Read file and output directly
+    $imageData = file_get_contents($logoPath);
     
-    return $response
-        ->withHeader('Content-Type', $mimeType)
-        ->withBody(new \Slim\Psr7\Stream($file));
+    $response = $response->withHeader('Content-Type', $mimeType);
+    $response = $response->withHeader('Content-Length', strlen($imageData));
+    $response->getBody()->write($imageData);
+    
+    return $response;
 })->add($jwtMiddleware);
+
+
+/**
+ * @api {get} /notary/qr-logo Get QR logo
+ * @apiName GetQrLogo
+ * @apiGroup QrCode
+ */
 
 /**
  * @api {get} /notary/qr-preview Generate QR preview
@@ -131,10 +120,11 @@ $app->get("/notary/qr-preview", function ($request, $response, $args) {
     if (isset($result['data']['qr_code']) && preg_match('/^data:image\/png;base64,(.*)$/', $result['data']['qr_code'], $matches)) {
         $imageData = base64_decode($matches[1]);
         
-        return $response
-            ->withHeader('Content-Type', 'image/png')
-            ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r+')))
-            ->getBody()->write($imageData);
+        $response = $response->withHeader('Content-Type', 'image/png');
+        $response = $response->withHeader('Content-Length', strlen($imageData));
+        $response->getBody()->write($imageData);
+        
+        return $response;
     }
     
     return $response->withJson($result);

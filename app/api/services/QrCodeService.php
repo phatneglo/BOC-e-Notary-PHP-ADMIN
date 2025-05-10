@@ -7,8 +7,17 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Color\Color;
 
 class QrCodeService {
+    public function __construct() {
+        // Ensure the required libraries are loaded
+        if (!class_exists('\Endroid\QrCode\Builder\Builder')) {
+            throw new \Exception('Endroid QR Code library not found. Please install it using: composer require endroid/qr-code');
+        }
+    }
+    
+    
     /**
      * Get QR code settings for a notary
      * @param int $notaryId Notary ID
@@ -361,8 +370,8 @@ class QrCodeService {
             // Parse parameters
             $text = $params['text'] ?? 'https://verify.enotary.boc.gov.ph';
             $size = min(max(100, (int)($params['size'] ?? 250)), 1000);
-            $fgColor = $this->hexToRgb($params['foreground'] ?? '#000000');
-            $bgColor = $this->hexToRgb($params['background'] ?? '#FFFFFF');
+            $fgHex = $params['foreground'] ?? '#000000';
+            $bgHex = $params['background'] ?? '#FFFFFF';
             $errorCorrection = $params['error_correction'] ?? 'M';
             $cornerRadius = min(max(0, (int)($params['corner_radius'] ?? 0)), 50);
             $logoSize = min(max(5, (int)($params['logo_size'] ?? 20)), 50);
@@ -390,29 +399,32 @@ class QrCodeService {
             
             $errorCorrectionLevel = $errorCorrectionMap[$errorCorrection] ?? ErrorCorrectionLevel::Medium;
             
-            // Start building the QR code
-            $builder = Builder::create()
-                ->writer(new PngWriter())
-                ->writerOptions([])
-                ->data($text)
-                ->encoding(new Encoding('UTF-8'))
-                ->errorCorrectionLevel($errorCorrectionLevel)
-                ->size($size)
-                ->margin(10)
-                ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
-                ->foregroundColor($fgColor)
-                ->backgroundColor($bgColor);
+            // Create RGB color objects
+            $fgRgb = $this->hexToRgb($fgHex);
+            $bgRgb = $this->hexToRgb($bgHex);
+            $fgColor = new Color($fgRgb['r'], $fgRgb['g'], $fgRgb['b']);
+            $bgColor = new Color($bgRgb['r'], $bgRgb['g'], $bgRgb['b']);
             
-            // Add rounded corners if specified
-            if ($cornerRadius > 0) {
-                $builder->roundBlockSize($cornerRadius);
-            }
+            // Build the QR code using named arguments
+            $builder = new Builder(
+                writer: new PngWriter(),
+                writerOptions: [],
+                validateResult: false,
+                data: $text,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: $errorCorrectionLevel,
+                size: $size,
+                margin: 10,
+                roundBlockSizeMode: $cornerRadius > 0 ? RoundBlockSizeMode::Margin : RoundBlockSizeMode::None,
+                foregroundColor: $fgColor,
+                backgroundColor: $bgColor
+            );
             
             // Add logo if specified
-            if ($useLogo && file_exists($logoPath)) {
-                $builder->logoPath($logoPath);
-                $builder->logoResizeToWidth(intval($size * $logoSize / 100));
-                $builder->logoResizeToHeight(intval($size * $logoSize / 100));
+            if ($useLogo && isset($logoPath) && file_exists($logoPath)) {
+                $builder->setLogoPath($logoPath);
+                $builder->setLogoResizeToWidth(intval($size * $logoSize / 100));
+                $builder->setLogoResizeToHeight(intval($size * $logoSize / 100));
             }
             
             // Build the QR code
@@ -440,6 +452,7 @@ class QrCodeService {
         }
     }
     
+        
     /**
      * Generate QR code for document verification
      * @param int $notarizedId Notarized document ID
@@ -507,34 +520,34 @@ class QrCodeService {
             
             $errorCorrectionLevel = $errorCorrectionMap[$qrSettings['error_correction']] ?? ErrorCorrectionLevel::Medium;
             
-            // Parse colors
-            $fgColor = $this->hexToRgb($qrSettings['foreground_color']);
-            $bgColor = $this->hexToRgb($qrSettings['background_color']);
-            
-            // Start building the QR code
-            $builder = Builder::create()
-                ->writer(new PngWriter())
-                ->writerOptions([])
-                ->data($verificationUrl)
-                ->encoding(new Encoding('UTF-8'))
-                ->errorCorrectionLevel($errorCorrectionLevel)
-                ->size($qrSettings['default_size'])
-                ->margin(10)
-                ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
-                ->foregroundColor($fgColor)
-                ->backgroundColor($bgColor);
-            
-            // Add rounded corners if specified
-            if ($qrSettings['corner_radius_percent'] > 0) {
-                $builder->roundBlockSize($qrSettings['corner_radius_percent']);
-            }
+            // Parse colors and create Color objects
+            $fgRgb = $this->hexToRgb($qrSettings['foreground_color']);
+            $bgRgb = $this->hexToRgb($qrSettings['background_color']);
+            $fgColor = new Color($fgRgb['r'], $fgRgb['g'], $fgRgb['b']);
+            $bgColor = new Color($bgRgb['r'], $bgRgb['g'], $bgRgb['b']);
+                
+            // Build the QR code using named arguments
+            $builder = new Builder(
+                writer: new PngWriter(),
+                writerOptions: [],
+                validateResult: false,
+                data: $verificationUrl,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: $errorCorrectionLevel,
+                size: $qrSettings['default_size'],
+                margin: 10,
+                roundBlockSizeMode: $qrSettings['corner_radius_percent'] > 0 ? 
+                    RoundBlockSizeMode::Margin : RoundBlockSizeMode::None,
+                foregroundColor: $fgColor,
+                backgroundColor: $bgColor
+            );
             
             // Add logo if specified
             if (!empty($qrSettings['logo_path']) && file_exists($qrSettings['logo_path'])) {
-                $builder->logoPath($qrSettings['logo_path']);
                 $logoSize = intval($qrSettings['default_size'] * $qrSettings['logo_size_percent'] / 100);
-                $builder->logoResizeToWidth($logoSize);
-                $builder->logoResizeToHeight($logoSize);
+                $builder->setLogoPath($qrSettings['logo_path']);
+                $builder->setLogoResizeToWidth($logoSize);
+                $builder->setLogoResizeToHeight($logoSize);
             }
             
             // Build the QR code
@@ -915,4 +928,5 @@ class QrCodeService {
         
         return ['r' => $r, 'g' => $g, 'b' => $b];
     }
+
 }
