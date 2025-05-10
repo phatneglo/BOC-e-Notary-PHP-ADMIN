@@ -684,6 +684,9 @@ class AuthService {
                     if (strpos($roleName, 'admin') !== false) {
                         return true;
                     }
+                    if (strpos($roleName, 'System Administrator') !== false) {
+                        return true;
+                    }                    
                 }
             }
             

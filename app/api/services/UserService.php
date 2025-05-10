@@ -19,6 +19,7 @@ class UserService {
                     u.middle_name,
                     u.last_name,
                     u.mobile_number,
+                    u.user_level_id,
                     u.address,
                     u.government_id_type,
                     u.government_id_number,

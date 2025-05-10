@@ -17,4 +17,5 @@ require_once __DIR__ . '/verify.routes.php';
 require_once __DIR__ . '/notification.routes.php';
 require_once __DIR__ . '/qrcode.routes.php';
 require_once __DIR__ . '/system.routes.php';
+require_once __DIR__ . '/fee-schedules.routes.php';
 require_once __DIR__ . '/maya-test.routes.php'; // Maya payment testing route
