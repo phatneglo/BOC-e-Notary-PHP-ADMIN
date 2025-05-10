@@ -647,7 +647,7 @@ class RequestService {
      * @param array $activityData Activity data
      * @return array Response data
      */
-    public function addDocumentActivity($documentId, $activityData) {
+    public function addDocumentActivity($documentId, $currentUserId, $activityData) {
         try {
             // Validate required fields
             if (empty($activityData['action'])) {
