@@ -96,12 +96,14 @@ $app->get("/notary/qr-logo", function ($request, $response, $args) {
         $mimeType = 'image/jpeg';
     }
     
-    // Stream the file
-    $file = fopen($logoPath, 'rb');
+    // Read file contents directly
+    $imageData = file_get_contents($logoPath);
     
+    // Set headers and output image directly
     return $response
         ->withHeader('Content-Type', $mimeType)
-        ->withBody(new \Slim\Psr7\Stream($file));
+        ->withHeader('Content-Length', strlen($imageData))
+        ->write($imageData);
 })->add($jwtMiddleware);
 
 /**
@@ -127,10 +129,11 @@ $app->get("/notary/qr-preview", function ($request, $response, $args) {
     if (isset($result['data']['qr_code']) && preg_match('/^data:image\/png;base64,(.*)$/', $result['data']['qr_code'], $matches)) {
         $imageData = base64_decode($matches[1]);
         
+        // Set headers and output image directly
         return $response
             ->withHeader('Content-Type', 'image/png')
-            ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r+')))
-            ->getBody()->write($imageData);
+            ->withHeader('Content-Length', strlen($imageData))
+            ->write($imageData);
     }
     
     return $response->withJson($result);
