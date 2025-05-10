@@ -5,7 +5,7 @@ namespace PHPMaker2024\eNotary;
 class MayaPaymentService {
     private $publicKey;
     private $secretKey;
-    private $baseUrl;
+    public $baseUrl; // Changed to public for testing
     private $isProduction;
     
     /**
@@ -17,15 +17,15 @@ class MayaPaymentService {
         
         // Set API keys based on environment
         if ($this->isProduction) {
-        $this->publicKey = "YOUR_PRODUCTION_PUBLIC_KEY"; // Replace with actual production key
-        $this->secretKey = "YOUR_PRODUCTION_SECRET_KEY"; // Replace with actual production key
-        $this->baseUrl = "https://pg.maya.ph/payments/v1";
+            $this->publicKey = "pk-NCLk7JeDbX1m22ZRMDYO9bEPowNWT5J4aNIKIbcTy2a"; // Sandbox public key from docs
+            $this->secretKey = "sk-8MqXdZYWV9UJB92Mc0i149CtzTWT7BYBQeiarM27iAi"; // Sandbox secret key from docs
+            $this->baseUrl = "https://pg.maya.ph/checkout/v1";
         } else {
         // These are updated test/sandbox keys for Maya - replace with your own correct sandbox keys
-        $this->publicKey = "pk-MOfNKu3FmHMVHtjyjG7vhr7vFAiSQC0ysUYV0VHVFVd"; // Sandbox public key
-        $this->secretKey = "sk-NMda608qF64Ey3UJE9GVK5e8W6WsbfNtAj2UrxJYWSb"; // Sandbox secret key
-            $this->baseUrl = "https://pg-sandbox.paymaya.com/payments/v1";
-            }
+            $this->publicKey = "pk-Z0OSzLvIcOI2UIvDhdTGVVfRSSeiGStnceqwUE7n0Ah"; // Sandbox public key from docs
+            $this->secretKey = "sk-X8qolYjy62kIzEbr0QRK1h4b4KDVHaNcwMYk39jInSl"; // Sandbox secret key from docs
+            $this->baseUrl = "https://pg-sandbox.paymaya.com/checkout/v1";
+        }
     }
     
     /**
@@ -115,7 +115,7 @@ class MayaPaymentService {
             }
             
             // Send request to Maya API
-            $response = $this->sendApiRequest('/checkout', 'POST', $checkoutData);
+            $response = $this->sendApiRequest('/checkouts', 'POST', $checkoutData);
             
             if (isset($response['checkoutId']) && isset($response['redirectUrl'])) {
                 return [
@@ -153,7 +153,7 @@ class MayaPaymentService {
      */
     public function getPaymentStatus($checkoutId) {
         try {
-            $response = $this->sendApiRequest('/checkout/' . $checkoutId, 'GET');
+            $response = $this->sendApiRequest('/checkouts/' . $checkoutId, 'GET');
             
             if (isset($response['id'])) {
                 // Map Maya payment status to internal status
@@ -327,6 +327,9 @@ class MayaPaymentService {
         // Log request data for debugging
         if ($data) {
             LogError('Maya API Request: ' . $this->baseUrl . $endpoint . ' - ' . json_encode($data));
+            // Log correct URL and authorization for debugging
+            LogError('Maya API URL: ' . $this->baseUrl . $endpoint);
+            LogError('Maya API Authorization: Basic ' . substr(base64_encode($this->secretKey . ':'), 0, 10) . '...');
         }
         
         // Initialize cURL session
@@ -342,10 +345,11 @@ class MayaPaymentService {
         // Set HTTP method
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
         
-        // Set headers
+        // Set headers according to Maya documentation
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Basic ' . base64_encode($this->secretKey . ':')
+            'Authorization: Basic ' . base64_encode($this->secretKey . ':'),
+            'Accept: application/json'
         ];
         curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         
