@@ -51,6 +51,23 @@ class RequestService {
             
             // Check if document is in draft status
             if ($document['status'] !== 'draft') {
+                if ($document['status'] === 'pending_payment') {
+                    // Get request details to return to the client
+                    $sql = "SELECT request_id FROM notarization_requests WHERE document_id = " . QuotedValue($documentId, DataType::NUMBER);
+                    $requestResult = ExecuteRows($sql, "DB");
+                    
+                    if (!empty($requestResult)) {
+                        return [
+                            'success' => false,
+                            'message' => 'This document is awaiting payment. Please complete the payment process.',
+                            'data' => [
+                                'status' => 'pending_payment',
+                                'request_id' => $requestResult[0]['request_id']
+                            ]
+                        ];
+                    }
+                }
+                
                 return [
                     'success' => false,
                     'message' => 'Only documents in draft status can be submitted for notarization'

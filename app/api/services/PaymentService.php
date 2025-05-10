@@ -149,13 +149,20 @@ class PaymentService {
                     r.payment_status,
                     r.payment_transaction_id,
                     d.document_title,
-                    dt.fee_amount
+                    d.document_id,
+                    dt.fee_amount,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    u.mobile_number
                 FROM
                     notarization_requests r
                 JOIN
                     documents d ON r.document_id = d.document_id
                 LEFT JOIN
                     document_templates dt ON d.template_id = dt.template_id
+                JOIN
+                    users u ON r.user_id = u.user_id
                 WHERE
                     r.request_id = " . QuotedValue($requestId, DataType::NUMBER);
             
@@ -312,6 +319,60 @@ class PaymentService {
                 
                 // Handle payment method specific logic
                 switch ($paymentMethod['method_code']) {
+                    case 'PAYMAYA':
+                        // For Maya payments, use the MayaPaymentService
+                        $mayaService = new MayaPaymentService();
+                        
+                        // Construct the base URL for redirection
+                        $baseUrl = Config("BASE_URL");
+                        if (substr($baseUrl, -1) !== '/') {
+                            $baseUrl .= '/';
+                        }
+                        
+                        // Payment details for Maya
+                        $mayaPaymentData = [
+                            'amount' => $amount,
+                            'currency' => $currency,
+                            'description' => 'E-Notary Service: ' . $request['document_title'],
+                            'requestReferenceNumber' => $transactionReference,
+                            'successUrl' => $baseUrl . 'payments/success?transaction_id=' . $transactionId,
+                            'failureUrl' => $baseUrl . 'payments/failure?transaction_id=' . $transactionId,
+                            'cancelUrl' => $baseUrl . 'payments/cancel?transaction_id=' . $transactionId,
+                            'metadata' => [
+                                'transaction_id' => $transactionId,
+                                'request_id' => $requestId,
+                                'document_id' => $request['document_id']
+                            ],
+                            // Add buyer information
+                            'buyer' => [
+                                'firstName' => $request['first_name'],
+                                'middleName' => '',
+                                'lastName' => $request['last_name'],
+                                'contact' => [
+                                    'email' => $request['email'],
+                                    'phone' => $request['mobile_number']
+                                ]
+                            ]
+                        ];
+                        
+                        $mayaResponse = $mayaService->createCheckout($mayaPaymentData);
+                        
+                        if ($mayaResponse['success']) {
+                            // Update transaction with Maya checkout ID
+                            $sql = "UPDATE payment_transactions SET
+                                    gateway_reference = " . QuotedValue($mayaResponse['data']['checkoutId'], DataType::STRING) . "
+                                    WHERE transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
+                            
+                            Execute($sql, "DB");
+                            
+                            // Add Maya payment URL to response
+                            $paymentResponse['payment_url'] = $mayaResponse['data']['paymentUrl'];
+                        } else {
+                            // Log error and continue without redirection
+                            LogError('Maya payment error: ' . json_encode($mayaResponse));
+                        }
+                        break;
+                        
                     case 'credit_card':
                         // Credit card would typically redirect to a payment gateway
                         $paymentResponse['payment_url'] = 'https://payment.gateway.com/pay/' . $transactionReference;
@@ -448,11 +509,20 @@ class PaymentService {
                 
                 Execute($sql, "DB");
                 
-                // Update request payment status
-                $sql = "UPDATE notarization_requests SET
-                        payment_status = 'paid',
-                        modified_at = CURRENT_TIMESTAMP
-                        WHERE request_id = " . QuotedValue($transaction['request_id'], DataType::NUMBER);
+                // Update request payment status and document status to 'in_queue'
+                $sql = "UPDATE notarization_requests r
+                        SET payment_status = 'paid', 
+                            modified_at = CURRENT_TIMESTAMP 
+                        WHERE r.request_id = " . QuotedValue($transaction['request_id'], DataType::NUMBER);
+                Execute($sql, "DB");
+                
+                // Update document status to 'in_queue'
+                $sql = "UPDATE documents d 
+                        SET status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'in_queue'),
+                            updated_at = CURRENT_TIMESTAMP 
+                        FROM notarization_requests r 
+                        WHERE r.document_id = d.document_id 
+                        AND r.request_id = " . QuotedValue($transaction['request_id'], DataType::NUMBER);
                 
                 Execute($sql, "DB");
                 
@@ -636,6 +706,18 @@ class PaymentService {
                         WHERE request_id = " . QuotedValue($transaction['request_id'], DataType::NUMBER);
                 
                 Execute($sql, "DB");
+                
+                // If payment is completed, also update document status to 'in_queue'
+                if ($status === 'completed') {
+                    $sql = "UPDATE documents d 
+                            SET status_id = (SELECT status_id FROM document_statuses WHERE status_code = 'in_queue'),
+                                updated_at = CURRENT_TIMESTAMP 
+                            FROM notarization_requests r 
+                            WHERE r.document_id = d.document_id 
+                            AND r.request_id = " . QuotedValue($transaction['request_id'], DataType::NUMBER);
+                            
+                    Execute($sql, "DB");
+                }
                 
                 // If payment is completed, add to notarization queue
                 if ($status === 'completed') {

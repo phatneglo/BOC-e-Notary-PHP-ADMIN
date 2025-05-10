@@ -1,0 +1,355 @@
+<?php
+// app/api/services/MayaPaymentService.php
+namespace PHPMaker2024\eNotary;
+
+class MayaPaymentService {
+    private $publicKey;
+    private $secretKey;
+    private $baseUrl;
+    private $isProduction;
+    
+    /**
+     * Initialize Maya Payment Service
+     */
+    public function __construct() {
+        // Set environment (production or sandbox)
+        $this->isProduction = false; // Set to true for production
+        
+        // Set API keys based on environment
+        if ($this->isProduction) {
+            $this->publicKey = "YOUR_PRODUCTION_PUBLIC_KEY"; // Replace with actual production key
+            $this->secretKey = "YOUR_PRODUCTION_SECRET_KEY"; // Replace with actual production key
+            $this->baseUrl = "https://pg.maya.ph/payments/v1";
+        } else {
+            $this->publicKey = "pk-Z0OSzLvIcOI2UIvDhdTGVVfRSSeiGStnceqwUE7n0Ah"; // Sandbox public key
+            $this->secretKey = "sk-X8xZ21CcTPLlb1mrquhJOEpGXvFQJ5qqAVIIiKPTZQQ"; // Sandbox secret key
+            $this->baseUrl = "https://pg-sandbox.paymaya.com/payments/v1";
+        }
+    }
+    
+    /**
+     * Create a payment checkout session
+     * 
+     * @param array $paymentData Payment details
+     * @return array Response data
+     */
+    public function createCheckout($paymentData) {
+        try {
+            // Validate required fields
+            if (empty($paymentData['amount']) || 
+                empty($paymentData['currency']) ||
+                empty($paymentData['description']) ||
+                empty($paymentData['requestReferenceNumber'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Missing required payment data'
+                ];
+            }
+            
+            // Format amount correctly (Maya expects string with 2 decimal places)
+            $amount = number_format((float)$paymentData['amount'], 2, '.', '');
+            
+            // Build checkout request body
+            $checkoutData = [
+                'totalAmount' => [
+                    'value' => $amount,
+                    'currency' => $paymentData['currency']
+                ],
+                'requestReferenceNumber' => $paymentData['requestReferenceNumber'],
+                'redirectUrl' => [
+                    'success' => $paymentData['successUrl'] ?? Config("BASE_URL") . "payments/success", 
+                    'failure' => $paymentData['failureUrl'] ?? Config("BASE_URL") . "payments/failure",
+                    'cancel' => $paymentData['cancelUrl'] ?? Config("BASE_URL") . "payments/cancel"
+                ],
+                'items' => [
+                    [
+                        'name' => $paymentData['description'],
+                        'quantity' => 1,
+                        'code' => 'DOC-NOTARY',
+                        'description' => $paymentData['description'],
+                        'amount' => [
+                            'value' => $amount,
+                            'currency' => $paymentData['currency']
+                        ],
+                        'totalAmount' => [
+                            'value' => $amount,
+                            'currency' => $paymentData['currency']
+                        ]
+                    ]
+                ]
+            ];
+            
+            // Add optional metadata if provided
+            if (!empty($paymentData['metadata'])) {
+                $checkoutData['metadata'] = $paymentData['metadata'];
+            }
+            
+            // Add buyer info if provided
+            if (!empty($paymentData['buyer'])) {
+                $checkoutData['buyer'] = $paymentData['buyer'];
+            }
+            
+            // Send request to Maya API
+            $response = $this->sendApiRequest('/checkout', 'POST', $checkoutData);
+            
+            if (isset($response['checkoutId']) && isset($response['redirectUrl'])) {
+                return [
+                    'success' => true,
+                    'data' => [
+                        'checkoutId' => $response['checkoutId'],
+                        'paymentUrl' => $response['redirectUrl']
+                    ]
+                ];
+            } else {
+                // Log error details
+                LogError('Maya API Error: ' . json_encode($response));
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create Maya payment checkout',
+                    'details' => $response
+                ];
+            }
+        } catch (\Exception $e) {
+            LogError('Maya Payment Error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Payment gateway error: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Get payment status from Maya
+     * 
+     * @param string $checkoutId Maya checkout ID
+     * @return array Response data
+     */
+    public function getPaymentStatus($checkoutId) {
+        try {
+            $response = $this->sendApiRequest('/checkout/' . $checkoutId, 'GET');
+            
+            if (isset($response['id'])) {
+                // Map Maya payment status to internal status
+                $status = 'pending';
+                
+                if (isset($response['paymentStatus'])) {
+                    switch ($response['paymentStatus']) {
+                        case 'PAYMENT_SUCCESS':
+                            $status = 'completed';
+                            break;
+                        case 'PAYMENT_FAILED':
+                            $status = 'failed';
+                            break;
+                        case 'PAYMENT_EXPIRED':
+                            $status = 'expired';
+                            break;
+                        default:
+                            $status = 'pending';
+                    }
+                }
+                
+                return [
+                    'success' => true,
+                    'data' => [
+                        'checkoutId' => $response['id'],
+                        'status' => $status,
+                        'paymentDetails' => $response
+                    ]
+                ];
+            } else {
+                // Log error details
+                LogError('Maya API Error: ' . json_encode($response));
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to get payment status from Maya',
+                    'details' => $response
+                ];
+            }
+        } catch (\Exception $e) {
+            LogError('Maya Payment Error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Payment gateway error: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Process Maya webhook notifications
+     * 
+     * @param array $webhookData Webhook data from Maya
+     * @return array Response data
+     */
+    public function processWebhook($webhookData) {
+        try {
+            // Validate webhook data
+            if (empty($webhookData['id']) || empty($webhookData['type'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid webhook data'
+                ];
+            }
+            
+            // Extract information from webhook
+            $checkoutId = $webhookData['id'];
+            $eventType = $webhookData['type'];
+            
+            // Log webhook data for debugging
+            LogError('Maya Webhook Received: ' . json_encode($webhookData));
+            
+            // Process based on event type
+            if ($eventType === 'CHECKOUT_SUCCESS') {
+                // Payment successful
+                // Get payment status to confirm
+                $statusResponse = $this->getPaymentStatus($checkoutId);
+                
+                if (!$statusResponse['success'] || $statusResponse['data']['status'] !== 'completed') {
+                    return [
+                        'success' => false,
+                        'message' => 'Payment confirmation failed'
+                    ];
+                }
+                
+                // Extract reference number from data
+                $requestReferenceNumber = '';
+                if (isset($webhookData['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['requestReferenceNumber'];
+                } elseif (isset($webhookData['data']['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['data']['requestReferenceNumber'];
+                }
+                
+                if (empty($requestReferenceNumber)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Missing request reference number in webhook data'
+                    ];
+                }
+                
+                // Prepare callback data
+                $callbackData = [
+                    'transaction_reference' => $requestReferenceNumber,
+                    'status' => 'completed',
+                    'gateway_reference' => $checkoutId,
+                    'payment_details' => $webhookData
+                ];
+                
+                // Use the standard payment service to update transaction status
+                $paymentService = new PaymentService();
+                $result = $paymentService->handlePaymentCallback($callbackData);
+                
+                return $result;
+            } elseif ($eventType === 'CHECKOUT_FAILURE' || $eventType === 'CHECKOUT_EXPIRY') {
+                // Payment failed or expired
+                
+                // Extract reference number
+                $requestReferenceNumber = '';
+                if (isset($webhookData['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['requestReferenceNumber'];
+                } elseif (isset($webhookData['data']['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['data']['requestReferenceNumber'];
+                }
+                
+                if (empty($requestReferenceNumber)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Missing request reference number in webhook data'
+                    ];
+                }
+                
+                // Prepare callback data
+                $callbackData = [
+                    'transaction_reference' => $requestReferenceNumber,
+                    'status' => $eventType === 'CHECKOUT_FAILURE' ? 'failed' : 'expired',
+                    'gateway_reference' => $checkoutId,
+                    'payment_details' => $webhookData
+                ];
+                
+                // Use the standard payment service to update transaction status
+                $paymentService = new PaymentService();
+                $result = $paymentService->handlePaymentCallback($callbackData);
+                
+                return $result;
+            } else {
+                // Unknown event type
+                return [
+                    'success' => true,
+                    'message' => 'Unhandled webhook event: ' . $eventType
+                ];
+            }
+        } catch (\Exception $e) {
+            LogError('Maya Webhook Error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Webhook processing error: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Send API request to Maya
+     * 
+     * @param string $endpoint API endpoint
+     * @param string $method HTTP method
+     * @param array $data Request data
+     * @return array Response data
+     */
+    private function sendApiRequest($endpoint, $method = 'GET', $data = null) {
+        // Initialize cURL session
+        $curl = curl_init();
+        
+        // Set cURL options
+        curl_setopt($curl, CURLOPT_URL, $this->baseUrl . $endpoint);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        
+        // Set HTTP method
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        
+        // Set headers
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Basic ' . base64_encode($this->secretKey . ':')
+        ];
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        
+        // Add request data for POST, PUT requests
+        if (in_array($method, ['POST', 'PUT']) && !empty($data)) {
+            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+        
+        // Execute cURL request
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        
+        // Check for errors
+        if ($response === false) {
+            $error = curl_error($curl);
+            curl_close($curl);
+            throw new \Exception('cURL error: ' . $error);
+        }
+        
+        // Close cURL session
+        curl_close($curl);
+        
+        // Decode JSON response
+        $responseData = json_decode($response, true);
+        
+        // Check for API errors
+        if ($httpCode >= 400) {
+            LogError('Maya API Error: ' . $response);
+            
+            if (is_array($responseData) && !empty($responseData['message'])) {
+                throw new \Exception('Maya API error: ' . $responseData['message']);
+            } else {
+                throw new \Exception('Maya API error: HTTP ' . $httpCode);
+            }
+        }
+        
+        return $responseData;
+    }
+}

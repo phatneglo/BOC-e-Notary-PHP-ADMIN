@@ -59,6 +59,100 @@ $app->post("/payments/callback", function ($request, $response, $args) {
 });
 
 /**
+ * @api {post} /payments/maya/webhook Maya payment webhook
+ * @apiName MayaWebhook
+ * @apiGroup Payments
+ */
+$app->post("/payments/maya/webhook", function ($request, $response, $args) {
+    $service = new MayaPaymentService();
+    $webhookData = $request->getParsedBody();
+    
+    // Log webhook for debugging
+    Log('Maya Webhook received: ' . json_encode($webhookData));
+    
+    // Process webhook
+    $result = $service->processWebhook($webhookData);
+    return $response->withJson($result);
+});
+
+/**
+ * @api {get} /payments/status/{transaction_id} Check payment status
+ * @apiName CheckPaymentStatus
+ * @apiGroup Payments
+ */
+$app->get("/payments/status/{transaction_id}", function ($request, $response, $args) {
+    $service = new PaymentService();
+    $transactionId = isset($args['transaction_id']) ? (int)$args['transaction_id'] : 0;
+    
+    // Get transaction details
+    $sql = "SELECT
+            t.transaction_id,
+            t.transaction_reference,
+            t.gateway_reference,
+            t.status,
+            m.method_code
+        FROM
+            payment_transactions t
+        JOIN
+            payment_methods m ON t.payment_method_id = m.method_id
+        WHERE
+            t.transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
+    
+    $result = ExecuteRows($sql, "DB");
+    
+    if (empty($result)) {
+        return $response->withJson([
+            'success' => false,
+            'message' => 'Transaction not found'
+        ]);
+    }
+    
+    $transaction = $result[0];
+    
+    // For Maya payments, check status from Maya API
+    if ($transaction['method_code'] === 'PAYMAYA' && !empty($transaction['gateway_reference']) && $transaction['status'] === 'pending') {
+        $mayaService = new MayaPaymentService();
+        $statusResult = $mayaService->getPaymentStatus($transaction['gateway_reference']);
+        
+        if ($statusResult['success']) {
+            // If payment completed or failed, update transaction status
+            if ($statusResult['data']['status'] === 'completed' || $statusResult['data']['status'] === 'failed') {
+                // Prepare callback data for standard payment handler
+                $callbackData = [
+                    'transaction_reference' => $transaction['transaction_reference'],
+                    'status' => $statusResult['data']['status'],
+                    'gateway_reference' => $transaction['gateway_reference'],
+                    'payment_details' => $statusResult['data']['paymentDetails']
+                ];
+                
+                // Update transaction status
+                $paymentService = new PaymentService();
+                $paymentService->handlePaymentCallback($callbackData);
+                
+                // Get updated transaction status
+                $sql = "SELECT status FROM payment_transactions WHERE transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
+                $updatedResult = ExecuteRows($sql, "DB");
+                
+                if (!empty($updatedResult)) {
+                    $statusResult['data']['status'] = $updatedResult[0]['status'];
+                }
+            }
+            
+            return $response->withJson($statusResult);
+        }
+    }
+    
+    // For other payment methods or if Maya API check fails, return current status
+    return $response->withJson([
+        'success' => true,
+        'data' => [
+            'status' => $transaction['status'],
+            'transaction_reference' => $transaction['transaction_reference']
+        ]
+    ]);
+})->add($jwtMiddleware);
+
+/**
  * @api {get} /payments/{transaction_id}/receipt Get payment receipt
  * @apiName GetPaymentReceipt
  * @apiGroup Payments
