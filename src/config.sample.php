@@ -6,7 +6,7 @@
 
 return [
     "Databases" => [
-        "DB" => ["id" => "DB", "type" => "POSTGRESQL", "qs" => "\"", "qe" => "\"", "host" => "localhost", "port" => "5432", "user" => "postgres", "password" => "0yq5h3to9", "dbname" => "lwua_wms_uac", "schema" => "public"]
+        "DB" => ["id" => "DB", "type" => "POSTGRESQL", "qs" => "\"", "qe" => "\"", "host" => "localhost", "port" => "5432", "user" => "postgres", "password" => "0yq5h3to9", "dbname" => "boc_enotary", "schema" => "public"]
     ],
     "SMTP" => [
         "PHPMAILER_MAILER" => "smtp", // PHPMailer mailer
@@ -33,12 +33,12 @@ return [
             "END_POINT" => "https://sgp1.digitaloceanspaces.com", // S3 bucket name
             "BUCKET" => "pg-itbs-dev", // S3 bucket name
             "REGION" => "sgp1", // S3 region
-            "KEY" => "DO00WVEWRUJZDU2XGJRB", // S3 access
-            "SECRET" => "7kAG4m6BfRE07mnnZygCwQSTqn+hpKmK0o9zVGT0D+4" // S3 secret
+            "KEY" => "x", // S3 access
+            "SECRET" => "xxxx" // S3 secret
         ],
     ],
-    "UPLOAD_TEMP_PATH" => "D:/Projects/DOF/ARCHIVE-GIS-PHP/temp_uploads/", // Upload temp path (absolute local physical path)
-    "UPLOAD_TEMP_HREF_PATH" => "//dof-gis-archive.local/temp_uploads/", // Upload temp href path (absolute URL path for download)
-    "UPLOAD_DEST_PATH" => "s3://pg-itbs-dev/DOF-LPAMS/" // Upload destination path (relative to app root)
-
+    "UPLOAD_TEMP_PATH" => "D:/Projects/BOC/e-Notarize/public/temp_uploads/", // Upload temp path (absolute local physical path)
+    "UPLOAD_TEMP_HREF_PATH" => "//boc-enotary.local/temp_uploads/", // Upload temp href path (absolute URL path for download)
+    "UPLOAD_DEST_PATH" => "s3://pg-itbs-dev/BOC-ENOTARY/", // Upload destination path (relative to app root)
+    "BASE_URL" => "http://localhost:9000/", // Base URL (absolute URL path for download)
 ];
