@@ -44,3 +44,5 @@ Thumbs.db
 
 # Session files
 /session/
+
+/src/config.development.php
