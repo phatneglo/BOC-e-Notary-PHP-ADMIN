@@ -196,10 +196,11 @@ To set up the e-Notarize application:
 
 ### System Requirements
 
-- PHP 7.4 or higher
+- PHP 8.1 or higher (FPM)
 - PostgreSQL 10 or higher
-- Apache/Nginx web server
+- Nginx web server
 - Composer (for dependency management)
+- PHPMaker Required PHP Extensions
 
 ## Logging
 

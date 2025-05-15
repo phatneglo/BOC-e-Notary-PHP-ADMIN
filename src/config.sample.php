@@ -37,6 +37,13 @@ return [
             "SECRET" => "xxxx" // S3 secret
         ],
     ],
+    "MAYA" => [
+        "API_URL" => "https://api.maya.ph/v1", // Maya API endpoint
+        "API_KEY" => "MAYA API KEY", // Maya API key
+        "API_SECRET" => "MAYA API SECRET KEY", // Maya API secret
+        "API_PUB_KEY" => "MAYA API PUBLIC KEY", // Maya API public key                
+        "API_PUB_KEY_ID" => "MAYA API PUBLIC KEY ID", // Maya API public key ID
+    ],    
     "UPLOAD_TEMP_PATH" => "D:/Projects/BOC/e-Notarize/public/temp_uploads/", // Upload temp path (absolute local physical path)
     "UPLOAD_TEMP_HREF_PATH" => "//boc-enotary.local/temp_uploads/", // Upload temp href path (absolute URL path for download)
     "UPLOAD_DEST_PATH" => "s3://pg-itbs-dev/BOC-ENOTARY/", // Upload destination path (relative to app root)
