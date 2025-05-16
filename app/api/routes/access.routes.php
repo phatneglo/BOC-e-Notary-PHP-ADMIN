@@ -15,18 +15,18 @@ namespace PHPMaker2024\eNotary;
 $app->get("/access/users", function ($request, $response, $args) {
     $service = new UserAccessService();
     return $response->write($service->getUsers());
-})->add($accessMiddleware)->add($jwtMiddleware);
+})->add($accessMiddleware);
 
 // Get user access matrix
 $app->get("/access/matrix[/{user_id}]", function ($request, $response, $args) {
     $service = new UserAccessService();
     $userId = isset($args['user_id']) ? $args['user_id'] : null;
     return $response->write($service->getUserAccessMatrix($userId));
-})->add($accessMiddleware)->add($jwtMiddleware);
+})->add($accessMiddleware);
 
 // Save user access
 $app->post("/access", function ($request, $response, $args) {
     $service = new UserAccessService();
     $data = $request->getParsedBody();
     return $response->write($service->saveUserAccess($data));
-})->add($accessMiddleware)->add($jwtMiddleware);
+})->add($accessMiddleware);
