@@ -18,8 +18,6 @@ $topMenu->addMenuItem(11, "mi_notifications", $Language->menuPhrase("11", "MenuT
 $topMenu->addMenuItem(74, "mci_SYSTEM_ADMINISTRATION", $Language->menuPhrase("74", "MenuText"), "", -1, "", true, false, true, "", "", true, false);
 $topMenu->addMenuItem(3, "mi_systems", $Language->menuPhrase("3", "MenuText"), "SystemsList", 74, "", AllowListMenu('{eNotary}systems'), false, false, "fas fa-server", "", true, false);
 $topMenu->addMenuItem(6, "mi__user_levels", $Language->menuPhrase("6", "MenuText"), "UserLevelsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_levels'), false, false, "fas fa-layer-group", "", true, false);
-$topMenu->addMenuItem(4, "mi_user_level_assignments", $Language->menuPhrase("4", "MenuText"), "UserLevelAssignmentsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_level_assignments'), false, false, "fas fa-user-tag", "", true, false);
-$topMenu->addMenuItem(5, "mi_user_level_permissions", $Language->menuPhrase("5", "MenuText"), "UserLevelPermissionsList", 74, "", AllowListMenu('{eNotary}user_level_permissions'), false, false, "fas fa-shield-alt", "", true, false);
 $topMenu->addMenuItem(33, "mi_system_status", $Language->menuPhrase("33", "MenuText"), "SystemStatusList", 74, "", AllowListMenu('{eNotary}system_status'), false, false, "fas fa-heartbeat", "", true, false);
 $topMenu->addMenuItem(30, "mi_pdf_metadata", $Language->menuPhrase("30", "MenuText"), "PdfMetadataList", 74, "", AllowListMenu('{eNotary}pdf_metadata'), false, false, "fas fa-file-pdf", "", true, false);
 $topMenu->addMenuItem(14, "mi_psgc", $Language->menuPhrase("14", "MenuText"), "PsgcList", 74, "", AllowListMenu('{eNotary}psgc'), false, false, "fas fa-map-marker-alt", "", true, false);
@@ -63,8 +61,6 @@ $sideMenu->addMenuItem(11, "mi_notifications", $Language->menuPhrase("11", "Menu
 $sideMenu->addMenuItem(74, "mci_SYSTEM_ADMINISTRATION", $Language->menuPhrase("74", "MenuText"), "", -1, "", true, false, true, "", "", true, true);
 $sideMenu->addMenuItem(3, "mi_systems", $Language->menuPhrase("3", "MenuText"), "SystemsList", 74, "", AllowListMenu('{eNotary}systems'), false, false, "fas fa-server", "", true, true);
 $sideMenu->addMenuItem(6, "mi__user_levels", $Language->menuPhrase("6", "MenuText"), "UserLevelsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_levels'), false, false, "fas fa-layer-group", "", true, true);
-$sideMenu->addMenuItem(4, "mi_user_level_assignments", $Language->menuPhrase("4", "MenuText"), "UserLevelAssignmentsList?cmd=resetall", 74, "", AllowListMenu('{eNotary}user_level_assignments'), false, false, "fas fa-user-tag", "", true, true);
-$sideMenu->addMenuItem(5, "mi_user_level_permissions", $Language->menuPhrase("5", "MenuText"), "UserLevelPermissionsList", 74, "", AllowListMenu('{eNotary}user_level_permissions'), false, false, "fas fa-shield-alt", "", true, true);
 $sideMenu->addMenuItem(33, "mi_system_status", $Language->menuPhrase("33", "MenuText"), "SystemStatusList", 74, "", AllowListMenu('{eNotary}system_status'), false, false, "fas fa-heartbeat", "", true, true);
 $sideMenu->addMenuItem(30, "mi_pdf_metadata", $Language->menuPhrase("30", "MenuText"), "PdfMetadataList", 74, "", AllowListMenu('{eNotary}pdf_metadata'), false, false, "fas fa-file-pdf", "", true, true);
 $sideMenu->addMenuItem(14, "mi_psgc", $Language->menuPhrase("14", "MenuText"), "PsgcList", 74, "", AllowListMenu('{eNotary}psgc'), false, false, "fas fa-map-marker-alt", "", true, true);
