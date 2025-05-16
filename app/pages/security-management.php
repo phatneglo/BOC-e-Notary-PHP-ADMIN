@@ -16,7 +16,7 @@ define("ALLOW_PUSH", 512);
 define("ALLOW_EXPORT", 1024);
 
 // Get current system and user level
-$currentSystem = Get("system", "UAC");
+$currentSystem = Get("system", "eNotary");
 if (EmptyValue($currentSystem)) {
     $sql = "SELECT system_code FROM systems ORDER BY system_code LIMIT 1";
     $currentSystem = ExecuteScalar($sql, "DB");
