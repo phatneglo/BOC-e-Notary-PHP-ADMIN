@@ -212,31 +212,34 @@ class MayaPaymentService {
     public function processWebhook($webhookData) {
         try {
             // Validate webhook data
-            if (empty($webhookData['id']) || empty($webhookData['type'])) {
+            if (empty($webhookData['id'])) {
                 return [
                     'success' => false,
-                    'message' => 'Invalid webhook data'
+                    'message' => 'Invalid webhook data - missing ID'
                 ];
             }
             
             // Extract information from webhook
             $checkoutId = $webhookData['id'];
-            $eventType = $webhookData['type'];
+            $eventType = $webhookData['type'] ?? null;
+            $paymentStatus = $webhookData['status'] ?? null;
             
             // Log webhook data for debugging
             LogError('Maya Webhook Received: ' . json_encode($webhookData));
             
-            // Process based on event type
-            if ($eventType === 'CHECKOUT_SUCCESS') {
+            // Process based on event type or payment status
+            if ($eventType === 'CHECKOUT_SUCCESS' || $paymentStatus === 'PAYMENT_SUCCESS') {
                 // Payment successful
-                // Get payment status to confirm
-                $statusResponse = $this->getPaymentStatus($checkoutId);
-                
-                if (!$statusResponse['success'] || $statusResponse['data']['status'] !== 'completed') {
-                    return [
-                        'success' => false,
-                        'message' => 'Payment confirmation failed'
-                    ];
+                // Get payment status to confirm if it's an event type
+                if ($eventType === 'CHECKOUT_SUCCESS') {
+                    $statusResponse = $this->getPaymentStatus($checkoutId);
+                    
+                    if (!$statusResponse['success'] || $statusResponse['data']['status'] !== 'completed') {
+                        return [
+                            'success' => false,
+                            'message' => 'Payment confirmation failed'
+                        ];
+                    }
                 }
                 
                 // Extract reference number from data
@@ -267,9 +270,46 @@ class MayaPaymentService {
                 $result = $paymentService->handlePaymentCallback($callbackData);
                 
                 return $result;
-            } elseif ($eventType === 'CHECKOUT_FAILURE' || $eventType === 'CHECKOUT_EXPIRY') {
+            } elseif ($eventType === 'CHECKOUT_FAILURE' || $paymentStatus === 'PAYMENT_FAILED' ||
+                      $eventType === 'CHECKOUT_EXPIRY' || $paymentStatus === 'PAYMENT_EXPIRED') {
                 // Payment failed or expired
                 
+                // Extract reference number
+                $requestReferenceNumber = '';
+                if (isset($webhookData['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['requestReferenceNumber'];
+                } elseif (isset($webhookData['data']['requestReferenceNumber'])) {
+                    $requestReferenceNumber = $webhookData['data']['requestReferenceNumber'];
+                }
+                
+                if (empty($requestReferenceNumber)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Missing request reference number in webhook data'
+                    ];
+                }
+                
+                // Determine status
+                $status = 'failed';
+                if ($eventType === 'CHECKOUT_EXPIRY' || $paymentStatus === 'PAYMENT_EXPIRED') {
+                    $status = 'expired';
+                }
+                
+                // Prepare callback data
+                $callbackData = [
+                    'transaction_reference' => $requestReferenceNumber,
+                    'status' => $status,
+                    'gateway_reference' => $checkoutId,
+                    'payment_details' => $webhookData
+                ];
+                
+                // Use the standard payment service to update transaction status
+                $paymentService = new PaymentService();
+                $result = $paymentService->handlePaymentCallback($callbackData);
+                
+                return $result;
+            } elseif ($paymentStatus === 'AUTHORIZED') {
+                // Handle authorized payment status (payment is authorized but not yet captured)
                 // Extract reference number
                 $requestReferenceNumber = '';
                 if (isset($webhookData['requestReferenceNumber'])) {
@@ -288,7 +328,7 @@ class MayaPaymentService {
                 // Prepare callback data
                 $callbackData = [
                     'transaction_reference' => $requestReferenceNumber,
-                    'status' => $eventType === 'CHECKOUT_FAILURE' ? 'failed' : 'expired',
+                    'status' => 'authorized',
                     'gateway_reference' => $checkoutId,
                     'payment_details' => $webhookData
                 ];
@@ -302,7 +342,7 @@ class MayaPaymentService {
                 // Unknown event type
                 return [
                     'success' => true,
-                    'message' => 'Unhandled webhook event: ' . $eventType
+                    'message' => 'Unhandled webhook event/status: ' . ($eventType ?? $paymentStatus ?? 'UNKNOWN')
                 ];
             }
         } catch (\Exception $e) {
