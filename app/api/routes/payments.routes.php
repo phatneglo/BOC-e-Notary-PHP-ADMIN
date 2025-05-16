@@ -111,10 +111,31 @@ $app->post("/payments/callback", function ($request, $response, $args) {
  * @apiGroup Payments
  */
 $app->post("/payments/maya/webhook", function ($request, $response, $args) {
+    // Verify the source IP address
+    $isProduction = Config("MAYA.LIVE") ?? false;
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    
+    // Define allowed IPs based on environment
+    $allowedIPs = $isProduction
+        ? ['18.138.50.235', '3.1.207.200'] // Production IPs
+        : ['13.229.160.234', '3.1.199.75']; // Sandbox IPs
+    
+    // Log the attempt for debugging
+    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode');
+    
+    // Check if the request is from an authorized IP
+    if (!in_array($clientIp, $allowedIPs)) {
+        LogError('Unauthorized Maya webhook attempt from IP: ' . $clientIp);
+        return $response->withStatus(403)->withJson([
+            'success' => false,
+            'message' => 'Unauthorized source IP address'
+        ]);
+    }
+    
     $service = new MayaPaymentService();
     $webhookData = $request->getParsedBody();
     
-    // Log webhook for debugging
+    // Log webhook data for debugging
     Log('Maya Webhook received: ' . json_encode($webhookData));
     
     // Process webhook
@@ -177,7 +198,7 @@ $app->get("/payments/status/{transaction_id}", function ($request, $response, $a
                 $paymentService->handlePaymentCallback($callbackData);
                 
                 // Get updated transaction status
-                $sql = "SELECT status FROM payment_transactions WHERE transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
+                $sql = "SELECT status FROM payment_transactions WHERE transaction_id = " . QuotedValue($transactionId, DATATYPE_NUMBER);
                 $updatedResult = ExecuteRows($sql, "DB");
                 
                 if (!empty($updatedResult)) {
