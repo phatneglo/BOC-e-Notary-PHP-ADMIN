@@ -202,6 +202,8 @@ class Login extends Users
 
         // Page is terminated
         $this->terminated = true;
+        global $OldSkipHeaderFooter, $SkipHeaderFooter;
+        $SkipHeaderFooter = $OldSkipHeaderFooter;
 
         // Page Unload event
         if (method_exists($this, "pageUnload")) {
@@ -289,6 +291,9 @@ class Login extends Users
             Profile()->setUserName(CurrentUserName())->loadFromStorage();
         }
         $this->CurrentAction = Param("action"); // Set up current action
+        global $OldSkipHeaderFooter, $SkipHeaderFooter;
+        $OldSkipHeaderFooter = $SkipHeaderFooter;
+        $SkipHeaderFooter = true;
 
         // Global Page Loading event (in userfn*.php)
         DispatchEvent(new PageLoadingEvent($this), PageLoadingEvent::NAME);

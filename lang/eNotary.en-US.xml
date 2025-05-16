@@ -1,7 +1,7 @@
-<ew-language date="2025/5/10" id="en-US" author="e.World Technology Limited">
+<ew-language date="2025/5/16" id="en-US" author="e.World Technology Limited">
   <project>
     <phrase id="bodytitle" value="BOC - eNotary" />
-    <phrase id="footertext" value="&amp;copy;2024 BOC eNotarize - ITBS Corporation. All rights reserved." />
+    <phrase id="footertext" value="&amp;copy;2025 BOC eNotarize - ITBS Corporation. All rights reserved." />
     <menu id="75">
       <phrase id="menutext" value="refresh tokens" />
     </menu>
