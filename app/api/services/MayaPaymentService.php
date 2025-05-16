@@ -14,7 +14,7 @@ class MayaPaymentService {
     public function __construct() {
         // Set environment (production or sandbox)
         $this->isProduction = Config("MAYA.LIVE") ?? false; // Set to true for production
-        
+        Log("Current environment: " . ($this->isProduction ? "Production" : "Sandbox"));
         // Set API keys based on environment
         if ($this->isProduction) {
             $this->publicKey = Config("MAYA.API_KEY"); // Sandbox public key from docs
