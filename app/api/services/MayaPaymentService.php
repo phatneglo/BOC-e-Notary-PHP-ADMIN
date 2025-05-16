@@ -13,7 +13,7 @@ class MayaPaymentService {
      */
     public function __construct() {
         // Set environment (production or sandbox)
-        $this->isProduction = false; // Set to true for production
+        $this->isProduction = Config("MAYA.LIVE") ?? false; // Set to true for production
         
         // Set API keys based on environment
         if ($this->isProduction) {
