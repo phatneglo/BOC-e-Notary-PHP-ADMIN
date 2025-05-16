@@ -369,7 +369,7 @@ class MayaPaymentService {
             LogError('Maya API Request: ' . $this->baseUrl . $endpoint . ' - ' . json_encode($data));
             // Log correct URL and authorization for debugging
             LogError('Maya API URL: ' . $this->baseUrl . $endpoint);
-            LogError('Maya API Authorization: Basic ' . substr(base64_encode($this->secretKey . ':'), 0, 10) . '...');
+            LogError('Maya API Authorization: Basic ' . substr(base64_encode($this->publicKey . ':'), 0, 10) . '...');
         }
         
         // Initialize cURL session
@@ -388,7 +388,7 @@ class MayaPaymentService {
         // Set headers according to Maya documentation
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Basic ' . base64_encode($this->secretKey . ':'),
+            'Authorization: Basic ' . base64_encode($this->publicKey . ':'),
             'Accept: application/json'
         ];
         curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
