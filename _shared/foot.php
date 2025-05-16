@@ -1,6 +1,6 @@
 <?php include(dirname(__DIR__, 1) . "/_shared/system.php"); ?>
 <?php include(dirname(__DIR__, 1) . "/_shared/notification.php"); ?>
-
+<!-- 
 <script type="text/html" class="ew-js-template" data-name="appSwitcherDropdown" data-method="appendTo" data-target="#ew-navbar-end">
 <li class="nav-item dropdown">
   <a class="nav-link" data-bs-toggle="dropdown" href="#">
@@ -54,4 +54,4 @@ loadjs.ready(ew.bundleIds, () =>  {
     attributeFilter: ['data-bs-theme']
   });
 });
-</script>
+</script> -->
