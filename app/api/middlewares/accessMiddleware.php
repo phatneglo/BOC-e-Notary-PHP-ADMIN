@@ -32,9 +32,9 @@ $accessMiddleware = function (Request $request, RequestHandler $handler): Respon
     // Determine which page to check based on the route
     $pageName = '';
     if (strpos($path, '/access') !== false) {
-        $pageName = '{UAC}UserAccess.php';
+        $pageName = '{eNotary}UserAccess.php';
     } elseif (strpos($path, '/permission') !== false) {
-        $pageName = '{UAC}UserManagement.php';
+        $pageName = '{eNotary}UserManagement.php';
     }
     
     if ($pageName) {
