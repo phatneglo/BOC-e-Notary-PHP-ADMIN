@@ -19,7 +19,7 @@ class MayaPaymentService {
         if ($this->isProduction) {
             $this->publicKey = Config("MAYA.API_KEY"); // Sandbox public key from docs
             $this->secretKey = Config("MAYA.API_SECRET"); // Sandbox secret key from docs
-            $this->baseUrl = "https://pg.maya.ph/checkout/v1";
+            $this->baseUrl = Config("MAYA.API_URL");
         } else {
         // These are updated test/sandbox keys for Maya - replace with your own correct sandbox keys
             $this->publicKey = "pk-lNAUk1jk7VPnf7koOT1uoGJoZJjmAxrbjpj6urB8EIA"; // Sandbox public key from docs
