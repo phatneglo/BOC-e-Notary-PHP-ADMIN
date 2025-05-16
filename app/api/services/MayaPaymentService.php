@@ -221,7 +221,7 @@ class MayaPaymentService {
             
             // Extract information from webhook
             $checkoutId = $webhookData['id'];
-            $eventType = $webhookData['type'] ?? $webhookData['status'] ?? null;
+            $eventType = $webhookData['type'] ?? null;
             $paymentStatus = $webhookData['status'] ?? null;
             
             // Log webhook data for debugging
