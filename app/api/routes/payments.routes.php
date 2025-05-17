@@ -2,6 +2,8 @@
 // app/api/routes/payments.routes.php
 namespace PHPMaker2024\eNotary;
 
+use Dflydev\DotAccessData\Data;
+
 /**
  * @api {get} /payments/test-maya Test Maya API
  * @apiName TestMaya
@@ -198,7 +200,7 @@ $app->get("/payments/status/{transaction_id}", function ($request, $response, $a
                 $paymentService->handlePaymentCallback($callbackData);
                 
                 // Get updated transaction status
-                $sql = "SELECT status FROM payment_transactions WHERE transaction_id = " . QuotedValue($transactionId, DATATYPE_NUMBER);
+                $sql = "SELECT status FROM payment_transactions WHERE transaction_id = " . QuotedValue($transactionId, DataType::NUMBER);
                 $updatedResult = ExecuteRows($sql, "DB");
                 
                 if (!empty($updatedResult)) {
