@@ -265,10 +265,10 @@ $app->post("/payments/maya/register-webhook", function ($request, $response, $ar
     $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
     
     // Define webhook URL
-    $webhookUrl = $data['callbackUrl'] ?? $baseUrl . 'payments/maya/webhook';
+    $webhookUrl = $data['callbackUrl'] ?? $baseUrl . 'api/payments/maya/webhook';
     $webhookName = $data['name'] ?? 'eNotarize Payment Webhook';
     $events = $data['events'] ?? [];
     
     $result = $service->registerWebhook($webhookName, $webhookUrl, $events);
     return $response->withJson($result);
-})->add($adminOnlyMiddleware);
+})->add($jwtMiddleware);
