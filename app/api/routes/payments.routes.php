@@ -239,3 +239,34 @@ $app->get("/payments/{transaction_id}/receipt", function ($request, $response, $
     // For now, we'll just return the receipt data as JSON
     return $response->withJson($result);
 })->add($jwtMiddleware);
+
+
+/**
+ * @api {post} /payments/maya/register-webhook Register Maya webhook
+ * @apiName RegisterMayaWebhook
+ * @apiGroup Payments
+ */
+$app->post("/payments/maya/register-webhook", function ($request, $response, $args) {
+    // Only allow in development/admin environment
+    if (!IsAdmin()) {
+        return $response->withStatus(403)->withJson([
+            'success' => false,
+            'message' => 'Unauthorized access'
+        ]);
+    }
+    
+    $service = new MayaPaymentService();
+    $data = $request->getParsedBody();
+    
+    // Get base URL for webhook
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
+    
+    // Define webhook URL
+    $webhookUrl = $data['callbackUrl'] ?? $baseUrl . 'payments/maya/webhook';
+    $webhookName = $data['name'] ?? 'eNotarize Payment Webhook';
+    $events = $data['events'] ?? [];
+    
+    $result = $service->registerWebhook($webhookName, $webhookUrl, $events);
+    return $response->withJson($result);
+})->add($adminOnlyMiddleware);

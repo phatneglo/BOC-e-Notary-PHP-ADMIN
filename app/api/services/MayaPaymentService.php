@@ -115,7 +115,7 @@ class MayaPaymentService {
             }
             
             // Send request to Maya API
-            $response = $this->sendApiRequest('/checkouts', 'POST', $checkoutData);
+            $response = $this->sendApiRequest('/checkout/v1/checkouts', 'POST', $checkoutData);
             
             if (isset($response['checkoutId']) && isset($response['redirectUrl'])) {
                 return [
@@ -153,7 +153,7 @@ class MayaPaymentService {
      */
     public function getPaymentStatus($checkoutId) {
         try {
-            $response = $this->sendApiRequest('/checkouts/' . $checkoutId, 'GET');
+            $response = $this->sendApiRequest('/checkout/v1/checkouts/' . $checkoutId, 'GET');
             
             if (isset($response['id'])) {
                 // Map Maya payment status to internal status
@@ -203,6 +203,67 @@ class MayaPaymentService {
         }
     }
     
+    /**
+     * Register a webhook with Maya
+     * 
+     * @param string $name Webhook name
+     * @param string $callbackUrl The URL to send webhook notifications to
+     * @param array $events List of events to subscribe to
+     * @return array Response data
+     */
+    public function registerWebhook($name, $callbackUrl, $events = []) {
+        try {
+            // If no events specified, register for all events
+            if (empty($events)) {
+                $events = [
+                    "CHECKOUT_SUCCESS",
+                    "CHECKOUT_FAILURE",
+                    "CHECKOUT_DROPOUT",
+                    "PAYMENT_SUCCESS",
+                    "PAYMENT_FAILED",
+                    "PAYMENT_EXPIRED",
+                    "ONE_TIME_PAYMENT_SUCCESS",
+                    "ONE_TIME_PAYMENT_FAILURE",
+                    "ONE_TIME_PAYMENT_DROPOUT",
+                    "AUTHORIZED"
+                ];
+            }
+            
+            $webhookData = [
+                "name" => $name,
+                "callbackUrl" => $callbackUrl,
+                "events" => $events
+            ];
+            
+            // Note: Webhook registration uses a different API endpoint and might require different authorization
+            // Maya webhook API uses the /v1/webhooks endpoint
+            $response = $this->sendApiRequest('/payments/v1/webhooks', 'POST', $webhookData);
+            
+            if (isset($response['id'])) {
+                return [
+                    'success' => true,
+                    'data' => $response
+                ];
+            } else {
+                // Log error details
+                LogError('Maya API Webhook Registration Error: ' . json_encode($response));
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to register Maya webhook',
+                    'details' => $response
+                ];
+            }
+        } catch (\Exception $e) {
+            LogError('Maya Webhook Registration Error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Webhook registration error: ' . $e->getMessage()
+            ];
+        }
+    }
+
     /**
      * Process Maya webhook notifications
      * 
