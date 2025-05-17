@@ -112,7 +112,14 @@ $app->post("/payments/callback", function ($request, $response, $args) {
  * @apiName MayaWebhook
  * @apiGroup Payments
  */
-$app->post("/payments/maya/webhook", function ($request, $response, $args) {
+$app->post("/payments/maya/webhook", callable: function ($request, $response, $args) {
+    // Set CORS headers directly on this endpoint for maximum compatibility
+    $response = $response
+        ->withHeader('Access-Control-Allow-Origin', '*') 
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, X-Authorization, Authorization, X-Api-Key')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        ->withHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+    
     // Verify the source IP address
     $isProduction = Config("MAYA.LIVE") ?? false;
     $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -120,7 +127,7 @@ $app->post("/payments/maya/webhook", function ($request, $response, $args) {
     // Define allowed IPs based on environment
     $allowedIPs = $isProduction
         ? ['18.138.50.235', '3.1.207.200'] // Production IPs
-        : ['13.229.160.234', '3.1.199.75']; // Sandbox IPs
+        : ['13.229.160.234', '3.1.199.75', '127.0.0.1']; // Sandbox IPs + localhost for testing
     
     // Log the attempt for debugging
     Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode');
@@ -143,6 +150,65 @@ $app->post("/payments/maya/webhook", function ($request, $response, $args) {
     // Process webhook
     $result = $service->processWebhook($webhookData);
     return $response->withJson($result);
+});
+/**
+ * @api {get} /payments/maya/webhook Maya payment webhook
+ * @apiName MayaWebhook
+ * @apiGroup Payments
+ */
+$app->get("/payments/maya/webhook", callable: function ($request, $response, $args) {
+    // Set CORS headers directly on this endpoint for maximum compatibility
+    $response = $response
+        ->withHeader('Access-Control-Allow-Origin', '*') 
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, X-Authorization, Authorization, X-Api-Key')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        ->withHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+    
+    // Verify the source IP address
+    $isProduction = Config("MAYA.LIVE") ?? false;
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    
+    // Define allowed IPs based on environment
+    $allowedIPs = $isProduction
+        ? ['18.138.50.235', '3.1.207.200'] // Production IPs
+        : ['13.229.160.234', '3.1.199.75', '127.0.0.1']; // Sandbox IPs + localhost for testing
+    
+    // Log the attempt for debugging
+    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode');
+    
+    // Check if the request is from an authorized IP
+    if (!in_array($clientIp, $allowedIPs)) {
+        LogError('Unauthorized Maya webhook attempt from IP: ' . $clientIp);
+        return $response->withStatus(403)->withJson([
+            'success' => false,
+            'message' => 'Unauthorized source IP address'
+        ]);
+    }
+    
+    $service = new MayaPaymentService();
+    $webhookData = $request->getParsedBody();
+    
+    // Log webhook data for debugging
+    Log('Maya Webhook received: ' . json_encode($webhookData));
+    
+    // Process webhook
+    $result = $service->processWebhook($webhookData);
+    return $response->withJson($result);
+});
+
+
+/**
+ * @api {options} /payments/maya/webhook CORS preflight for Maya webhook
+ * @apiName OptionsMayaWebhook
+ * @apiGroup Payments
+ */
+$app->options("/payments/maya/webhook", function ($request, $response, $args) {
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, X-Authorization, Authorization, X-Api-Key')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        ->withHeader('Access-Control-Max-Age', '86400') // Cache preflight for 24 hours
+        ->withStatus(200);
 });
 
 /**
