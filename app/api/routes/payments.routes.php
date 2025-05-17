@@ -263,7 +263,7 @@ $app->post("/payments/maya/register-webhook", function ($request, $response, $ar
     $webhookUrl = $data['callbackUrl'] ?? $baseUrl . 'api/payments/maya/webhook';
     $webhookName = $data['name'] ?? 'eNotarize Payment Webhook';
     $events = $data['events'] ?? [];
-    
+    Log('Registering Web Hook Details ' . json_encode($data));
     $result = $service->registerWebhook($webhookName, $webhookUrl, $events);
     return $response->withJson($result);
 })->add($jwtMiddleware);
