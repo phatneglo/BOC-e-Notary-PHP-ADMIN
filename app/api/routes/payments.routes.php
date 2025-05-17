@@ -250,12 +250,7 @@ $app->get("/payments/{transaction_id}/receipt", function ($request, $response, $
  */
 $app->post("/payments/maya/register-webhook", function ($request, $response, $args) {
     // Only allow in development/admin environment
-    if (!IsAdmin()) {
-        return $response->withStatus(403)->withJson([
-            'success' => false,
-            'message' => 'Unauthorized access'
-        ]);
-    }
+
     
     $service = new MayaPaymentService();
     $data = $request->getParsedBody();
