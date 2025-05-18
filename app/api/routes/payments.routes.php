@@ -130,7 +130,7 @@ $app->post("/payments/maya/webhook", function ($request, $response, $args) {
         : ['13.229.160.234', '3.1.199.75', '127.0.0.1']; // Sandbox IPs + localhost for testing
     
     // Log the attempt for debugging
-    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode');
+    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode via POST');
     
     // Check if the request is from an authorized IP
     if (!in_array($clientIp, $allowedIPs)) {
@@ -174,7 +174,7 @@ $app->get("/payments/maya/webhook", function ($request, $response, $args) {
         : ['13.229.160.234', '3.1.199.75', '127.0.0.1']; // Sandbox IPs + localhost for testing
     
     // Log the attempt for debugging
-    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode');
+    Log('Maya Webhook attempt from IP: ' . $clientIp . ' in ' . ($isProduction ? 'Production' : 'Sandbox') . ' mode via GET');
     
     // Check if the request is from an authorized IP
     if (!in_array($clientIp, $allowedIPs)) {
