@@ -322,11 +322,9 @@ $app->post("/payments/maya/register-webhook", function ($request, $response, $ar
     $data = $request->getParsedBody();
     
     // Get base URL for webhook
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-    $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . '/';
     
     // Define webhook URL
-    $webhookUrl = $data['callbackUrl'] ?? $baseUrl . 'api/payments/maya/webhook';
+    $webhookUrl ='https://boc-enotary.itbsstudio.com/api/payments/maya/webhook';
     $webhookName = $data['name'] ?? 'eNotarize Payment Webhook';
     $events = $data['events'] ?? [];
     Log('Registering Web Hook Details ' . json_encode($data));
