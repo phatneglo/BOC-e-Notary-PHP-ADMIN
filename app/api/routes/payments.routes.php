@@ -112,7 +112,7 @@ $app->post("/payments/callback", function ($request, $response, $args) {
  * @apiName MayaWebhook
  * @apiGroup Payments
  */
-$app->post("/payments/maya/webhook", callable: function ($request, $response, $args) {
+$app->post("/payments/maya/webhook", function ($request, $response, $args) {
     // Set CORS headers directly on this endpoint for maximum compatibility
     $response = $response
         ->withHeader('Access-Control-Allow-Origin', '*') 
@@ -156,7 +156,7 @@ $app->post("/payments/maya/webhook", callable: function ($request, $response, $a
  * @apiName MayaWebhook
  * @apiGroup Payments
  */
-$app->get("/payments/maya/webhook", callable: function ($request, $response, $args) {
+$app->get("/payments/maya/webhook", function ($request, $response, $args) {
     // Set CORS headers directly on this endpoint for maximum compatibility
     $response = $response
         ->withHeader('Access-Control-Allow-Origin', '*') 
