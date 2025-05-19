@@ -21,3 +21,5 @@ require_once __DIR__ . '/fee-schedules.routes.php';
 require_once __DIR__ . '/permissions.routes.php';
 require_once __DIR__ . '/access.routes.php';
 require_once __DIR__ . '/maya-test.routes.php'; // Maya payment testing route
+require_once __DIR__ . '/faq.routes.php'; // FAQ routes
+require_once __DIR__ . '/support.routes.php'; // Support routes
