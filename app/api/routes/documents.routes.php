@@ -110,7 +110,7 @@ $app->get("/documents/{document_id}", function ($request, $response, $args) {
 $app->get("/documents/{document_id}/preview", function ($request, $response, $args) {
     $service = new DocumentService();
     $documentId = isset($args['document_id']) ? (int)$args['document_id'] : 0;
-    return $response->withJson($service->getDocumentPreview($documentId));
+    return $response->withJson($service->getDocumentPreview($documentId), 200, JSON_UNESCAPED_SLASHES);
 })->add($jwtMiddleware);
 
 /**
