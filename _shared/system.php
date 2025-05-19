@@ -2,25 +2,10 @@
 // _shared/system.php - List of the System
 global $SYSTEM;
 $SYSTEM = [
-    "UAC" => [
-        "TITLE" => "User Access Control",
+    "eNotary" => [
+        "TITLE" => "eNotary",
         "VERSION" => "1.0.0",
-        "IMAGE" => "uac-logo-sm.png",
-    ],
-    "AMS" => [
-        "TITLE" => "Property & Archive Management",
-        "VERSION" => "1.0.0",
-        "IMAGE" => "pams-logo-sm.png",
-    ],
-    "GMS" => [
-        "TITLE" => "Geo Information System",
-        "VERSION" => "1.0.0",
-        "IMAGE" => "gms-logo-sm.png",
-    ],
-    "ARS" => [
-        "TITLE" => "Analytics & Reporting",
-        "VERSION" => "1.0.0",
-        "IMAGE" => "ars-logo-sm.png",
+        "IMAGE" => "login-logo.png",
     ],
 
 ];
