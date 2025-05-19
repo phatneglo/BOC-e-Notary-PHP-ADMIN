@@ -843,13 +843,13 @@ class DocumentService {
             
             $result = ExecuteRows($sql, "DB");
             
-            if (isset($result[0]['document_title']) && is_string($result[0]['document_title'])) {
+            if (isset($result[0]['document_html']) && is_string($result[0]['document_html'])) {
                 // Replace literal escaped newlines with actual newlines
-                $result[0]['document_title'] = str_replace('\\n', "", $result[0]['document_title']);
+                $result[0]['document_html'] = str_replace('\\n', "", $result[0]['document_html']);
                 
                 // Normalize line breaks
-                $result[0]['document_title'] = str_replace("\r\n", "", $result[0]['document_title']);
-                $result[0]['document_title'] = str_replace("\r", "", $result[0]['document_title']);
+                $result[0]['document_html'] = str_replace("\r\n", "", $result[0]['document_html']);
+                $result[0]['document_html'] = str_replace("\r", "", $result[0]['document_html']);
                 
             }
 
@@ -1169,6 +1169,16 @@ class DocumentService {
             }
             
             $document = $result[0];
+
+            if (isset($document['document_html']) && is_string($document['document_html'])) {
+                // Replace literal escaped newlines with actual newlines
+                $document['document_html'] = str_replace('\\n', "", $document['document_html']);
+                
+                // Normalize line breaks
+                $document['document_html'] = str_replace("\r\n", "", $document['document_html']);
+                $document['document_html'] = str_replace("\r", "", $document['document_html']);
+                
+            }            
             
             // Process options
             $includeSupportingDocs = isset($options['include_supporting_docs']) ? (bool)$options['include_supporting_docs'] : false;
