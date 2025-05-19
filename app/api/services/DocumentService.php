@@ -843,6 +843,17 @@ class DocumentService {
             
             $result = ExecuteRows($sql, "DB");
             
+            if (isset($result[0]['document_title']) && is_string($result[0]['document_title'])) {
+                // Replace literal escaped newlines with actual newlines
+                $result[0]['document_title'] = str_replace('\\n', "", $result[0]['document_title']);
+                
+                // Normalize line breaks
+                $result[0]['document_title'] = str_replace("\r\n", "", $result[0]['document_title']);
+                $result[0]['document_title'] = str_replace("\r", "", $result[0]['document_title']);
+                
+            }
+
+
             if (empty($result)) {
                 return [
                     'success' => false,

@@ -211,7 +211,6 @@ class TemplateService {
                 $template['html_content'] = str_replace("\r", "", $template['html_content']);
                 
                 // Log for debugging
-                Log("Processed HTML content for template ID {$templateId}: " . substr($template['html_content'], 0, 100) . "...");
             }
                    
             // Get template fields
