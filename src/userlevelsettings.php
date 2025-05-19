@@ -102,8 +102,8 @@ $USER_LEVEL_PRIVS = [["{eNotary}audit_logs","-2","0"],
     ["{eNotary}document_status_view","0","0"],
     ["{eNotary}PaymentDashboard.php","-2","0"],
     ["{eNotary}PaymentDashboard.php","0","0"],
-    ["{eNotary}SupportDashboard.php","-2","0"],
-    ["{eNotary}SupportDashboard.php","0","0"]];
+    ["{eNotary}SupportPanel.php","-2","0"],
+    ["{eNotary}SupportPanel.php","0","0"]];
 
 /**
  * Tables
@@ -156,4 +156,4 @@ $USER_LEVEL_TABLES = [["audit_logs","audit_logs","audit logs",false,"{eNotary}",
     ["document_statuses","document_statuses","document statuses",true,"{eNotary}","DocumentStatusesList"],
     ["document_status_view","document_status_view","document status view",true,"{eNotary}","DocumentStatusViewList"],
     ["PaymentDashboard.php","PaymentDashboard","Transaction Dashboard",true,"{eNotary}","PaymentDashboard"],
-    ["SupportDashboard.php","SupportDashboard","Support Dashboard",true,"{eNotary}","SupportDashboard"]];
+    ["SupportPanel.php","SupportPanel","Support Dashboard",true,"{eNotary}","SupportPanel"]];

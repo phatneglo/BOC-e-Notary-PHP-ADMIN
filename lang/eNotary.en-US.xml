@@ -1620,7 +1620,7 @@
     <table id="paymentdashboard">
       <phrase id="tblcaption" value="Transaction Dashboard" />
     </table>
-    <table id="supportdashboard">
+    <table id="supportpanel">
       <phrase id="tblcaption" value="Support Dashboard" />
     </table>
   </project>

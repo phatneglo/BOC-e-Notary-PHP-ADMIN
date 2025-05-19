@@ -1,4 +1,3 @@
-```php
 <?php
 namespace PHPMaker2024\eNotary;
 
@@ -16,6 +15,33 @@ $startDate = "";
 $endDate = "";
 $customStartDate = Get("custom_start_date", "");
 $customEndDate = Get("custom_end_date", "");
+
+
+$historyRequestId = Get("history_request_id", 0);
+if ($historyRequestId > 0) {
+    // This is a request for history data only
+    $history = ExecuteRows("
+        SELECT 
+            srh.history_id,
+            srh.request_id,
+            srh.status,
+            srh.comment,
+            srh.created_by,
+            srh.created_at,
+            u.first_name || ' ' || u.last_name as staff_name
+        FROM support_request_history srh
+        LEFT JOIN users u ON srh.created_by = u.user_id
+        WHERE srh.request_id = " . QuotedValue($historyRequestId, DataType::NUMBER) . "
+        ORDER BY srh.created_at DESC", 
+    "DB");
+    
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'history' => $history]);
+    exit(); // Important: stop execution here
+}
+
+
+
 
 // Process date range
 switch ($dateRange) {
@@ -102,6 +128,7 @@ if ($action && $requestId) {
     try {
         // Begin transaction
         Execute("BEGIN", "DB");
+
         
         if ($action == "assign") {
             $staffId = Get("staff_id");
@@ -216,7 +243,7 @@ if ($action && $requestId) {
         Execute("COMMIT", "DB");
         
         // Redirect to refresh the page
-        header("Location: " . GetUrl("SupportDashboard"));
+        header("Location: " . GetUrl("SupportPanel"));
         exit();
     } catch (Exception $e) {
         // Rollback on error
@@ -311,7 +338,7 @@ $staffList = ExecuteRows("
         u.user_id,
         u.first_name || ' ' || u.last_name as name
     FROM users u
-    JOIN user_level_permissions ulp ON u.user_level_id = ulp.user_level_id
+    JOIN user_level_permissions ulp ON CAST(u.user_level_id AS INTEGER) = ulp.user_level_id
     WHERE ulp.table_name = 'support_requests' 
     AND ulp.permission & " . (1 << 0) . " > 0  -- Using bitwise for Edit permission
     ORDER BY name", 
@@ -589,9 +616,10 @@ if ($historyRequestId > 0) {
                                         <a href="javascript:void(0)" onclick="viewHistory(<?php echo $req['request_id']; ?>)" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-history me-1"></i> History
                                         </a>
-                                        <a href="SupportRequestView?request_id=<?php echo $req['request_id']; ?>" class="btn btn-sm btn-outline-secondary mt-1">
+                                       <a href="SupportRequestsView/<?php echo $req['request_id']; ?>" class="btn btn-sm btn-outline-secondary mt-1">
                                             <i class="fas fa-eye me-1"></i> View
                                         </a>
+
                                     </td>
                                 </tr>
                                 <!-- Detail Row -->
@@ -680,7 +708,7 @@ if ($historyRequestId > 0) {
                                                                 <ul class="dropdown-menu" aria-labelledby="assignDropdown<?php echo $req['request_id']; ?>">
                                                                     <?php foreach ($staffList as $staff): ?>
                                                                     <li>
-                                                                        <a class="dropdown-item" href="<?php echo GetUrl('SupportDashboard') . '?action=assign&request_id=' . $req['request_id'] . '&staff_id=' . $staff['user_id']; ?>">
+                                                                        <a class="dropdown-item" href="<?php echo GetUrl('SupportPanel') . '?action=assign&request_id=' . $req['request_id'] . '&staff_id=' . $staff['user_id']; ?>">
                                                                             <?php echo htmlspecialchars($staff['name']); ?>
                                                                         </a>
                                                                     </li>
@@ -741,7 +769,7 @@ if ($historyRequestId > 0) {
                             <ul class="pagination pagination-sm mb-0">
                                 <?php if ($page > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="<?php echo GetUrl('SupportDashboard', [
+                                    <a class="page-link" href="<?php echo GetUrl('SupportPanel', [
                                         'page' => $page - 1,
                                         'status_filter' => $statusFilter,
                                         'date_range' => $dateRange,
@@ -758,7 +786,7 @@ if ($historyRequestId > 0) {
                                 $endPage = min($totalPages, $page + 2);
                                 
                                 if ($startPage > 1) {
-                                    echo '<li class="page-item"><a class="page-link" href="' . GetUrl('SupportDashboard', [
+                                    echo '<li class="page-item"><a class="page-link" href="' . GetUrl('SupportPanel', [
                                         'page' => 1,
                                         'status_filter' => $statusFilter,
                                         'date_range' => $dateRange,
@@ -773,7 +801,7 @@ if ($historyRequestId > 0) {
                                 
                                 for ($i = $startPage; $i <= $endPage; $i++) {
                                     echo '<li class="page-item ' . ($page == $i ? 'active' : '') . '">
-                                        <a class="page-link" href="' . GetUrl('SupportDashboard', [
+                                        <a class="page-link" href="' . GetUrl('SupportPanel', [
                                             'page' => $i,
                                             'status_filter' => $statusFilter,
                                             'date_range' => $dateRange,
@@ -788,7 +816,7 @@ if ($historyRequestId > 0) {
                                         echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
                                     }
                                     
-                                    echo '<li class="page-item"><a class="page-link" href="' . GetUrl('SupportDashboard', [
+                                    echo '<li class="page-item"><a class="page-link" href="' . GetUrl('SupportPanel', [
                                         'page' => $totalPages,
                                         'status_filter' => $statusFilter,
                                         'date_range' => $dateRange,
@@ -800,7 +828,7 @@ if ($historyRequestId > 0) {
                                 
                                 <?php if ($page < $totalPages): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="<?php echo GetUrl('SupportDashboard', [
+                                    <a class="page-link" href="<?php echo GetUrl('SupportPanel', [
                                         'page' => $page + 1,
                                         'status_filter' => $statusFilter,
                                         'date_range' => $dateRange,
@@ -891,7 +919,7 @@ loadjs.ready(["wrapper", "head"], function () {
     
     // Initialize Request Type Chart
     const ctxRequestType = document.getElementById('requestTypeChart').getContext('2d');
-    new Chart(ctxRequestType, {
+    const requestTypeChart = new Chart(ctxRequestType, {
         type: 'bar',
         data: {
             labels: <?php echo json_encode(array_column($requestTypeStats, 'request_type')); ?>,
@@ -943,7 +971,7 @@ function updateStatus(requestId, status) {
         if (comment === null) return; // User cancelled
     }
     
-    window.location.href = '<?php echo GetUrl("SupportDashboard"); ?>' +
+    window.location.href = '<?php echo GetUrl("SupportPanel"); ?>' +
         '?action=status' +
         '&request_id=' + requestId +
         '&status=' + encodeURIComponent(status) +
@@ -955,7 +983,7 @@ function addResponse(requestId) {
     const response = prompt("Please enter your response to this request:", "");
     if (response === null || response === "") return; // User cancelled or empty
     
-    window.location.href = '<?php echo GetUrl("SupportDashboard"); ?>' +
+    window.location.href = '<?php echo GetUrl("SupportPanel"); ?>' +
         '?action=respond' +
         '&request_id=' + requestId +
         '&response=' + encodeURIComponent(response);
@@ -964,54 +992,59 @@ function addResponse(requestId) {
 // View History Function
 function viewHistory(requestId) {
     const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
-    historyModal.show();
-    
     const historyContent = document.getElementById('historyContent');
+    
+    // Show loading indicator
     historyContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading history...</p></div>';
     
-    // Fetch history data
-    fetch('<?php echo GetUrl("SupportDashboard"); ?>' + '?history_request_id=' + requestId)
-        .then(response => response.text())
-        .then(html => {
-            // The full page will be returned, but we only need to extract the history data
-            // In a real implementation, you would use AJAX to fetch only the history data
-            // For this example, we'll simulate by using the pre-loaded data
-            
-            const historyData = <?php echo json_encode($requestHistory); ?>;
-            
-            if (historyData.length === 0) {
-                historyContent.innerHTML = '<div class="alert alert-info">No history records found for this request.</div>';
-                return;
+    // Ajax request to load history data - using the same page with history_request_id parameter
+    $.ajax({
+        url: '<?php echo GetUrl("SupportPanel"); ?>',
+        type: 'GET',
+        data: { history_request_id: requestId },
+        dataType: 'json',
+        success: function(response) {
+            if (response && response.success) {
+                const history = response.history;
+                if (history.length === 0) {
+                    historyContent.innerHTML = '<div class="alert alert-info">No history records found for this request.</div>';
+                } else {
+                    let html = '';
+                    history.forEach(function(item) {
+                        const date = new Date(item.created_at);
+                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                        
+                        let statusClass = 'secondary';
+                        if (item.status === 'resolved') statusClass = 'success';
+                        if (item.status === 'pending') statusClass = 'warning';
+                        if (item.status === 'in-progress') statusClass = 'info';
+                        if (item.status === 'assigned') statusClass = 'primary';
+                        if (item.status === 'responded') statusClass = 'primary';
+                        
+                        html += `
+                        <div class="history-item">
+                            <div class="mb-1">
+                                <span class="badge bg-${statusClass}">${item.status}</span>
+                                <small class="text-muted ms-2">${formattedDate}</small>
+                            </div>
+                            <p class="mb-1">${item.comment}</p>
+                            <small class="text-muted">By: ${item.staff_name || 'System'}</small>
+                        </div>`;
+                    });
+                    
+                    historyContent.innerHTML = html;
+                }
+            } else {
+                historyContent.innerHTML = '<div class="alert alert-danger">Error loading history data</div>';
             }
-            
-            let html = '';
-            historyData.forEach(item => {
-                const date = new Date(item.created_at);
-                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                
-                let statusClass = 'secondary';
-                if (item.status === 'resolved') statusClass = 'success';
-                if (item.status === 'pending') statusClass = 'warning';
-                if (item.status === 'in-progress') statusClass = 'info';
-                if (item.status === 'assigned') statusClass = 'primary';
-                if (item.status === 'responded') statusClass = 'primary';
-                
-                html += `
-                <div class="history-item">
-                    <div class="mb-1">
-                        <span class="badge bg-${statusClass}">${item.status}</span>
-                        <small class="text-muted ms-2">${formattedDate}</small>
-                    </div>
-                    <p class="mb-1">${item.comment}</p>
-                    <small class="text-muted">By: ${item.staff_name || 'System'}</small>
-                </div>`;
-            });
-            
-            historyContent.innerHTML = html;
-        })
-        .catch(error => {
+        },
+        error: function(xhr) {
             historyContent.innerHTML = '<div class="alert alert-danger">Error loading history data. Please try again.</div>';
-            console.error('Error fetching history:', error);
-        });
+        }
+    });
+    
+    historyModal.show();
 }
+
+
 </script>

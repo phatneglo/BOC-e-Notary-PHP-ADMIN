@@ -118,6 +118,7 @@ return [
     "document_statuses" => \DI\create(DocumentStatuses::class),
     "document_status_view" => \DI\create(DocumentStatusView::class),
     "PaymentDashboard" => \DI\create(PaymentDashboard::class),
+    "SupportPanel" => \DI\create(SupportPanel::class),
 
     // User table
     "usertable" => \DI\get("users"),
