@@ -166,6 +166,15 @@ $completedCount = ExecuteScalar("
     $dateCondition", 
 "DB");
 
+
+$rejectedCount = ExecuteScalar("
+    SELECT COUNT(*) 
+    FROM payment_transactions pt
+    WHERE pt.status = 'rejected'
+    $dateCondition", 
+"DB");
+
+
 $totalAmount = ExecuteScalar("
     SELECT SUM(amount) 
     FROM payment_transactions pt
@@ -398,7 +407,7 @@ $timelineData = ExecuteRows("
     
     <!-- Summary Stats -->
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
@@ -414,7 +423,7 @@ $timelineData = ExecuteRows("
             </div>
         </div>
         
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
@@ -430,7 +439,7 @@ $timelineData = ExecuteRows("
             </div>
         </div>
         
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
@@ -440,6 +449,22 @@ $timelineData = ExecuteRows("
                         <div>
                             <h6 class="text-muted mb-0">Completed Transactions</h6>
                             <h2 class="mb-0"><?php echo number_format($completedCount); ?></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 me-3 bg-danger-subtle rounded">
+                            <i class="fas fa-times-circle text-danger fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0">Rejected Transactions</h6>
+                            <h2 class="mb-0"><?php echo number_format($rejectedCount); ?></h2>
                         </div>
                     </div>
                 </div>
@@ -564,12 +589,12 @@ $timelineData = ExecuteRows("
                                     </td>
                                     <td class="action-buttons">
                                         <?php if ($trx['status'] == 'pending'): ?>
-                                        <a href="<?php echo GetUrl('TransactionDashboard') . '?action=approve&transaction_id=' . $trx['transaction_id']; ?>" class="btn btn-sm btn-success">
+                                        <button type="button" class="btn btn-xs btn-success approve-btn" data-id="<?php echo $trx['transaction_id']; ?>">
                                             <i class="fas fa-check-circle me-1"></i> Approve
-                                        </a>
-                                        <a href="javascript:void(0)" onclick="rejectWithReason(<?php echo $trx['transaction_id']; ?>)" class="btn btn-sm btn-outline-danger mt-1">
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-danger  reject-btn" data-id="<?php echo $trx['transaction_id']; ?>">
                                             <i class="fas fa-times-circle me-1"></i> Reject
-                                        </a>
+                                        </button>
                                         <?php else: ?>
                                         <a href="PaymentView?transaction_id=<?php echo $trx['transaction_id']; ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye me-1"></i> View
@@ -764,12 +789,21 @@ $timelineData = ExecuteRows("
 </div>
 
 <!-- Approve Transaction Modal -->
+<!-- Approve Transaction Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="">
+            <form method="get" action="<?php echo GetUrl('TransactionDashboard'); ?>">
                 <input type="hidden" name="action" value="approve">
                 <input type="hidden" name="transaction_id" id="approveTransactionId">
+                
+                <!-- Preserve current filters when submitting -->
+                <input type="hidden" name="status_filter" value="<?php echo $statusFilter; ?>">
+                <input type="hidden" name="date_range" value="<?php echo $dateRange; ?>">
+                <?php if ($dateRange == "custom"): ?>
+                <input type="hidden" name="custom_start_date" value="<?php echo $customStartDate; ?>">
+                <input type="hidden" name="custom_end_date" value="<?php echo $customEndDate; ?>">
+                <?php endif; ?>
                 
                 <div class="modal-header">
                     <h5 class="modal-title" id="approveModalLabel">Approve Payment</h5>
@@ -792,9 +826,17 @@ $timelineData = ExecuteRows("
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="">
+            <form method="get" action="<?php echo GetUrl('TransactionDashboard'); ?>">
                 <input type="hidden" name="action" value="reject">
                 <input type="hidden" name="transaction_id" id="rejectTransactionId">
+                
+                <!-- Preserve current filters when submitting -->
+                <input type="hidden" name="status_filter" value="<?php echo $statusFilter; ?>">
+                <input type="hidden" name="date_range" value="<?php echo $dateRange; ?>">
+                <?php if ($dateRange == "custom"): ?>
+                <input type="hidden" name="custom_start_date" value="<?php echo $customStartDate; ?>">
+                <input type="hidden" name="custom_end_date" value="<?php echo $customEndDate; ?>">
+                <?php endif; ?>
                 
                 <div class="modal-header">
                     <h5 class="modal-title" id="rejectModalLabel">Reject Payment</h5>
@@ -867,7 +909,7 @@ loadjs.ready(["wrapper", "head"], function () {
             approveModal.show();
         });
     });
-    
+
     // Setup reject modal
     const rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
     document.querySelectorAll('.reject-btn').forEach(function(btn) {
@@ -877,14 +919,14 @@ loadjs.ready(["wrapper", "head"], function () {
         });
     });
 
-    function rejectWithReason(transactionId) {
-        const reason = prompt("Please enter a reason for rejection:", "");
-        if (reason !== null) {
-            window.location.href = '<?php echo GetUrl("TransactionDashboard"); ?>' + 
-                '?action=reject&transaction_id=' + transactionId + 
-                '&reject_reason=' + encodeURIComponent(reason);
-        }
-    } 
+    // function rejectWithReason(transactionId) {
+    //     const reason = prompt("Please enter a reason for rejection:", "");
+    //     if (reason !== null) {
+    //         window.location.href = '<?php echo GetUrl("TransactionDashboard"); ?>' + 
+    //             '?action=reject&transaction_id=' + transactionId + 
+    //             '&reject_reason=' + encodeURIComponent(reason);
+    //     }
+    // } 
 
     // Chart initialization
     if (typeof Chart !== 'undefined') {
