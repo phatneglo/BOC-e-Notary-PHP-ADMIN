@@ -108,13 +108,12 @@ $app->setBasePath($basePath);
 // Add body parsing middleware
 $app->addBodyParsingMiddleware();
 
-// Add CORS middleware - Allow all origins, methods, and headers
+// Add CORS middleware
 $app->add(new CorsMiddleware([
-    "Access-Control-Allow-Origin" => "*", // Allow all origins
-    "Access-Control-Allow-Headers" => "X-Requested-With, Content-Type, Accept, Origin, X-Authorization, Authorization, X-Api-Key", // Allow all common headers
-    "Access-Control-Allow-Methods" => "GET, POST, PUT, PATCH, DELETE, OPTIONS", // Allow all methods
-    "Access-Control-Allow-Credentials" => true, // Allow credentials
-    "Access-Control-Max-Age" => "86400" // Cache preflight requests for 24 hours
+    "Access-Control-Allow-Origin" => "*",
+    "Access-Control-Allow-Headers" => "X-Requested-With, Origin, X-Authorization",
+    "Access-Control-Allow-Methods" => "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Credentials" => true
 ]));
 
 // Add routing middleware (after CORS middleware so routing is performed first)

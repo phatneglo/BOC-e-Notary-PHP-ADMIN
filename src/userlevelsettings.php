@@ -99,7 +99,9 @@ $USER_LEVEL_PRIVS = [["{eNotary}audit_logs","-2","0"],
     ["{eNotary}document_statuses","-2","0"],
     ["{eNotary}document_statuses","0","0"],
     ["{eNotary}document_status_view","-2","0"],
-    ["{eNotary}document_status_view","0","0"]];
+    ["{eNotary}document_status_view","0","0"],
+    ["{eNotary}TransactionDashboard.php","-2","0"],
+    ["{eNotary}TransactionDashboard.php","0","0"]];
 
 /**
  * Tables
@@ -150,4 +152,5 @@ $USER_LEVEL_TABLES = [["audit_logs","audit_logs","audit logs",false,"{eNotary}",
     ["verification_attempts","verification_attempts","verification attempts",true,"{eNotary}","VerificationAttemptsList"],
     ["refresh_tokens","refresh_tokens","refresh tokens",true,"{eNotary}","RefreshTokensList"],
     ["document_statuses","document_statuses","document statuses",true,"{eNotary}","DocumentStatusesList"],
-    ["document_status_view","document_status_view","document status view",true,"{eNotary}","DocumentStatusViewList"]];
+    ["document_status_view","document_status_view","document status view",true,"{eNotary}","DocumentStatusViewList"],
+    ["TransactionDashboard.php","TransactionDashboard","Transaction Dashboard",true,"{eNotary}","TransactionDashboard"]];

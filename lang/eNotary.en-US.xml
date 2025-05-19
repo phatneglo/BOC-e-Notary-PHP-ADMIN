@@ -1,4 +1,4 @@
-<ew-language date="2025/5/16" id="en-US" author="e.World Technology Limited">
+<ew-language date="2025/5/19" id="en-US" author="e.World Technology Limited">
   <project>
     <phrase id="bodytitle" value="BOC - eNotary" />
     <phrase id="footertext" value="&amp;copy;2025 BOC eNotarize - ITBS Corporation. All rights reserved." />
@@ -10,6 +10,9 @@
     </menu>
     <menu id="77">
       <phrase id="menutext" value="document status view" />
+    </menu>
+    <menu id="78">
+      <phrase id="menutext" value="Transaction Dashboard" />
     </menu>
     <menu id="9">
       <phrase id="menutext" value="Dashboard" />
@@ -1610,6 +1613,9 @@
       <field id="status_name">
         <phrase id="fldcaption" value="status name" />
       </field>
+    </table>
+    <table id="transactiondashboard">
+      <phrase id="tblcaption" value="Transaction Dashboard" />
     </table>
   </project>
 </ew-language>

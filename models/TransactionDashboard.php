@@ -15,12 +15,12 @@ use Closure;
 /**
  * Page class
  */
-class PersonalData
+class TransactionDashboard
 {
     use MessagesTrait;
 
     // Page ID
-    public $PageID = "personal_data";
+    public $PageID = "custom";
 
     // Project ID
     public $ProjectID = PROJECT_ID;
@@ -32,7 +32,7 @@ class PersonalData
     public $TableVar;
 
     // Page object name
-    public $PageObjName = "PersonalData";
+    public $PageObjName = "TransactionDashboard";
 
     // View file path
     public $View = null;
@@ -44,13 +44,12 @@ class PersonalData
     public $RenderingView = false;
 
     // CSS class/style
+    public $ReportContainerClass = "ew-grid";
     public $CurrentPageName = "TransactionDashboardController";
 
     // Page headings
     public $Heading = "";
     public $Subheading = "";
-    public $PageHeader;
-    public $PageFooter;
 
     // Page layout
     public $UseLayout = true;
@@ -101,26 +100,6 @@ class PersonalData
         return rtrim(UrlFor($route->getName(), $args), "/") . "?";
     }
 
-    // Show Page Header
-    public function showPageHeader()
-    {
-        $header = $this->PageHeader;
-        $this->pageDataRendering($header);
-        if ($header != "") { // Header exists, display
-            echo '<div id="ew-page-header">' . $header . '</div>';
-        }
-    }
-
-    // Show Page Footer
-    public function showPageFooter()
-    {
-        $footer = $this->PageFooter;
-        $this->pageDataRendered($footer);
-        if ($footer != "") { // Footer exists, display
-            echo '<div id="ew-page-footer">' . $footer . '</div>';
-        }
-    }
-
     // Constructor
     public function __construct()
     {
@@ -131,6 +110,11 @@ class PersonalData
 
         // Language object
         $Language = Container("app.language");
+
+        // Table name (for backward compatibility only)
+        if (!defined(PROJECT_NAMESPACE . "TABLE_NAME")) {
+            define(PROJECT_NAMESPACE . "TABLE_NAME", 'TransactionDashboard.php');
+        }
 
         // Start timer
         $DebugTimer = Container("debug.timer");
@@ -197,6 +181,11 @@ class PersonalData
 
         // Page is terminated
         $this->terminated = true;
+
+        // Page Unload event
+        if (method_exists($this, "pageUnload")) {
+            $this->pageUnload();
+        }
         DispatchEvent(new PageUnloadedEvent($this), PageUnloadedEvent::NAME);
 
         // Close connection
@@ -229,9 +218,6 @@ class PersonalData
         return; // Return to controller
     }
 
-    // Properties
-    public $Password;
-
     /**
      * Page run
      *
@@ -239,11 +225,7 @@ class PersonalData
      */
     public function run()
     {
-        global $ExportType, $Language, $Security, $CurrentForm, $Breadcrumb;
-
-        // Create Password field object (used by validation only)
-        $this->Password = new DbField(Container("usertable"), "password", "password", "password", "", 202, 255, -1, false, "", false, false, false);
-        $this->Password->EditAttrs->appendClass("form-control ew-form-control");
+        global $ExportType, $Language, $Security, $CurrentForm;
 
         // Use layout
         $this->UseLayout = $this->UseLayout && ConvertToBool(Param(Config("PAGE_LAYOUT"), true));
@@ -255,23 +237,20 @@ class PersonalData
         if (IsLoggedIn()) {
             Profile()->setUserName(CurrentUserName())->loadFromStorage();
         }
+        if (Get("export") !== null) {
+            $ExportType = Get("export"); // Get export parameter, used in header
+        }
 
         // Global Page Loading event (in userfn*.php)
         DispatchEvent(new PageLoadingEvent($this), PageLoadingEvent::NAME);
-        $Breadcrumb = Breadcrumb::create("index")->add("personal_data", "PersonalDataTitle", CurrentUrl(), "ew-personal-data", "", true);
-        $this->Heading = $Language->phrase("PersonalDataTitle");
-        $cmd = Param("cmd");
-        if (SameText($cmd, "Download")) {
-            if ($this->personalDataResult()) {
-                $this->terminate();
-                return;
-            }
-        } elseif (SameText($cmd, "Delete") && IsPost()) {
-            if ($this->deletePersonalData()) {
-                $this->terminate(GetUrl("logout?deleted=1"));
-                return;
-            }
+
+        // Page Load event
+        if (method_exists($this, "pageLoad")) {
+            $this->pageLoad();
         }
+
+        // Set up Breadcrumb
+        $this->setupBreadcrumb();
 
         // Set LoginStatus / Page_Rendering / Page_Render
         if (!IsApi() && !$this->isTerminated()) {
@@ -296,75 +275,29 @@ class PersonalData
         }
     }
 
-    /**
-     * Write personal data as JSON
-     *
-     * @return void
-     */
-    protected function personalDataResult()
+    // Set up Breadcrumb
+    protected function setupBreadcrumb()
     {
-        $fldNames = [];
-        $user = FindUserByUserName(CurrentUserName());
-        if ($user) {
-            $row = $user->toArray();
-
-            // Call PersonalData_Downloading event
-            PersonalData_Downloading($row);
-            $personalDataFileName = Get("_personaldatafilename", "personaldata.json");
-            AddHeader("Content-Disposition", "attachment; filename=\"" . $personalDataFileName . "\"");
-            WriteJson($row);
-            return true;
-        } else {
-            $this->setFailureMessage($Language->phrase("NoRecord")); // No record found
-            return false;
-        }
+        global $Breadcrumb, $Language;
+        $Breadcrumb = Breadcrumb::create("index")->add("custom", "TransactionDashboard", CurrentUrl(), "", "TransactionDashboard", true);
+        $this->Heading = $Language->tablePhrase("TransactionDashboard", "TblCaption");
     }
 
-    /**
-     * Delete personal data
-     *
-     * @return bool
-     */
-    protected function deletePersonalData()
+    // Page Load event
+    public function pageLoad()
     {
-        global $Language, $UserTable;
-        $pwd = Post($this->Password->FieldVar, "");
-        $userName = CurrentUserName();
-        if ($UserTable->UpdateTable != $UserTable->TableName && $this->UpdateTable != $this->getSqlFrom()) { // Note: The username and password field name must be the same
-            $entityClass = GetEntityClass($UserTable->UpdateTable);
-            if ($entityClass) {
-                $user = GetUserEntityManager()->getRepository($entityClass)->findOneBy(["username" => $userName]);
-            } else {
-                throw new \Exception("Entity class for UpdateTable not found.");
-            }
-        } else {
-            $user = FindUserByUserName($userName);
-        }
-        if ($user) {
-            if (ComparePassword($user->get(Config("LOGIN_PASSWORD_FIELD_NAME")), $pwd)) {
-                $row = $user->toArray();
-                if (Config("DELETE_UPLOADED_FILES")) { // Delete old files
-                    $UserTable->deleteUploadedFiles($row);
-                }
-                try {
-                    $em = GetUserEntityManager();
-                    $em->remove($user);
-                    $em->flush();
+        //Log("Page Load");
+    }
 
-                    // Call PersonalData_Deleted event
-                    PersonalData_Deleted($row);
-                    return true;
-                } catch (\Exception $e) {
-                    $this->setFailureMessage($Language->phrase("PersonalDataDeleteFailure") . ": " . $e->getMessage());
-                    return false;
-                }
-            } else {
-                $this->Password->addErrorMessage($Language->phrase("InvalidPassword"));
-                return false;
-            }
-        } else {
-            $this->setFailureMessage($Language->phrase("NoRecord"));
-            return false;
-        }
+    // Page Unload event
+    public function pageUnload()
+    {
+        //Log("Page Unload");
+    }
+
+    // Page Render event
+    public function pageRender()
+    {
+        //Log("Page Render");
     }
 }
