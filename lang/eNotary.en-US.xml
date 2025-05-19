@@ -14,6 +14,9 @@
     <menu id="78">
       <phrase id="menutext" value="Transaction Dashboard" />
     </menu>
+    <menu id="79">
+      <phrase id="menutext" value="Support Dashboard" />
+    </menu>
     <menu id="9">
       <phrase id="menutext" value="Dashboard" />
     </menu>
@@ -1614,8 +1617,11 @@
         <phrase id="fldcaption" value="status name" />
       </field>
     </table>
-    <table id="transactiondashboard">
+    <table id="paymentdashboard">
       <phrase id="tblcaption" value="Transaction Dashboard" />
+    </table>
+    <table id="supportdashboard">
+      <phrase id="tblcaption" value="Support Dashboard" />
     </table>
   </project>
 </ew-language>

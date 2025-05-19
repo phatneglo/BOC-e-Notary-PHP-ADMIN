@@ -117,7 +117,7 @@ return [
     "refresh_tokens" => \DI\create(RefreshTokens::class),
     "document_statuses" => \DI\create(DocumentStatuses::class),
     "document_status_view" => \DI\create(DocumentStatusView::class),
-    "TransactionDashboard" => \DI\create(TransactionDashboard::class),
+    "PaymentDashboard" => \DI\create(PaymentDashboard::class),
 
     // User table
     "usertable" => \DI\get("users"),

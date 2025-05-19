@@ -236,7 +236,7 @@ if ($action && $transactionId) {
         Execute("COMMIT", "DB");
         
         // Redirect to refresh the page
-        header("Location: " . GetUrl("TransactionDashboard"));
+        header("Location: " . GetUrl("PaymentDashboard"));
         exit();
     } catch (Exception $e) {
         // Rollback on error
