@@ -174,6 +174,9 @@ $totalAmount = ExecuteScalar("
     $dateCondition", 
 "DB");
 
+
+
+
 // Process approval/rejection if form submitted
 // Process approval/rejection via GET parameters
 $action = Get("action");
@@ -264,6 +267,46 @@ function formatJSONForDisplay($jsonString) {
     
     return $output;
 }
+
+// Get transaction stats for charts
+$statusStats = ExecuteRows("
+    SELECT 
+        status, 
+        COUNT(*) as count,
+        SUM(amount) as total_amount
+    FROM payment_transactions pt
+    WHERE 1=1
+    $dateCondition
+    GROUP BY status
+    ORDER BY count DESC", 
+"DB");
+
+// Get transaction timeline data
+$timelineData = ExecuteRows("
+    WITH RECURSIVE date_range AS (
+        SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '5 months') AS month
+        UNION ALL
+        SELECT month + INTERVAL '1 month'
+        FROM date_range
+        WHERE month < DATE_TRUNC('month', CURRENT_DATE)
+    )
+    SELECT 
+        TO_CHAR(dr.month, 'Mon YYYY') as month_label,
+        dr.month as month_date,
+        COALESCE(COUNT(pt.transaction_id), 0) as transaction_count,
+        COALESCE(SUM(CASE WHEN pt.status = 'completed' THEN 1 ELSE 0 END), 0) as completed_count,
+        COALESCE(SUM(CASE WHEN pt.status = 'pending' THEN 1 ELSE 0 END), 0) as pending_count,
+        COALESCE(SUM(CASE WHEN pt.status = 'rejected' THEN 1 ELSE 0 END), 0) as rejected_count,
+        COALESCE(SUM(pt.amount), 0) as total_amount
+    FROM date_range dr
+    LEFT JOIN payment_transactions pt ON 
+        DATE_TRUNC('month', pt.created_at) = dr.month
+    WHERE 1=1
+    " . ($dateCondition ? str_replace("pt.created_at", "pt.created_at", $dateCondition) : "") . "
+    GROUP BY dr.month, month_label
+    ORDER BY dr.month",
+"DB");
+
 
 // Page rendering starts here
 ?>
@@ -404,6 +447,45 @@ function formatJSONForDisplay($jsonString) {
         </div>
     </div>
     
+
+    <!-- Transaction Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Transaction Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Transaction Amount by Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="amountChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Transaction Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="timelineChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Transactions Table -->
     <div class="row mb-4">
         <div class="col-12">
@@ -733,6 +815,7 @@ function formatJSONForDisplay($jsonString) {
         </div>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 
 <script>
 loadjs.ready(["wrapper", "head"], function () {
@@ -802,5 +885,197 @@ loadjs.ready(["wrapper", "head"], function () {
                 '&reject_reason=' + encodeURIComponent(reason);
         }
     } 
+
+    // Chart initialization
+    if (typeof Chart !== 'undefined') {
+        // Set global Chart.js options
+        Chart.defaults.global.defaultFontFamily = "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif";
+        Chart.defaults.global.defaultFontSize = 12;
+        Chart.defaults.global.tooltips.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        Chart.defaults.global.tooltips.cornerRadius = 6;
+        
+        // Transaction Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        const statusChart = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?php 
+                    $labels = [];
+                    $data = [];
+                    $colors = [
+                        'pending' => 'rgba(245, 158, 11, 0.8)',    // yellow/warning for pending
+                        'completed' => 'rgba(16, 185, 129, 0.8)',  // green/success for completed
+                        'rejected' => 'rgba(239, 68, 68, 0.8)'     // red/danger for rejected
+                    ];
+                    $bgColors = [];
+                    
+                    foreach ($statusStats as $stat) {
+                        $labels[] = ucfirst($stat['status']);
+                        $data[] = $stat['count'];
+                        $bgColors[] = $colors[$stat['status']] ?? 'rgba(156, 163, 175, 0.8)';  // default gray
+                    }
+                    
+                    echo json_encode($labels);
+                ?>,
+                datasets: [{
+                    data: <?php echo json_encode($data); ?>,
+                    backgroundColor: <?php echo json_encode($bgColors); ?>,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutoutPercentage: 65,
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20
+                    }
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function(tooltipItem, data) {
+                            const dataset = data.datasets[tooltipItem.datasetIndex];
+                            const value = dataset.data[tooltipItem.index];
+                            const label = data.labels[tooltipItem.index];
+                            const total = dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Transaction Amount Chart
+        const amountCtx = document.getElementById('amountChart').getContext('2d');
+        const amountChart = new Chart(amountCtx, {
+            type: 'bar',
+            data: {
+                labels: <?php 
+                    $labels = [];
+                    $amounts = [];
+                    
+                    foreach ($statusStats as $stat) {
+                        $labels[] = ucfirst($stat['status']);
+                        $amounts[] = $stat['total_amount'];
+                    }
+                    
+                    echo json_encode($labels);
+                ?>,
+                datasets: [{
+                    label: 'Total Amount',
+                    data: <?php echo json_encode($amounts); ?>,
+                    backgroundColor: <?php echo json_encode($bgColors); ?>,
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true,
+                            callback: function(value) {
+                                return '₱' + value.toLocaleString();
+                            }
+                        },
+                        gridLines: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }],
+                    xAxes: [{
+                        gridLines: {
+                            display: false
+                        }
+                    }]
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function(tooltipItem, data) {
+                            let value = tooltipItem.yLabel;
+                            return `Amount: ₱${value.toLocaleString()}`;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Transaction Timeline Chart
+        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+        const timelineChart = new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode(array_column($timelineData, 'month_label')); ?>,
+                datasets: [
+                    {
+                        label: 'Total Transactions',
+                        data: <?php echo json_encode(array_column($timelineData, 'transaction_count')); ?>,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        lineTension: 0.4
+                    },
+                    {
+                        label: 'Completed',
+                        data: <?php echo json_encode(array_column($timelineData, 'completed_count')); ?>,
+                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgb(16, 185, 129)',
+                        fill: false,
+                        lineTension: 0.4
+                    },
+                    {
+                        label: 'Pending',
+                        data: <?php echo json_encode(array_column($timelineData, 'pending_count')); ?>,
+                        borderColor: 'rgb(245, 158, 11)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgb(245, 158, 11)',
+                        fill: false,
+                        lineTension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true,
+                            precision: 0
+                        },
+                        gridLines: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }],
+                    xAxes: [{
+                        gridLines: {
+                            display: false
+                        }
+                    }]
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false
+                },
+                hover: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        });
+    }
+
 });
 </script>
